@@ -59,8 +59,8 @@ perl -F'\|' -lane '
 		$_ =~ s/\s+$//;
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
-# REPLACE PIPE DELIMITERS WITH COMMAS
-	print join q/,/, @F' ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/patrons_mnps_infinitecampus.csv;
+# REPLACE PIPE DELIMITERS WITH COMMAS, ELIMINATE COLUMNS THAT WILL NOT BE COMPARED
+	print join q/,/, @F[0-9,14,18,23,24,26,27,28-31,32,33]' ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/patrons_mnps_infinitecampus.csv;
 # REMOVE HEADERS
 perl -pi -e '$_ = "" if ( $. == 1 )' ../data/patrons_mnps_infinitecampus.csv
 # SORT BY ID
