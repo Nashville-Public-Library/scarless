@@ -27,7 +27,7 @@ select patron_v.patronid as "Patron ID"						-- 00
   , patron_v.email as "Email Address"						-- 24
 --  , '' as "Notes"								-- 25
   , to_char(jts.todate(patron_v.birthdate),'YYYY-MM-DD') as "Birth Date"	-- 26
-  , guarantor.guarantor as "Guardian"						-- 27
+--  , guarantor.guarantor as "Guardian"						-- 27
 -- TO DO: endure udf values from carlx match those from infinitecampus (i.e., "Yes" and "No", not "Y" and "N")
   , udf2.valuename as "Racial or Ethnic Category"				-- 28
   , udf3.valuename as "Lap Top Check Out"					-- 29
