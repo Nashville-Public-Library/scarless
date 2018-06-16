@@ -6,7 +6,10 @@
 # STUDENTS
 
 # APPEND TEST PATRONS
-cat ../data/TEST_INFINITECAMPUS_STUDENT.txt >> ../data/CARLX_INFINITECAMPUS_STUDENT.txt
+cat ../data/TEST_INFINITECAMPUS_STUDENT.txt ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/patrons_mnps_infinitecampus.txt
+
+# SORT AND UNIQ PATRONS
+sort -u -o ../data/patrons_mnps_infinitecampus.txt ../data/patrons_mnps_infinitecampus.txt
 
 perl -F'\|' -lane '
 # SCRUB NON-ASCII CHARACTERS
@@ -60,7 +63,7 @@ perl -F'\|' -lane '
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
 # REPLACE PIPE DELIMITERS WITH COMMAS, ELIMINATE COLUMNS THAT WILL NOT BE COMPARED
-	print join q/,/, @F[0..9,14,18,23,24,26,28..33]' ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/patrons_mnps_infinitecampus.csv;
+	print join q/,/, @F[0..9,14,18,23,24,26,29..33]' ../data/patrons_mnps_infinitecampus.txt > ../data/patrons_mnps_infinitecampus.csv;
 # REMOVE HEADERS
 perl -pi -e '$_ = "" if ( $. == 1 )' ../data/patrons_mnps_infinitecampus.csv
 # SORT BY ID
