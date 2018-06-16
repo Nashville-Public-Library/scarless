@@ -5,13 +5,12 @@
 
 # STUDENTS
 
+# APPEND TEST PATRONS
+cat ../data/TEST_INFINITECAMPUS_STUDENT.txt >> ../data/CARLX_INFINITECAMPUS_STUDENT.txt
+
 perl -F'\|' -lane '
 # SCRUB NON-ASCII CHARACTERS
 	@F = map { s/[^\012\015\040-\176]//g; $_ } @F;
-# 20180501 ELIMINATE 2017-2018 12TH GRADERS FROM CARL PATRON LOAD
-	if ($F[1] == 34) { next; }
-# MCMURRAY 5-6TH GRADE REASSIGN TO MCMURRAY ANNEX @ TUSCULUM
-	if ($F[18] =~ m/^4K540$/ && ($F[1] == 27 || $F[1] == 28)) { $F[18] = "4Y541"; }
 # SKIP STUDENTS AT NON-ELIGIBLE SCHOOLS
 	# Academy at Old Cockrill
 	if ($F[18] =~ m/^72211$/) { next; }
@@ -19,8 +18,6 @@ perl -F'\|' -lane '
 	elsif ($F[18] =~ m/^73422$/) { next; }
 	# Middle College High
 	elsif ($F[18] =~ m/^74562$/) { next; }
-	# Murrell School
-	elsif ($F[18] =~ m/^75585$/) { next; }
 	# Academy at Opry Mills
 	elsif ($F[18] =~ m/^76613$/) { next; }
 # ASSIGN NON-DELIVERY BORROWER TYPE TO ONLINE-ONLY STUDENT PATRONS
@@ -48,20 +45,11 @@ perl -F'\|' -lane '
 		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
 	} 
 # SET LIMITLESS PERMISSION TO YES IF BLANK
-	elsif ($F[30] =~ m/^$/) { $F[30] = "Yes"; }
-# CHANGE USER DEFINED FIELDS laptopCheckout limitlessLibrariesuse techOptout from N to No and Y to Yes
-	if ($F[29] eq "N") { $F[29] = "No"; }
-	if ($F[29] eq "Y") { $F[29] = "Yes"; }
-	if ($F[30] eq "N") { $F[30] = "No"; }
-	if ($F[30] eq "Y") { $F[30] = "Yes"; }
-	if ($F[31] eq "N") { $F[31] = "No"; }
-	if ($F[31] eq "Y") { $F[31] = "Yes"; }
+	elsif ($F[30] =~ m/^$/) { $F[30] = "Y"; }
 # SET STATUS = GOOD; SHOULD NOT OVERWRITE CARL.X STATUS
-	$F[20] = "G";
-# NORMALIZE DATE VALUE FOR EXPIRATION
-#	if ($F[23] =~ /(\d{2})\/(\d{2})\/(\d{4})/) { $F[23] =~ s/(\d{2})\/(\d{2})\/(\d{4})/$3-$1-$2/; }
+	$F[20] = "";
 # CHANGE DATE VALUE FOR EXPIRATION TO 2018-08-04
-	$F[23] = "2018-08-04";
+	$F[23] = "2019-09-01";
 # FORMAT AS CSV
 	foreach (@F) {
 		# CHANGE QUOTATION MARK IN ALL FIELDS TO AN APOSTROPHE
@@ -72,11 +60,9 @@ perl -F'\|' -lane '
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
 # REPLACE PIPE DELIMITERS WITH COMMAS
-	print join q/,/, @F' ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/INFINITECAMPUS_STUDENT.txt;
-# REMOVE MILLENNIUM HEADERS
-perl -pi -e '$_ = "" if ( $. == 1 )' ../data/INFINITECAMPUS_STUDENT.txt
+	print join q/,/, @F' ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/INFINITECAMPUS_STUDENT.csv;
+# REMOVE HEADERS
+perl -pi -e '$_ = "" if ( $. == 1 )' ../data/INFINITECAMPUS_STUDENT.csv
 # SORT BY ID
-sort -o ../data/INFINITECAMPUS_STUDENT.txt ../data/INFINITECAMPUS_STUDENT.txt
-# REPLACE HEADERS
-perl -pi -e '$_ = qq/"Patron ID","Borrower type code","Patron last name","Patron first name","Patron middle name","Patron suffix","Primary Street Address","Primary City","Primary State","Primary Zip Code","Secondary Street Address","Secondary City","Secondary State","Secondary Zip Code","Primary Phone Number","Secondary Phone Number","Alternate ID","Non-validated Stats","Default Branch","Validated Stat Codes","Status Code","Registration Date","Last Action Date","Expiration Date","Email Address","Notes","Birth Date","Guardian","Racial or Ethnic Category","Lap Top Check Out","Limitless Library Use","Tech Opt Out","Teacher ID","Teacher Name"\n/ if ( $. == 1 )' ../data/INFINITECAMPUS_STUDENT.txt
+sort -o ../data/INFINITECAMPUS_STUDENT.csv ../data/INFINITECAMPUS_STUDENT.csv
 
