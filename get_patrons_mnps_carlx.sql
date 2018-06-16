@@ -1,40 +1,40 @@
-select patron_v.patronid as "Patron ID"
-  , patron_v.bty as "Borrower type code"
-  , patron_v.lastname as "Patron last name"
-  , patron_v.firstname as "Patron first name"
-  , patron_v.middlename as "Patron middle name"
-  , patron_v.suffixname as "Patron suffix"
-  , patron_v.street1 as "Primary Street Address"
-  , patron_v.city1 as "Primary City"
-  , patron_v.state1 as "Primary State"
-  , patron_v.zip1 as "Primary Zip Code"
-  , '' as "Secondary Street Address"
-  , '' as "Secondary City"
-  , '' as "Secondary State"
-  , '' as "Secondary Zip Code"
-  , patron_v.ph2 as "Primary Phone Number" -- CONFUSING. MNPS SUPPLIES PRIMARY HOME PHONE. NPL LOADS INTO SECONDARY PHONE BECAUSE STUDENTS SHOULD NOT RECEIVE ITIVA AUTOMATED CALLS
-  , '' as "Secondary Phone Number"
-  , '' as "Alternate ID"
-  , '' as "Non-validated Stats"
-  , patronbranch.branchcode as "Default Branch"
-  , '' as "Validated Stat Codes"
+select patron_v.patronid as "Patron ID"						-- 00
+  , patron_v.bty as "Borrower type code"					-- 01
+  , patron_v.lastname as "Patron last name"					-- 02
+  , patron_v.firstname as "Patron first name"					-- 03
+  , patron_v.middlename as "Patron middle name"					-- 04
+  , patron_v.suffixname as "Patron suffix"					-- 05
+  , patron_v.street1 as "Primary Street Address"				-- 06
+  , patron_v.city1 as "Primary City"						-- 07
+  , patron_v.state1 as "Primary State"						-- 08
+  , patron_v.zip1 as "Primary Zip Code"						-- 09
+--  , '' as "Secondary Street Address"						-- 10
+--  , '' as "Secondary City"							-- 11
+--  , '' as "Secondary State"							-- 12
+--  , '' as "Secondary Zip Code"						-- 13
+  , patron_v.ph2 as "Primary Phone Number"					-- 14 -- CONFUSING. MNPS SUPPLIES PRIMARY HOME PHONE. NPL LOADS INTO SECONDARY PHONE BECAUSE STUDENTS SHOULD NOT RECEIVE ITIVA AUTOMATED CALLS
+--  , '' as "Secondary Phone Number"						-- 15
+--  , '' as "Alternate ID"							-- 16
+--  , '' as "Non-validated Stats"						-- 17
+  , patronbranch.branchcode as "Default Branch"					-- 18
+--  , '' as "Validated Stat Codes"						-- 19
 -- TO DO: establish logic for patron status
 -- , patron_v.status as "Status Code"
-  , '' as "Status Code"
-  , '' as "Registration Date"
-  , '' as "Last Action Date"
-  , to_char(jts.todate(patron_v.expdate),'YYYY-MM-DD') as "Expiration Date"
-  , patron_v.email as "Email Address"
-  , '' as "Notes"
-  , to_char(jts.todate(patron_v.birthdate),'YYYY-MM-DD') as "Birth Date"
-  , guarantor.guarantor as "Guardian" -- FIXED!
+--  , '' as "Status Code"							-- 20
+--  , '' as "Registration Date"							-- 21
+--  , '' as "Last Action Date"							-- 22
+  , to_char(jts.todate(patron_v.expdate),'YYYY-MM-DD') as "Expiration Date"	-- 23
+  , patron_v.email as "Email Address"						-- 24
+--  , '' as "Notes"								-- 25
+  , to_char(jts.todate(patron_v.birthdate),'YYYY-MM-DD') as "Birth Date"	-- 26
+  , guarantor.guarantor as "Guardian"						-- 27
 -- TO DO: endure udf values from carlx match those from infinitecampus (i.e., "Yes" and "No", not "Y" and "N")
-  , udf2.valuename as "Racial or Ethnic Category" -- FIX THIS
-  , udf3.valuename as "Lap Top Check Out" -- FIX THIS
-  , udf4.valuename as "Limitless Library Use" -- FIX THIS
-  , udf1.valuename as "Tech Opt Out" -- FIXED?
-  , patron_v.street2 as "Teacher ID"
-  , patron_v.sponsor as "Teacher Name"
+  , udf2.valuename as "Racial or Ethnic Category"				-- 28
+  , udf3.valuename as "Lap Top Check Out"					-- 29
+  , udf4.valuename as "Limitless Library Use"					-- 30
+  , udf1.valuename as "Tech Opt Out"						-- 31
+  , patron_v.street2 as "Teacher ID"						-- 32
+  , patron_v.sponsor as "Teacher Name"						-- 33
 
 from patron_v
 join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
