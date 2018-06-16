@@ -21,126 +21,71 @@ if (!$conn) {
 	trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-$sql = <<<EOT
-select patron_v.patronid as "Patron ID"
-  , patron_v.bty as "Borrower type code"
-  , patron_v.lastname as "Patron last name"
-  , patron_v.firstname as "Patron first name"
-  , patron_v.middlename as "Patron middle name"
-  , patron_v.suffixname as "Patron suffix"
-  , patron_v.street1 as "Primary Street Address"
-  , patron_v.city1 as "Primary City"
-  , patron_v.state1 as "Primary State"
-  , patron_v.zip1 as "Primary Zip Code"
-  , '' as "Secondary Street Address"
-  , '' as "Secondary City"
-  , '' as "Secondary State"
-  , '' as "Secondary Zip Code"
-  , patron_v.ph2 as "Primary Phone Number" -- CONFUSING. MNPS SUPPLIES PRIMARY HOME PHONE. NPL LOADS INTO SECONDARY PHONE BECAUSE STUDENTS SHOULD NOT RECEIVE ITIVA AUTOMATED CALLS
-  , '' as "Secondary Phone Number"
-  , '' as "Alternate ID"
-  , '' as "Non-validated Stats"
-  , patronbranch.branchcode as "Default Branch"
-  , '' as "Validated Stat Codes"
-  , patron_v.status as "Status Code"
-  , '' as "Registration Date"
-  , '' as "Last Action Date"
-  , to_char(jts.todate(patron_v.expdate),'YYYY-MM-DD') as "Expiration Date"
-  , patron_v.email as "Email Address"
-  , '' as "Notes"
-  , to_char(jts.todate(patron_v.birthdate),'YYYY-MM-DD') as "Birth Date"
-  , guarantor.guarantor as "Guardian" -- FIXED!
-  , udf2.valuename as "Racial or Ethnic Category" -- FIX THIS
-  , udf3.valuename as "Lap Top Check Out" -- FIX THIS
-  , udf4.valuename as "Limitless Library Use" -- FIX THIS
-  , udf1.valuename as "Tech Opt Out" -- FIXED?
-  , patron_v.street2 as "Teacher ID"
-  , patron_v.sponsor as "Teacher Name"
-
-from patron_v 
-join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
-left outer join ( 
-  select distinct
-    refid
-    , first_value(text) over (partition by refid order by timestamp desc) as guarantor
-  from patronnotetext_v
-  where regexp_like(patronnotetext_v.text, 'NPL: MNPS Guarantor effective')
-) guarantor on patron_v.patronid = guarantor.refid
-left outer join ( 
-  select distinct
-    patronid
-    , fieldid
-    , valuename
-  from udfpatron_v
-  where udfpatron_v.fieldid = 1
-) udf1 on patron_v.patronid = udf1.patronid
-left outer join ( 
-  select distinct
-    patronid
-    , fieldid
-    , valuename
-  from udfpatron_v
-  where udfpatron_v.fieldid = 2
-) udf2 on patron_v.patronid = udf2.patronid
-left outer join ( 
-  select distinct
-    patronid
-    , fieldid
-    , valuename
-  from udfpatron_v
-  where udfpatron_v.fieldid = 3
-) udf3 on patron_v.patronid = udf3.patronid
-left outer join ( 
-  select distinct
-    patronid
-    , fieldid
-    , valuename
-  from udfpatron_v
-  where udfpatron_v.fieldid = 4
-) udf4 on patron_v.patronid = udf4.patronid
-where 
-   patronbranch.branchgroup = '2'
---   or patron_v.bty = 13 or (patron_v.bty >= 21 and patron_v.bty <= 42)
---   or regexp_like(patron_v.patronid,'^190[0-9]{6}$')
-  and regexp_like(patron_v.patronid,'^190999[0-9]{3}$') -- TEST STUDENT PATRONS
-order by patron_v.patronid
-EOT;
+// get_patrons_mnps_carlx.sql
+$get_patrons_mnps_carlx_filehandle = fopen("get_patrons_mnps_carlx.sql", "r") or die("Unable to open get_patrons_mnps_carlx.sql");
+$sql = fread($get_patrons_mnps_carlx_filehandle, filesize("get_patrons_mnps_carlx.sql"));
+fclose($get_patrons_mnps_carlx_filehandle);
 
 $stid = oci_parse($conn, $sql);
-// consider using oci_set_prefetch to improve performance
+// consider tuning oci_set_prefetch to improve performance
+// https://docs.oracle.com/database/121/TDPPH/ch_eight_query.htm#TDPPH172
 oci_set_prefetch($stid, 10000);
 oci_execute($stid);
 // start a new file for the CarlX patron extract
-$df;
-$df = fopen($reportPath . "CARLX_MNPS.CSV", 'w');
+$patrons_mnps_carlx_filehandle;
+$patrons_mnps_carlx_filehandle = fopen($reportPath . "patrons_mnps_carlx.csv", 'w');
         
 while (($row = oci_fetch_array ($stid, OCI_ASSOC+OCI_RETURN_NULLS)) != false) {
 	// CSV OUTPUT
-	fputcsv($df, $row);
+	fputcsv($patrons_mnps_carlx_filehandle, $row);
 }
-fclose($df);
-echo "CARLX MNPS patrons retrieved and written\n";
+fclose($patrons_mnps_carlx_filehandle);
+echo "Patrons MNPS CARLX retrieved and written\n";
 oci_free_statement($stid);
 oci_close($conn);
 
 // TO DO: handle staff
+
+$records = array();
+// $icfile = "../data/INFINITECAMPUS_STUDENT.csv";
+$icfile = "../data/TEST-INFINITECAMPUS_STUDENT.csv";
+
 // TO DO: Diff ad hoc csv result against ic extract
 // TO DO: ic extract should quote like php csv output
 // TO DO: create new patrons
 
-$records = array();
-$fhnd = fopen("../data/20171222-TEST-PATRONLOADER.csv", "r");
-if ($fhnd){
-        while (($data = fgetcsv($fhnd)) !== FALSE){
-                $records[] = $data;
-        }
+// Using shell instead of php as per https://stackoverflow.com/questions/35999597/importing-csv-file-into-sqlite3-from-php#36001304
+// FROM https://www.sqlite.org/cli.html:
+// "The dot-commands are interpreted by the sqlite3.exe command-line program, not by SQLite itself."
+// "So none of the dot-commands will work as an argument to SQLite interfaces like sqlite3_prepare() or sqlite3_exec()."
+
+exec("sqlite3 ../data/ic2carlx.db < NashvilleCarlXPatronLoaderImport.sql");
+
+$db = new SQLite3('../data/ic2carlx.db');
+
+if(!$db) {
+      echo $db->lastErrorMsg();
+} else {
+//      echo "Opened database successfully\n";
 }
 
-foreach ($records as $patron) {
+$sql = <<<EOT
+	select *
+	from infinitecampus
+	left join carlx on infinitecampus.PatronID = carlx.PatronID
+	where carlx.PatronID IS NULL
+	order by infinitecampus.PatronID
+	;
+EOT;
+
+$aCreatePatrons = $db->query($sql);
+while ($patron = $aCreatePatrons->fetchArray(2)) {
+	if ($patron[0] == 'Patron ID') {continue;}
+	var_dump($patron[0]);
 
 // UPDATE OR CREATE PATRON
 	// TESTING
-	if ($patron[0] > 190999101) { exit(); }
+	if ($patron[0] > 190999200) { exit(); }
 	// CREATE PATRON UPDATE REQUEST
 	$request							= new stdClass();
 	$request->Modifiers						= '';
@@ -174,7 +119,7 @@ foreach ($records as $patron) {
 	// $request->Patron->PatronStatusCode				= $patron[20]; // Patron Status Code
 	// $request->Patron->RegistrationDate				= $patron[21]; // Patron Registrtation Date
 	// $request->Patron->LastActionDate				= $patron[22]; // Patron Last Action Date
-	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron[23])->format('c'); // Patron Expiration Date as Y-m-d
+	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron[23])->format('c'); // Patron Expiration Date as ISO 8601
 	$request->Patron->Email						= $patron[24]; // Patron Email
 	// $request->Patron->Notes					= $patron[25]; // Patron Notes
 	$request->Patron->BirthDate					= $patron[26]; // Patron Birth Date as Y-m-d
@@ -200,29 +145,32 @@ foreach ($records as $patron) {
 
 //var_dump($request);
 
-	try {
-		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-		$result = $client->updatePatron($request);
-		$result = $client->__getLastResponse();
+//	try {
+//		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+//		$result = $client->updatePatron($request);
+//		$result = $client->__getLastResponse();
 //var_dump($result);
 
 // CREATE PATRON
-		if ($result && stripos($result,'ShortMessage>No matching records found') !== false) {
+//		if ($result && stripos($result,'ShortMessage>No matching records found') !== false) {
 			$request->Patron->RegBranch		= $patron[18]; // Patron Registration Branch
 			$request->Patron->RegisteredBy		= 'PIK'; // Registered By : Pika Patron Loader
 			$request->Patron->RegistrationDate	= date('c'); // Registration Date, format ISO 8601
+			$request->Patron->PatronStatusCode	= 'G'; // Patron Status Code = GOOD
 			try {
+$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 				$result = $client->createPatron($request);
 				$result = $client->__getLastResponse();
-//var_dump($result);
+var_dump($result);
 			} catch (Exception $e) {
 				echo $e->getMessage();
 			}
-		} 
-	} catch (Exception $e) {
-		echo $e->getMessage();
-	}
+//		} 
+//	} catch (Exception $e) {
+//		echo $e->getMessage();
+//	}
 
+/*
 // UPDATE PATRON IMAGE
 	$request							= new stdClass();
 	$request->Modifiers						= '';
@@ -247,6 +195,7 @@ foreach ($records as $patron) {
 			echo $e->getMessage();
 		}
 	}
+*/
 
 /*
 // TO DO: Patron->UDFs ain't writing to db 20171211
@@ -312,10 +261,14 @@ foreach ($records as $patron) {
 	try {
 		$result = $client->getPatronInformation($request);
 		$result = $client->__getLastResponse();
-//var_dump($result);
+var_dump($result);
 	} catch (Exception $e) {
 		echo $e->getMessage();
 	}
+
 }
+
+$db->close();
+
 
 ?>
