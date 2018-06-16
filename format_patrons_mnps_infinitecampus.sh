@@ -60,9 +60,9 @@ perl -F'\|' -lane '
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
 # REPLACE PIPE DELIMITERS WITH COMMAS
-	print join q/,/, @F' ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/INFINITECAMPUS_STUDENT.csv;
+	print join q/,/, @F' ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/patrons_mnps_infinitecampus.csv;
 # REMOVE HEADERS
-perl -pi -e '$_ = "" if ( $. == 1 )' ../data/INFINITECAMPUS_STUDENT.csv
+perl -pi -e '$_ = "" if ( $. == 1 )' ../data/patrons_mnps_infinitecampus.csv
 # SORT BY ID
-sort -o ../data/INFINITECAMPUS_STUDENT.csv ../data/INFINITECAMPUS_STUDENT.csv
+sort -o ../data/patrons_mnps_ic.csv ../data/patrons_mnps_infinitecampus.csv
 
