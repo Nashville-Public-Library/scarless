@@ -8,6 +8,7 @@
 // TO DO: CREATE GUARANTOR NOTE
 	// $request->Patron->Notes					= $patron[25]; // Patron Notes
 // TO DO: STUDENT IMAGES
+// TO DO: consider whether to make the SQL write the SOAP into a single table
 // TO DO: STAFF
 
 date_default_timezone_set('America/Chicago');
@@ -35,7 +36,7 @@ $sql = fread($get_patrons_mnps_carlx_filehandle, filesize("get_patrons_mnps_carl
 fclose($get_patrons_mnps_carlx_filehandle);
 
 $stid = oci_parse($conn, $sql);
-// consider tuning oci_set_prefetch to improve performance. See https://docs.oracle.com/database/121/TDPPH/ch_eight_query.htm#TDPPH172
+// TO DO: consider tuning oci_set_prefetch to improve performance. See https://docs.oracle.com/database/121/TDPPH/ch_eight_query.htm#TDPPH172
 oci_set_prefetch($stid, 10000);
 oci_execute($stid);
 // start a new file for the CarlX patron extract
@@ -57,6 +58,8 @@ oci_close($conn);
 exec("bash format_patrons_mnps_infinitecampus.sh");
 exec("sqlite3 ../data/ic2carlx.db < patrons_mnps_compare.sql");
 
+// CREATE PATRONS
+
 $all_rows = array();
 $fhnd = fopen("../data/patrons_mnps_carlx_add.csv", "r");
 if ($fhnd){
@@ -69,7 +72,7 @@ if ($fhnd){
 
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['PatronID'] > 190999120) { exit(); }
+	if ($patron['PatronID'] > 190999110) { break; }
 	// CREATE REQUEST
 	$request							= new stdClass();
 	$request->Modifiers						= '';
@@ -116,35 +119,58 @@ foreach ($all_rows as $patron) {
 	$request->Patron->RegisteredBy					= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate				= date('c'); // Registration Date, format ISO 8601
 //var_dump($request);
+/*
 	try {
 		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 		$result = $client->createPatron($request);
-		$result = $client->__getLastResponse();
-var_dump($result);
-	} catch (Exception $e) {
-		echo $e->getMessage();
-	}
-}
-
-exit();
-?>
-
-// TO DO: Update Patron User Defined Fields [Permissions]
-// Retrieve current User Defined Fields to determine which need to be created and which updated
-	$request							= new stdClass();
-	$request->Modifiers						= '';
-	$request->Patronid						= $patron[0]; // Patron ID
-	$request->Occur							= 0;
-	try {
-		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-		$result = $client->GetPatronUserDefinedFields($request);
 		$result = $client->__getLastResponse();
 //var_dump($result);
 	} catch (Exception $e) {
 		echo $e->getMessage();
 	}
+*/
+}
 
+// CREATE USER DEFINED FIELDS ENTRIES
 
+$udfs = array("1","3","4");
+foreach ($udfs as $udf_fieldid) {
+	$all_rows = array();
+	$fhnd = fopen("../data/patrons_mnps_carlx_createUdf" . $udf_fieldid . ".csv", "r") or die("unable to open ../data/patrons_mnps_carlx_createUdf" . $udf_fieldid . ".csv");
+	if ($fhnd){
+		$header = fgetcsv($fhnd);
+		while ($row = fgetcsv($fhnd)) {
+			$all_rows[] = array_combine($header, $row);
+		}
+	}
+//print_r($all_rows);
+	foreach ($all_rows as $patron) {
+		// TESTING
+		if ($patron['patronid'] > 190999110) { break; }
+		// CREATE REQUEST
+		$request							= new stdClass();
+		$request->Modifiers						= '';
+		$request->PatronUserDefinedField				= new stdClass();
+		$request->PatronUserDefinedField->patronid			= $patron['patronid'];
+		$request->PatronUserDefinedField->occur				= $patron['occur'];
+		$request->PatronUserDefinedField->fieldid			= $patron['fieldid'];
+		$request->PatronUserDefinedField->numcode			= $patron['numcode'];
+		$request->PatronUserDefinedField->type				= $patron['type'];
+		$request->PatronUserDefinedField->valuename			= $patron['valuename'];
+var_dump($request);
+		try {
+			$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+			$result = $client->createPatronUserDefinedFields($request);
+			$result = $client->__getLastResponse();
+var_dump($result);
+		} catch (Exception $e) {
+			echo $e->getMessage();
+		}
+	}
+}
+
+exit();
+?>
 
 /*
 // UPDATE PATRON IMAGE
