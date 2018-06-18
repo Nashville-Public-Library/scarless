@@ -48,7 +48,14 @@ perl -F'\|' -lane '
 		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
 	} 
 # SET LIMITLESS PERMISSION TO YES IF BLANK
-	elsif ($F[30] =~ m/^$/) { $F[30] = "Y"; }
+	elsif ($F[30] =~ m/^$/) { $F[30] = "Yes"; }
+# CHANGE USER DEFINED FIELDS laptopCheckout limitlessLibrariesuse techOptout from N to No and Y to Yes
+	if ($F[29] eq "N") { $F[29] = "No"; }
+	if ($F[29] eq "Y") { $F[29] = "Yes"; }
+	if ($F[30] eq "N") { $F[30] = "No"; }
+	if ($F[30] eq "Y") { $F[30] = "Yes"; }
+	if ($F[31] eq "N") { $F[31] = "No"; }
+	if ($F[31] eq "Y") { $F[31] = "Yes"; }
 # SET STATUS = GOOD; SHOULD NOT OVERWRITE CARL.X STATUS
 	$F[20] = "";
 # CHANGE DATE VALUE FOR EXPIRATION TO 2018-08-04
@@ -65,7 +72,7 @@ perl -F'\|' -lane '
 # REPLACE PIPE DELIMITERS WITH COMMAS, ELIMINATE COLUMNS THAT WILL NOT BE COMPARED
 	print join q/,/, @F[0..9,14,18,23,24,26,29..33]' ../data/patrons_mnps_infinitecampus.txt > ../data/patrons_mnps_infinitecampus.csv;
 # REMOVE HEADERS
-perl -pi -e '$_ = "" if ( $. == 1 )' ../data/patrons_mnps_infinitecampus.csv
+perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^Patron/)' ../data/patrons_mnps_infinitecampus.csv
 # SORT BY ID
 sort -o ../data/patrons_mnps_infinitecampus.csv ../data/patrons_mnps_infinitecampus.csv
 
