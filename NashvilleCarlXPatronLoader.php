@@ -2,11 +2,10 @@
 
 // echo 'SYNTAX: path/to/php NashvilleCarlXPatronLoader.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXPatronLoader.php\n';
 // 
+// TO DO: Images aren't uploading after test 2018 06 18...
 // TO DO: retry after oracle connect error
-// TO DO: retry after connection patron api errors
-// TO DO: capture other patron api errors, e.g., org.hibernate.exception.ConstraintViolationException: could not execute statement
+// TO DO: capture other patron api errors, e.g., org.hibernate.exception.ConstraintViolationException: could not execute statement; No matching records found
 // TO DO: test whether setting PIN works... appears to set as 9999
-// TO DO: UDF
 // TO DO: CREATE GUARANTOR NOTE
 	// $request->Patron->Notes					= $patron[25]; // Patron Notes
 // TO DO: STUDENT IMAGES
@@ -23,7 +22,38 @@ $carlx_db_php		= $configArray['Catalog']['carlx_db_php'];
 $carlx_db_php_user	= $configArray['Catalog']['carlx_db_php_user'];
 $carlx_db_php_password	= $configArray['Catalog']['carlx_db_php_password'];
 $patronApiWsdl		= $configArray['Catalog']['patronApiWsdl'];
+$patronApiDebugMode	= $configArray['Catalog']['patronApiDebugMode'];
+$patronApiReportMode	= $configArray['Catalog']['patronApiReportMode'];
 $reportPath		= '../data/';
+
+function callAPI($wsdl, $requestName, $request) {
+	$connectionPassed = false;
+	$numTries = 0;
+	$result = new stdClass();
+	$result->response = "";
+	while (!$connectionPassed && $numTries < 3) {
+		try {
+			$client = new SOAPClient($wsdl, array('connection_timeout' => 3, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+			$result->response = $client->$requestName($request);
+			$connectionPassed = true;
+			$result->response = $client->__getLastResponse();
+			if (!empty($result->response)) {
+				$result->success = stripos($result->response, '<ns2:ShortMessage>Successful operation</ns2:ShortMessage>') !== false;
+				if(!$result->success) {
+					preg_match('/<ns2:LongMessage>(.+?)<\/ns2:LongMessage>/', $result->response, $longMessages);
+					preg_match('/<ns2:ShortMessage>(.+?)<\/ns2:ShortMessage>/', $result->response, $shortMessages);
+					$result->error = "$request->SearchID : Failed" . (isset($longMessages[1]) ? ' : ' . $longMessages[1] : (isset($shortMessages[0]) ? ' : ' . $shortMessages[0] : ''));
+				}
+			} else {
+				$result->error = "$request->SearchID : Failed : No SOAP response from API.";
+			}
+		} catch (SoapFault $e) {
+			if ($numTries == 2) { $result->error = "$request->SearchID : Exception : " . $e->getMessage(); }
+		}
+		$numTries++;
+	}
+	return $result;
+}
 
 // connect to carlx oracle db
 $conn = oci_connect($carlx_db_php_user, $carlx_db_php_password, $carlx_db_php);
@@ -59,6 +89,7 @@ oci_close($conn);
 
 exec("bash format_patrons_mnps_infinitecampus.sh");
 exec("sqlite3 ../data/ic2carlx.db < patrons_mnps_compare.sql");
+echo "Infinitecampus vs. CarlX patron record comparison complete\n";
 
 // CREATE CARLX PATRONS
 
@@ -74,11 +105,13 @@ if ($fhnd){
 
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['PatronID'] > 190999110) { break; }
+	if ($patron['PatronID'] > 190999250) { break; }
 	// CREATE REQUEST
+	$requestName							= 'createPatron';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= 1;
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
 	$request->Patron						= new stdClass();
 	$request->Patron->PatronID					= $patron['PatronID']; // Patron ID
 	$request->Patron->PatronType					= $patron['Borrowertypecode']; // Patron Type
@@ -122,23 +155,25 @@ foreach ($all_rows as $patron) {
 	$request->Patron->RegisteredBy					= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate				= date('c'); // Registration Date, format ISO 8601
 //var_dump($request);
-	try {
-		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-		$result = $client->createPatron($request);
-		$result = $client->__getLastResponse();
-//var_dump($result);
-	} catch (Exception $e) {
-		echo $e->getMessage();
+	$result = callAPI($patronApiWsdl, $requestName, $request);
+	//var_dump($result);
+	if (isset($result->error)) {
+		echo "$result->error\n";
+		$errors[] = $result->error;
+	} else {
+		echo $request->Patron->PatronID . " : created\n";
 	}
 
 // CREATE PATRON IMAGE
+	$requestName							= 'updateImage';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= 1;
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
 	$request->SearchType						= 'Patron ID';
-	$request->SearchID						= $patron[0]; // Patron ID
+	$request->SearchID						= $patron['PatronID']; // Patron ID
 	$request->ImageType						= 'Profile'; // Patron Profile Picture vs. Signature
-	$imageFilePath 							= "../data/images/" . $patron[0] . ".jpg";
+	$imageFilePath 							= "../data/images/" . $patron['PatronID'] . ".jpg";
 	if (file_exists($imageFilePath)) {
 		$imageFileHandle 					= fopen($imageFilePath, "rb");
 		$request->ImageData					= bin2hex(fread($imageFileHandle, filesize($imageFilePath)));
@@ -149,12 +184,13 @@ foreach ($all_rows as $patron) {
 
 	if (isset($request->ImageData)) {
 //var_dump($request);
-	        try {
-	                $result = $client->updateImage($request);
-			$result = $client->__getLastResponse();
-//var_dump($result);
-		} catch (Exception $e) {
-			echo $e->getMessage();
+		$result = callAPI($patronApiWsdl, $requestName, $request);
+		//var_dump($result);
+		if (isset($result->error)) {
+			echo "$result->error\n";
+			$errors[] = $result->error;
+		} else {
+			echo "$request->SearchID : updated image\n";
 		}
 	}
 }
@@ -173,11 +209,13 @@ if ($fhnd){
 
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['PatronID'] > 190999110) { break; }
+	if ($patron['PatronID'] > 190999250) { break; }
 	// CREATE REQUEST
+	$requestName							= 'updatePatron';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= 1;
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
 	$request->SearchType						= 'Patron ID';
 	$request->SearchID						= $patron['PatronID']; // Patron ID
 	$request->Patron						= new stdClass();
@@ -218,13 +256,13 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	$request->Patron->PreferredAddress				= 'Sponsor';
 //var_dump($request);
-	try {
-		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-		$result = $client->updatePatron($request);
-		$result = $client->__getLastResponse();
-//var_dump($result);
-	} catch (Exception $e) {
-		echo $e->getMessage();
+	$result = callAPI($patronApiWsdl, $requestName, $request);
+	//var_dump($result);
+	if (isset($result->error)) {
+		echo "$result->error\n";
+		$errors[] = $result->error;
+	} else {
+		echo "$request->SearchID : updated\n";
 	}
 }
 
@@ -242,11 +280,13 @@ if ($fhnd){
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['patronid'] > 190999110) { break; }
+	if ($patron['patronid'] > 190999250) { break; }
 	// CREATE REQUEST
+	$requestName							= 'createPatronUserDefinedFields';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= 1;
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
 	$request->PatronUserDefinedField				= new stdClass();
 	$request->PatronUserDefinedField->patronid			= $patron['patronid'];
 	$request->PatronUserDefinedField->occur				= $patron['occur'];
@@ -255,13 +295,13 @@ foreach ($all_rows as $patron) {
 	$request->PatronUserDefinedField->type				= $patron['type'];
 	$request->PatronUserDefinedField->valuename			= $patron['valuename'];
 //var_dump($request);
-	try {
-		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-		$result = $client->createPatronUserDefinedFields($request);
-		$result = $client->__getLastResponse();
-//var_dump($result);
-	} catch (Exception $e) {
-		echo $e->getMessage();
+	$result = callAPI($patronApiWsdl, $requestName, $request);
+	//var_dump($result);
+	if (isset($result->error)) {
+		echo "$result->error\n";
+		$errors[] = $result->error;
+	} else {
+		echo $request->PatronUserDefinedField->patronid . " : created udf" . $request->PatronUserDefinedField->fieldid . " value\n";
 	}
 }
 
@@ -278,11 +318,13 @@ if ($fhnd){
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['new_patronid'] > 190999110) { break; }
+	if ($patron['new_patronid'] > 190999250) { break; }
 	// CREATE REQUEST
+	$requestName							= 'updatePatronUserDefinedFields';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= 1;
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
 	$request->OldPatronUserDefinedField				= new stdClass();
 	$request->OldPatronUserDefinedField->patronid			= $patron['old_patronid'];
 	$request->OldPatronUserDefinedField->occur			= $patron['old_occur'];
@@ -298,19 +340,15 @@ foreach ($all_rows as $patron) {
 	$request->NewPatronUserDefinedField->type			= $patron['new_type'];
 	$request->NewPatronUserDefinedField->valuename			= $patron['new_valuename'];
 //var_dump($request);
-	try {
-		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-		$result = $client->updatePatronUserDefinedFields($request);
-		$result = $client->__getLastResponse();
-//var_dump($result);
-	} catch (Exception $e) {
-		echo $e->getMessage();
+	$result = callAPI($patronApiWsdl, $requestName, $request);
+	//var_dump($result);
+	if (isset($result->error)) {
+		echo "$result->error\n";
+		$errors[] = $result->error;
+	} else {
+		echo $request->NewPatronUserDefinedField->patronid . " : updated udf" . $request->NewPatronUserDefinedField->fieldid . " value\n";
 	}
 }
-
-/*
-*/
-
 
 /*
 // TO DO: Guardian notes
@@ -322,13 +360,14 @@ foreach ($all_rows as $patron) {
 	$request->Patron->Notes->NoteText				= 'NPL: MNPS Guardian: ' . $patron[27]; // Patron Guardian Name
 */
 
-
+/*
 // VERIFY ALL UPDATED VALUES WERE UPDATED
-	$request					= new stdClass();
+	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= 1;
-	$request->SearchType				= 'Patron ID';
-	$request->SearchID				= $patron[0]; // Patron ID
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->SearchType						= 'Patron ID';
+	$request->SearchID						= $patron['PatronID']; // Patron ID
 	try {
 		$result = $client->getPatronInformation($request);
 		$result = $client->__getLastResponse();
@@ -337,9 +376,6 @@ var_dump($result);
 		echo $e->getMessage();
 	}
 
-}
-
-$db->close();
-
+*/
 
 ?>
