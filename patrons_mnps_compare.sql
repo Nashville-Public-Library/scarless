@@ -29,23 +29,23 @@ order by infinitecampus.PatronID
 
 -- UPDATE CARLX PATRON (IGNORE UDF VALUES)
 .output ../data/patrons_mnps_carlx_update.csv
-select infinitecampus.PatronID,
-	infinitecampus.Borrowertypecode,
-	infinitecampus.Patronlastname,
-	infinitecampus.Patronfirstname,
-	infinitecampus.Patronmiddlename,
-	infinitecampus.Patronsuffix,
-	infinitecampus.PrimaryStreetAddress,
-	infinitecampus.PrimaryCity,
-	infinitecampus.PrimaryState,
-	infinitecampus.PrimaryZipCode,
-	infinitecampus.SecondaryPhoneNumber,
-	infinitecampus.DefaultBranch,
-	infinitecampus.ExpirationDate,
-	infinitecampus.EmailAddress,
-	infinitecampus.BirthDate,
-	infinitecampus.TeacherID,
-	infinitecampus.TeacherName
+select PatronID,
+	Borrowertypecode,
+	Patronlastname,
+	Patronfirstname,
+	Patronmiddlename,
+	Patronsuffix,
+	PrimaryStreetAddress,
+	PrimaryCity,
+	PrimaryState,
+	PrimaryZipCode,
+	SecondaryPhoneNumber,
+	DefaultBranch,
+	ExpirationDate,
+	EmailAddress,
+	BirthDate,
+	TeacherID,
+	TeacherName
 from infinitecampus
 except
 select carlx.PatronID,
