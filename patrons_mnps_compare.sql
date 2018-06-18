@@ -41,7 +41,7 @@ except
 ;
 
 -- CreatePatronUserDefinedFields UDF1 TechOptOut 
-.output ../data/patrons_mnps_carlx_createUdf1.csv
+.output ../data/patrons_mnps_carlx_createUdf.csv
 select i.* 
 from (
         select infinitecampus.PatronID as patronid, 
@@ -61,7 +61,7 @@ order by i.PatronID
 ;
 
 -- CreatePatronUserDefinedFields UDF3 LapTopCheckOut 
-.output ../data/patrons_mnps_carlx_createUdf3.csv
+.headers off
 select i.* 
 from (
         select infinitecampus.PatronID as patronid, 
@@ -81,7 +81,6 @@ order by i.PatronID
 ;
 
 -- CreatePatronUserDefinedFields UDF4 LimitlessLibraryUse
-.output ../data/patrons_mnps_carlx_createUdf4.csv
 select i.* 
 from (
         select infinitecampus.PatronID as patronid, 
@@ -100,4 +99,80 @@ where c.PatronID IS NULL
 order by i.PatronID
 ;
 
--- UpdatePatronUserDefinedFields
+-- UpdatePatronUserDefinedFields UDF1 TechOptOut
+.headers on
+.output ../data/patrons_mnps_carlx_updateUdf.csv
+select *
+from (
+        select infinitecampus.PatronID as new_patronid,
+                '0' as new_occur,
+                '1' as new_fieldid,
+                case when infinitecampus.TechOptOut = 'Yes' then '1' else '2' end as new_numcode,
+                '0' as new_type,
+                infinitecampus.TechOptOut as new_valuename
+        from infinitecampus
+) i left join (
+        select carlx.PatronID as old_patronid,
+        '0' as old_occur,
+        '1' as old_fieldid,
+        case when carlx.TechOptOut = 'Yes' then '1' else '2' end as old_numcode,
+        '0' as old_type,
+        carlx.TechOptOut as old_valuename
+        from carlx
+        where carlx.TechOptOut != ''
+) c on i.new_patronid = c.old_patronid
+where c.old_patronid IS NOT NULL
+and i.new_numcode != c.old_numcode
+order by i.new_patronid
+;
+
+-- UpdatePatronUserDefinedFields UDF3 LapTopCheckOut
+.headers off
+select *
+from (
+        select infinitecampus.PatronID as new_patronid,
+                '0' as new_occur,
+                '3' as new_fieldid,
+                case when infinitecampus.LapTopCheckOut = 'Yes' then '1' else '2' end as new_numcode,
+                '0' as new_type,
+                infinitecampus.LapTopCheckOut as new_valuename
+        from infinitecampus
+) i left join (
+        select carlx.PatronID as old_patronid,
+        	'0' as old_occur,
+        	'3' as old_fieldid,
+        	case when carlx.LapTopCheckOut = 'Yes' then '1' else '2' end as old_numcode,
+        	'0' as old_type,
+        	carlx.LapTopCheckOut as old_valuename
+        from carlx
+        where carlx.LapTopCheckOut != ''
+) c on i.new_patronid = c.old_patronid
+where c.old_patronid IS NOT NULL
+and i.new_numcode != c.old_numcode
+order by i.new_patronid
+;
+
+-- UpdatePatronUserDefinedFields UDF4 LimitlessLibraryUse
+select *
+from (
+        select infinitecampus.PatronID as new_patronid,
+                '0' as new_occur,
+                '4' as new_fieldid,
+                case when infinitecampus.LimitlessLibraryUse = 'Yes' then '1' else '2' end as new_numcode,
+                '0' as new_type,
+                infinitecampus.LimitlessLibraryUse as new_valuename
+        from infinitecampus
+) i left join (
+        select carlx.PatronID as old_patronid,
+        	'0' as old_occur,
+        	'4' as old_fieldid,
+        	case when carlx.LimitlessLibraryUse = 'Yes' then '1' else '2' end as old_numcode,
+        	'0' as old_type,
+        	carlx.LimitlessLibraryUse as old_valuename
+        from carlx
+        where carlx.LimitlessLibraryUse != ''
+) c on i.new_patronid = c.old_patronid
+where c.old_patronid IS NOT NULL
+and i.new_numcode != c.old_numcode
+order by i.new_patronid
+;
