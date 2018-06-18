@@ -54,6 +54,7 @@ from (
 ) i left join (
         select carlx.PatronID, carlx.TechOptOut
         from carlx
+	where carlx.TechOptOut != ''
 ) c on i.PatronID = c.PatronID
 where c.PatronID IS NULL
 order by i.PatronID
@@ -65,7 +66,7 @@ select i.*
 from (
         select infinitecampus.PatronID as patronid, 
 		'0' as occur, 
-		'1' as fieldid, 
+		'3' as fieldid, 
 		case when infinitecampus.LapTopCheckOut = 'Yes' then '1' else '2' end as numcode, 
 		'0' as type, 
 		infinitecampus.LapTopCheckOut as valuename
@@ -73,6 +74,7 @@ from (
 ) i left join (
         select carlx.PatronID, carlx.LapTopCheckOut
         from carlx
+	where carlx.LapTopCheckOut != ''
 ) c on i.PatronID = c.PatronID
 where c.PatronID IS NULL
 order by i.PatronID
@@ -84,7 +86,7 @@ select i.*
 from (
         select infinitecampus.PatronID as patronid, 
 		'0' as occur, 
-		'1' as fieldid, 
+		'4' as fieldid, 
 		case when infinitecampus.LimitlessLibraryUse = 'Yes' then '1' else '2' end as numcode, 
 		'0' as type, 
 		infinitecampus.LimitlessLibraryUse as valuename
@@ -92,6 +94,7 @@ from (
 ) i left join (
         select carlx.PatronID, carlx.LimitlessLibraryUse
         from carlx
+	where carlx.LimitlessLibraryUse != ''
 ) c on i.PatronID = c.PatronID
 where c.PatronID IS NULL
 order by i.PatronID
