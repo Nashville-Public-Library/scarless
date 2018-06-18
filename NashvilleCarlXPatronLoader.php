@@ -3,6 +3,8 @@
 // echo 'SYNTAX: path/to/php NashvilleCarlXPatronLoader.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXPatronLoader.php\n';
 // 
 // TO DO: retry after oracle connect error
+// TO DO: retry after connection patron api errors
+// TO DO: capture other patron api errors, e.g., org.hibernate.exception.ConstraintViolationException: could not execute statement
 // TO DO: test whether setting PIN works... appears to set as 9999
 // TO DO: UDF
 // TO DO: CREATE GUARANTOR NOTE
@@ -119,7 +121,6 @@ foreach ($all_rows as $patron) {
 	$request->Patron->RegisteredBy					= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate				= date('c'); // Registration Date, format ISO 8601
 //var_dump($request);
-/*
 	try {
 		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 		$result = $client->createPatron($request);
@@ -128,52 +129,8 @@ foreach ($all_rows as $patron) {
 	} catch (Exception $e) {
 		echo $e->getMessage();
 	}
-*/
-}
 
-// CREATE USER DEFINED FIELDS ENTRIES
-
-$udfs = array("1","3","4");
-foreach ($udfs as $udf_fieldid) {
-	$all_rows = array();
-	$fhnd = fopen("../data/patrons_mnps_carlx_createUdf" . $udf_fieldid . ".csv", "r") or die("unable to open ../data/patrons_mnps_carlx_createUdf" . $udf_fieldid . ".csv");
-	if ($fhnd){
-		$header = fgetcsv($fhnd);
-		while ($row = fgetcsv($fhnd)) {
-			$all_rows[] = array_combine($header, $row);
-		}
-	}
-//print_r($all_rows);
-	foreach ($all_rows as $patron) {
-		// TESTING
-		if ($patron['patronid'] > 190999110) { break; }
-		// CREATE REQUEST
-		$request							= new stdClass();
-		$request->Modifiers						= '';
-		$request->PatronUserDefinedField				= new stdClass();
-		$request->PatronUserDefinedField->patronid			= $patron['patronid'];
-		$request->PatronUserDefinedField->occur				= $patron['occur'];
-		$request->PatronUserDefinedField->fieldid			= $patron['fieldid'];
-		$request->PatronUserDefinedField->numcode			= $patron['numcode'];
-		$request->PatronUserDefinedField->type				= $patron['type'];
-		$request->PatronUserDefinedField->valuename			= $patron['valuename'];
-var_dump($request);
-		try {
-			$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-			$result = $client->createPatronUserDefinedFields($request);
-			$result = $client->__getLastResponse();
-var_dump($result);
-		} catch (Exception $e) {
-			echo $e->getMessage();
-		}
-	}
-}
-
-exit();
-?>
-
-/*
-// UPDATE PATRON IMAGE
+// CREATE PATRON IMAGE
 	$request							= new stdClass();
 	$request->Modifiers						= '';
 	$request->SearchType						= 'Patron ID';
@@ -185,10 +142,11 @@ exit();
 		$request->ImageData					= bin2hex(fread($imageFileHandle, filesize($imageFilePath)));
 		fclose($imageFileHandle);
 	} else {
-// TO DO: create IMAGE NOT AVAILABLE
+// TO DO: create IMAGE NOT AVAILABLE image
 	}
 
 	if (isset($request->ImageData)) {
+//var_dump($request);
 	        try {
 	                $result = $client->updateImage($request);
 			$result = $client->__getLastResponse();
@@ -197,6 +155,89 @@ exit();
 			echo $e->getMessage();
 		}
 	}
+}
+
+// UPDATE PATRONS
+
+
+// CREATE USER DEFINED FIELDS ENTRIES
+
+$all_rows = array();
+$fhnd = fopen("../data/patrons_mnps_carlx_createUdf.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_createUdf.csv");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+//print_r($all_rows);
+foreach ($all_rows as $patron) {
+	// TESTING
+	if ($patron['patronid'] > 190999110) { break; }
+	// CREATE REQUEST
+	$request							= new stdClass();
+	$request->Modifiers						= '';
+	$request->PatronUserDefinedField				= new stdClass();
+	$request->PatronUserDefinedField->patronid			= $patron['patronid'];
+	$request->PatronUserDefinedField->occur				= $patron['occur'];
+	$request->PatronUserDefinedField->fieldid			= $patron['fieldid'];
+	$request->PatronUserDefinedField->numcode			= $patron['numcode'];
+	$request->PatronUserDefinedField->type				= $patron['type'];
+	$request->PatronUserDefinedField->valuename			= $patron['valuename'];
+//var_dump($request);
+	try {
+		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+		$result = $client->createPatronUserDefinedFields($request);
+		$result = $client->__getLastResponse();
+//var_dump($result);
+	} catch (Exception $e) {
+		echo $e->getMessage();
+	}
+}
+
+// UPDATE USER DEFINED FIELDS ENTRIES
+
+$all_rows = array();
+$fhnd = fopen("../data/patrons_mnps_carlx_updateUdf.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_updateUdf.csv");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+//print_r($all_rows);
+foreach ($all_rows as $patron) {
+	// TESTING
+	if ($patron['new_patronid'] > 190999110) { break; }
+	// CREATE REQUEST
+	$request							= new stdClass();
+	$request->Modifiers						= '';
+	$request->OldPatronUserDefinedField				= new stdClass();
+	$request->OldPatronUserDefinedField->patronid			= $patron['old_patronid'];
+	$request->OldPatronUserDefinedField->occur			= $patron['old_occur'];
+	$request->OldPatronUserDefinedField->fieldid			= $patron['old_fieldid'];
+	$request->OldPatronUserDefinedField->numcode			= $patron['old_numcode'];
+	$request->OldPatronUserDefinedField->type			= $patron['old_type'];
+	$request->OldPatronUserDefinedField->valuename			= $patron['old_valuename'];
+	$request->NewPatronUserDefinedField				= new stdClass();
+	$request->NewPatronUserDefinedField->patronid			= $patron['new_patronid'];
+	$request->NewPatronUserDefinedField->occur			= $patron['new_occur'];
+	$request->NewPatronUserDefinedField->fieldid			= $patron['new_fieldid'];
+	$request->NewPatronUserDefinedField->numcode			= $patron['new_numcode'];
+	$request->NewPatronUserDefinedField->type			= $patron['new_type'];
+	$request->NewPatronUserDefinedField->valuename			= $patron['new_valuename'];
+//var_dump($request);
+	try {
+		$client = new SOAPClient($patronApiWsdl, array('features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+		$result = $client->updatePatronUserDefinedFields($request);
+		$result = $client->__getLastResponse();
+//var_dump($result);
+	} catch (Exception $e) {
+		echo $e->getMessage();
+	}
+}
+
+/*
 */
 
 
