@@ -18,8 +18,8 @@ CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirs
 .import ../data/patrons_mnps_carlx.csv carlx
 .import ../data/patrons_mnps_infinitecampus.csv infinitecampus
 
--- ADD TO CARLX
-.output ../data/patrons_mnps_carlx_add.csv
+-- CREATE CARLX PATRON
+.output ../data/patrons_mnps_carlx_create.csv
 select infinitecampus.*
 from infinitecampus
 left join carlx on infinitecampus.PatronID = carlx.PatronID
@@ -27,13 +27,63 @@ where carlx.PatronID IS NULL
 order by infinitecampus.PatronID
 ;
 
--- UPDATE CARLX
+-- UPDATE CARLX PATRON (IGNORE UDF VALUES)
 .output ../data/patrons_mnps_carlx_update.csv
-select infinitecampus.* from infinitecampus
+select infinitecampus.PatronID,
+	infinitecampus.Borrowertypecode,
+	infinitecampus.Patronlastname,
+	infinitecampus.Patronfirstname,
+	infinitecampus.Patronmiddlename,
+	infinitecampus.Patronsuffix,
+	infinitecampus.PrimaryStreetAddress,
+	infinitecampus.PrimaryCity,
+	infinitecampus.PrimaryState,
+	infinitecampus.PrimaryZipCode,
+	infinitecampus.SecondaryPhoneNumber,
+	infinitecampus.DefaultBranch,
+	infinitecampus.ExpirationDate,
+	infinitecampus.EmailAddress,
+	infinitecampus.BirthDate,
+	infinitecampus.TeacherID,
+	infinitecampus.TeacherName
+from infinitecampus
 except
-select * from carlx
+select carlx.PatronID,
+	carlx.Borrowertypecode,
+	carlx.Patronlastname,
+	carlx.Patronfirstname,
+	carlx.Patronmiddlename,
+	carlx.Patronsuffix,
+	carlx.PrimaryStreetAddress,
+	carlx.PrimaryCity,
+	carlx.PrimaryState,
+	carlx.PrimaryZipCode,
+	carlx.SecondaryPhoneNumber,
+	carlx.DefaultBranch,
+	carlx.ExpirationDate,
+	carlx.EmailAddress,
+	carlx.BirthDate,
+	carlx.TeacherID,
+	carlx.TeacherName
+from carlx
 except
-	select infinitecampus.*
+	select 	infinitecampus.PatronID,
+		infinitecampus.Borrowertypecode,
+		infinitecampus.Patronlastname,
+		infinitecampus.Patronfirstname,
+		infinitecampus.Patronmiddlename,
+		infinitecampus.Patronsuffix,
+		infinitecampus.PrimaryStreetAddress,
+		infinitecampus.PrimaryCity,
+		infinitecampus.PrimaryState,
+		infinitecampus.PrimaryZipCode,
+		infinitecampus.SecondaryPhoneNumber,
+		infinitecampus.DefaultBranch,
+		infinitecampus.ExpirationDate,
+		infinitecampus.EmailAddress,
+		infinitecampus.BirthDate,
+		infinitecampus.TeacherID,
+		infinitecampus.TeacherName
 	from infinitecampus
 	left join carlx on infinitecampus.PatronID = carlx.PatronID
 	where carlx.PatronID IS NULL
