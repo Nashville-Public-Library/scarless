@@ -2,13 +2,14 @@
 
 // echo 'SYNTAX: path/to/php NashvilleCarlXPatronLoader.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXPatronLoader.php\n';
 // 
+// TO DO: logging
 // TO DO: Images aren't uploading after test 2018 06 18...
 // TO DO: retry after oracle connect error
+// TO DO: review oracle php error handling https://docs.oracle.com/cd/E17781_01/appdev.112/e18555/ch_seven_error.htm#TDPPH165
 // TO DO: capture other patron api errors, e.g., org.hibernate.exception.ConstraintViolationException: could not execute statement; No matching records found
 // TO DO: test whether setting PIN works... appears to set as 9999
 // TO DO: CREATE GUARANTOR NOTE
 	// $request->Patron->Notes					= $patron[25]; // Patron Notes
-// TO DO: STUDENT IMAGES
 // TO DO: consider whether to make the SQL write the SOAP into a single table
 // TO DO: STAFF
 
@@ -105,7 +106,7 @@ if ($fhnd){
 
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['PatronID'] > 190999250) { break; }
+	if ($patron['PatronID'] > 190999260) { break; }
 	// CREATE REQUEST
 	$requestName							= 'createPatron';
 	$request							= new stdClass();
@@ -139,11 +140,6 @@ foreach ($all_rows as $patron) {
 	$request->Patron->Addresses->Address[1]->Type			= 'Secondary';
 	$request->Patron->Addresses->Address[1]->Street			= $patron['TeacherID']; // Patron Homeroom Teacher ID
 	$request->Patron->SponsorName					= $patron['TeacherName'];
-	if (stripos($patron['PatronID'],'190999') == 0) {
-		$request->Patron->PatronPIN				= '7357';
-	} else {
-		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
-	}
 	// NON-CSV STUFF
 	$request->Patron->EmailNotices					= 'send email';
 	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('c'); // Patron Expiration Date as ISO 8601
@@ -164,35 +160,31 @@ foreach ($all_rows as $patron) {
 		echo $request->Patron->PatronID . " : created\n";
 	}
 
-// CREATE PATRON IMAGE
-	$requestName							= 'updateImage';
+// SET PIN FOR CREATED PATRON
+// createPatron is not setting PIN as requested. See TLC ticket 452557
+// Therefore we use updatePatron to set PIN
+	// CREATE REQUEST
+	$requestName							= 'createPatron';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
 	$request->Modifiers->ReportMode					= $patronApiReportMode;
-	$request->SearchType						= 'Patron ID';
-	$request->SearchID						= $patron['PatronID']; // Patron ID
-	$request->ImageType						= 'Profile'; // Patron Profile Picture vs. Signature
-	$imageFilePath 							= "../data/images/" . $patron['PatronID'] . ".jpg";
-	if (file_exists($imageFilePath)) {
-		$imageFileHandle 					= fopen($imageFilePath, "rb");
-		$request->ImageData					= bin2hex(fread($imageFileHandle, filesize($imageFilePath)));
-		fclose($imageFileHandle);
+	$request->Patron						= new stdClass();
+	if (stripos($patron['PatronID'],'190999') == 0) {
+		$request->Patron->PatronPIN				= '7357';
 	} else {
-// TO DO: create IMAGE NOT AVAILABLE image
+		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
+	}
+//var_dump($request);
+	$result = callAPI($patronApiWsdl, $requestName, $request);
+	//var_dump($result);
+	if (isset($result->error)) {
+		echo "$result->error\n";
+		$errors[] = $result->error;
+	} else {
+		echo $request->Patron->PatronID . " : PIN set\n";
 	}
 
-	if (isset($request->ImageData)) {
-//var_dump($request);
-		$result = callAPI($patronApiWsdl, $requestName, $request);
-		//var_dump($result);
-		if (isset($result->error)) {
-			echo "$result->error\n";
-			$errors[] = $result->error;
-		} else {
-			echo "$request->SearchID : updated image\n";
-		}
-	}
 }
 
 // UPDATE CARLX PATRONS
@@ -347,6 +339,49 @@ foreach ($all_rows as $patron) {
 		$errors[] = $result->error;
 	} else {
 		echo $request->NewPatronUserDefinedField->patronid . " : updated udf" . $request->NewPatronUserDefinedField->fieldid . " value\n";
+	}
+}
+
+// CREATE/UPDATE PATRON IMAGES
+// if they were modified today
+
+// currently the data sent by this script does not get caught by Carl correctly. I can send what I think is identical information via SOAPUI and Carl catches it,
+// renders a good image in Carl.Connect. But the images sent by this script result in white fields.
+// I should check the Carl logs to see whether I can see the incoming request and compare a SOAPUI request against one sent by this script
+$iterator = new DirectoryIterator('../data/images');
+$today = date_create('today')->format('U');
+foreach ($iterator as $fileinfo) {
+        $file = $fileinfo->getFilename();
+        $mtime = $fileinfo->getMTime();
+        if ($fileinfo->isFile() && preg_match('/^190\d{6}.jpg$/', $file) === 1 && $mtime >= $today) {
+		$requestName						= 'updateImage';
+		$request						= new stdClass();
+		$request->Modifiers					= new stdClass();
+		$request->Modifiers->DebugMode				= $patronApiDebugMode;
+		$request->Modifiers->ReportMode				= $patronApiReportMode;
+		$request->SearchType					= 'Patron ID';
+		$request->SearchID					= substr($file,0,9); // Patron ID
+		$request->ImageType					= 'Profile'; // Patron Profile Picture vs. Signature
+		$imageFilePath 						= "../data/images/" . $file;
+		if (file_exists($imageFilePath)) {
+			$imageFileHandle 				= fopen($imageFilePath, "rb");
+			$request->ImageData				= bin2hex(fread($imageFileHandle, filesize($imageFilePath)));
+			fclose($imageFileHandle);
+		} else {
+// TO DO: create IMAGE NOT AVAILABLE image
+		}
+
+		if (isset($request->ImageData)) {
+//var_dump($request);
+			$result = callAPI($patronApiWsdl, $requestName, $request);
+//var_dump($result);
+			if (isset($result->error)) {
+				echo "$result->error\n";
+				$errors[] = $result->error;
+			} else {
+				echo "$request->SearchID : updated image\n";
+			}
+		}
 	}
 }
 
