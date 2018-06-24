@@ -106,7 +106,7 @@ if ($fhnd){
 
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['PatronID'] > 190999260) { break; }
+	if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'createPatron';
 	$request							= new stdClass();
@@ -164,11 +164,13 @@ foreach ($all_rows as $patron) {
 // createPatron is not setting PIN as requested. See TLC ticket 452557
 // Therefore we use updatePatron to set PIN
 	// CREATE REQUEST
-	$requestName							= 'createPatron';
+	$requestName							= 'updatePatron';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
 	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->SearchType						= 'Patron ID';
+	$request->SearchID						= $patron['PatronID']; // Patron ID
 	$request->Patron						= new stdClass();
 	if (stripos($patron['PatronID'],'190999') == 0) {
 		$request->Patron->PatronPIN				= '7357';
@@ -182,7 +184,7 @@ foreach ($all_rows as $patron) {
 		echo "$result->error\n";
 		$errors[] = $result->error;
 	} else {
-		echo $request->Patron->PatronID . " : PIN set\n";
+		echo $request->SearchID . " : PIN set\n";
 	}
 
 }
@@ -201,7 +203,7 @@ if ($fhnd){
 
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['PatronID'] > 190999250) { break; }
+	if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'updatePatron';
 	$request							= new stdClass();
@@ -272,7 +274,8 @@ if ($fhnd){
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['patronid'] > 190999250) { break; }
+	if ($patron['patronid'] > 190999115) { continue; }
+	if ($patron['patronid'] > 190999115 && $patron['fieldid'] == 4) { break; }
 	// CREATE REQUEST
 	$requestName							= 'createPatronUserDefinedFields';
 	$request							= new stdClass();
@@ -310,7 +313,7 @@ if ($fhnd){
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['new_patronid'] > 190999250) { break; }
+	if ($patron['new_patronid'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'updatePatronUserDefinedFields';
 	$request							= new stdClass();
