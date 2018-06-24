@@ -27,8 +27,7 @@ select patron_v.patronid as "Patron ID"						-- 00
   , patron_v.email as "Email Address"						-- 24
 --  , '' as "Notes"								-- 25
   , to_char(jts.todate(patron_v.birthdate),'YYYY-MM-DD') as "Birth Date"	-- 26
---  , guarantor.guarantor as "Guardian"						-- 27
--- TO DO: endure udf values from carlx match those from infinitecampus (i.e., "Yes" and "No", not "Y" and "N")
+  , guarantor.guarantor as "Guarantor"						-- 27
 --  , udf2.valuename as "Racial or Ethnic Category"				-- 28
   , udf3.valuename as "Lap Top Check Out"					-- 29
   , udf4.valuename as "Limitless Library Use"					-- 30
@@ -41,7 +40,7 @@ join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
 left outer join (
   select distinct
     refid
-    , first_value(text) over (partition by refid order by timestamp desc) as guarantor
+    , upper(trim(regexp_substr(first_value(text) over (partition by refid order by timestamp desc),'[^:]+$'))) as guarantor
   from patronnotetext_v
   where regexp_like(patronnotetext_v.text, 'NPL: MNPS Guarantor effective')
 ) guarantor on patron_v.patronid = guarantor.refid
@@ -83,4 +82,3 @@ where
 --   or regexp_like(patron_v.patronid,'^190[0-9]{6}$')
   and regexp_like(patron_v.patronid,'^190999[0-9]{3}$') -- TEST STUDENT PATRONS
 order by patron_v.patronid
-

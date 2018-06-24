@@ -7,11 +7,11 @@
 // TO DO: retry after oracle connect error
 // TO DO: review oracle php error handling https://docs.oracle.com/cd/E17781_01/appdev.112/e18555/ch_seven_error.htm#TDPPH165
 // TO DO: capture other patron api errors, e.g., org.hibernate.exception.ConstraintViolationException: could not execute statement; No matching records found
-// TO DO: test whether setting PIN works... appears to set as 9999
 // TO DO: CREATE GUARANTOR NOTE
 	// $request->Patron->Notes					= $patron[25]; // Patron Notes
 // TO DO: consider whether to make the SQL write the SOAP into a single table
 // TO DO: STAFF
+// TO DO: for patron data privacy, kill data files when actions are complete
 
 date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);
@@ -37,7 +37,7 @@ function callAPI($wsdl, $requestName, $request) {
 			$client = new SOAPClient($wsdl, array('connection_timeout' => 3, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 			$result->response = $client->$requestName($request);
 			$connectionPassed = true;
-			$result->response = $client->__getLastResponse();
+			if (is_null($result->response)) {$result->response = $client->__getLastResponse();}
 			if (!empty($result->response)) {
 				$result->success = stripos($result->response, '<ns2:ShortMessage>Successful operation</ns2:ShortMessage>') !== false;
 				if(!$result->success) {
@@ -158,6 +158,30 @@ foreach ($all_rows as $patron) {
 		$errors[] = $result->error;
 	} else {
 		echo $request->Patron->PatronID . " : created\n";
+	}
+
+// CREATE GUARANTOR NOTE FOR CREATED PATRON
+// createPatron is not setting Notes as requested (probably by design)
+// THerefore we use AddPatronNote
+	// CREATE REQUEST
+	$requestName							= 'addPatronNote';
+	$request							= new stdClass();
+	$request->Modifiers						= new stdClass();
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->Modifiers->StaffID					= 'PIK'; // Pika Patron Loader
+	$request->Note							= new stdClass();
+	$request->Note->PatronID					= $patron['PatronID']; // Patron ID
+	$request->Note->NoteType					= 2; 
+	$request->Note->NoteText					= 'NPL: MNPS Guarantor effective ' . date('Y-m-d') . ' - ' . $patron['ExpirationDate'] . ': ' . $patron['Guarantor']; // Patron Guarantor as Note
+//var_dump($request);
+	$result = callAPI($patronApiWsdl, $requestName, $request);
+	//var_dump($result);
+	if (isset($result->error)) {
+		echo "$result->error\n";
+		$errors[] = $result->error;
+	} else {
+		echo $request->Note->PatronID . " : Guarantor note set\n";
 	}
 
 // SET PIN FOR CREATED PATRON
@@ -375,9 +399,9 @@ foreach ($iterator as $fileinfo) {
 		}
 
 		if (isset($request->ImageData)) {
-//var_dump($request);
+var_dump($request);
 			$result = callAPI($patronApiWsdl, $requestName, $request);
-//var_dump($result);
+var_dump($result);
 			if (isset($result->error)) {
 				echo "$result->error\n";
 				$errors[] = $result->error;
@@ -389,13 +413,13 @@ foreach ($iterator as $fileinfo) {
 }
 
 /*
-// TO DO: Guardian notes
+// TO DO: Guarantor notes
 // Lane says the note should be like: 
 // NPL: MNPS Guarantor effective 03/29/2017 - 7/31/2017: BOBBY BROWN
-	// Note: Guardian // Notes appears weird in the API // BE CAREFUL TO NOT OVERWRITE UNRELATED NOTES
+	// Note: Guarantor // Notes appears weird in the API // BE CAREFUL TO NOT OVERWRITE UNRELATED NOTES
 	$request->Patron->Notes						= new stdClass();
 	$request->Patron->Notes->NoteType				= 2; 
-	$request->Patron->Notes->NoteText				= 'NPL: MNPS Guardian: ' . $patron[27]; // Patron Guardian Name
+	$request->Patron->Notes->NoteText				= 'NPL: MNPS Guarantor: ' . $patron[27]; // Patron Guarantor Name
 */
 
 /*
