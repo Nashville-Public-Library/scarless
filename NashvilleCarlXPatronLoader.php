@@ -2,13 +2,13 @@
 
 // echo 'SYNTAX: path/to/php NashvilleCarlXPatronLoader.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXPatronLoader.php\n';
 // 
+// TO DO: update guarantor note
+// TO DO: update PIN
 // TO DO: logging
 // TO DO: Images aren't uploading after test 2018 06 18...
 // TO DO: retry after oracle connect error
 // TO DO: review oracle php error handling https://docs.oracle.com/cd/E17781_01/appdev.112/e18555/ch_seven_error.htm#TDPPH165
 // TO DO: capture other patron api errors, e.g., org.hibernate.exception.ConstraintViolationException: could not execute statement; No matching records found
-// TO DO: CREATE GUARANTOR NOTE
-	// $request->Patron->Notes					= $patron[25]; // Patron Notes
 // TO DO: consider whether to make the SQL write the SOAP into a single table
 // TO DO: STAFF
 // TO DO: for patron data privacy, kill data files when actions are complete
@@ -39,10 +39,15 @@ function callAPI($wsdl, $requestName, $request) {
 			$connectionPassed = true;
 			if (is_null($result->response)) {$result->response = $client->__getLastResponse();}
 			if (!empty($result->response)) {
-				$result->success = stripos($result->response, '<ns2:ShortMessage>Successful operation</ns2:ShortMessage>') !== false;
-				if(!$result->success) {
+				if (gettype($result->response) == 'object') {
+					$ShortMessage[0] = $result->response->ResponseStatuses->ResponseStatus->ShortMessage;
+					$result->success = $ShortMessage[0] == 'Successful operation';
+				} else if (gettype($result->response) == 'string') {
+					$result->success = stripos($result->response, '<ns2:ShortMessage>Successful operation</ns2:ShortMessage>') !== false;
 					preg_match('/<ns2:LongMessage>(.+?)<\/ns2:LongMessage>/', $result->response, $longMessages);
 					preg_match('/<ns2:ShortMessage>(.+?)<\/ns2:ShortMessage>/', $result->response, $shortMessages);
+				}
+				if(!$result->success) {
 					$result->error = "$request->SearchID : Failed" . (isset($longMessages[1]) ? ' : ' . $longMessages[1] : (isset($shortMessages[0]) ? ' : ' . $shortMessages[0] : ''));
 				}
 			} else {
