@@ -3,7 +3,11 @@
 // echo 'SYNTAX: path/to/php NashvilleCarlXPatronLoader.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXPatronLoader.php\n';
 // 
 // TO DO: update guarantor note
-// TO DO: update PIN
+// TO DO: guarantor notes only get inserted for appropriate age students. or all of em?
+// TO DO: update PIN. First ask: should we?
+//	In cases where staff are... staff: I assume: yes
+//	In cases where student patron record has been merged with another account: I assume: yes
+//	Ergo, yes?
 // TO DO: logging
 // TO DO: Images aren't uploading after test 2018 06 18...
 // TO DO: retry after oracle connect error
@@ -165,30 +169,6 @@ foreach ($all_rows as $patron) {
 		echo $request->Patron->PatronID . " : created\n";
 	}
 
-// CREATE GUARANTOR NOTE FOR CREATED PATRON
-// createPatron is not setting Notes as requested (probably by design)
-// THerefore we use AddPatronNote
-	// CREATE REQUEST
-	$requestName							= 'addPatronNote';
-	$request							= new stdClass();
-	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= $patronApiDebugMode;
-	$request->Modifiers->ReportMode					= $patronApiReportMode;
-	$request->Modifiers->StaffID					= 'PIK'; // Pika Patron Loader
-	$request->Note							= new stdClass();
-	$request->Note->PatronID					= $patron['PatronID']; // Patron ID
-	$request->Note->NoteType					= 2; 
-	$request->Note->NoteText					= 'NPL: MNPS Guarantor effective ' . date('Y-m-d') . ' - ' . $patron['ExpirationDate'] . ': ' . $patron['Guarantor']; // Patron Guarantor as Note
-//var_dump($request);
-	$result = callAPI($patronApiWsdl, $requestName, $request);
-	//var_dump($result);
-	if (isset($result->error)) {
-		echo "$result->error\n";
-		$errors[] = $result->error;
-	} else {
-		echo $request->Note->PatronID . " : Guarantor note set\n";
-	}
-
 // SET PIN FOR CREATED PATRON
 // createPatron is not setting PIN as requested. See TLC ticket 452557
 // Therefore we use updatePatron to set PIN
@@ -289,6 +269,40 @@ foreach ($all_rows as $patron) {
 	}
 }
 
+// CREATE GUARANTOR NOTES
+$all_rows = array();
+$fhnd = fopen("../data/patrons_mnps_carlx_createNoteGuarantor.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_createNoteGuarantor.csv");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+//print_r($all_rows);
+foreach ($all_rows as $patron) {
+	// TESTING
+	if ($patron['PatronID'] > 190999115) { break; }
+	// CREATE REQUEST
+	$requestName							= 'addPatronNote';
+	$request							= new stdClass();
+	$request->Modifiers						= new stdClass();
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->Modifiers->StaffID					= 'PIK'; // Pika Patron Loader
+	$request->Note							= new stdClass();
+	$request->Note->PatronID					= $patron['PatronID']; // Patron ID
+	$request->Note->NoteType					= 2; 
+	$request->Note->NoteText					= 'NPL: MNPS Guarantor effective ' . date('Y-m-d') . ' - ' . $patron['Guarantor']; // Patron Guarantor as Note
+//var_dump($request);
+	$result = callAPI($patronApiWsdl, $requestName, $request);
+	//var_dump($result);
+	if (isset($result->error)) {
+		echo "$result->error\n";
+		$errors[] = $result->error;
+	} else {
+		echo $request->Note->PatronID . " : Guarantor note set\n";
+	}
+}
 
 // CREATE USER DEFINED FIELDS ENTRIES
 
@@ -404,9 +418,9 @@ foreach ($iterator as $fileinfo) {
 		}
 
 		if (isset($request->ImageData)) {
-var_dump($request);
+//var_dump($request);
 			$result = callAPI($patronApiWsdl, $requestName, $request);
-var_dump($result);
+//var_dump($result);
 			if (isset($result->error)) {
 				echo "$result->error\n";
 				$errors[] = $result->error;
@@ -418,7 +432,7 @@ var_dump($result);
 }
 
 /*
-// TO DO: Guarantor notes
+// TO DO: UPDATE Guarantor notes
 // Lane says the note should be like: 
 // NPL: MNPS Guarantor effective 03/29/2017 - 7/31/2017: BOBBY BROWN
 	// Note: Guarantor // Notes appears weird in the API // BE CAREFUL TO NOT OVERWRITE UNRELATED NOTES

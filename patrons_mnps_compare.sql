@@ -92,6 +92,13 @@ except
 ;
 
 -- GUARANTOR
+.output ../data/patrons_mnps_carlx_createNoteGuarantor.csv
+select i.PatronID, 
+	i.Guarantor
+from infinitecampus i
+left join carlx c on i.PatronID = c.PatronID
+where i.Guarantor != c.Guarantor
+;
 
 -- CreatePatronUserDefinedFields UDF1 TechOptOut 
 .output ../data/patrons_mnps_carlx_createUdf.csv
