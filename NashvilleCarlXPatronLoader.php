@@ -9,7 +9,6 @@
 //	In cases where student patron record has been merged with another account: I assume: yes
 //	Ergo, yes?
 // TO DO: logging
-// TO DO: Images aren't uploading after test 2018 06 18...
 // TO DO: retry after oracle connect error
 // TO DO: review oracle php error handling https://docs.oracle.com/cd/E17781_01/appdev.112/e18555/ch_seven_error.htm#TDPPH165
 // TO DO: capture other patron api errors, e.g., org.hibernate.exception.ConstraintViolationException: could not execute statement; No matching records found
@@ -40,6 +39,7 @@ function callAPI($wsdl, $requestName, $request) {
 		try {
 			$client = new SOAPClient($wsdl, array('connection_timeout' => 3, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 			$result->response = $client->$requestName($request);
+//echo "REQUEST:\n" . $client->__getLastRequest() . "\n";
 			$connectionPassed = true;
 			if (is_null($result->response)) {$result->response = $client->__getLastResponse();}
 			if (!empty($result->response)) {
@@ -411,7 +411,7 @@ foreach ($iterator as $fileinfo) {
 		$imageFilePath 						= "../data/images/" . $file;
 		if (file_exists($imageFilePath)) {
 			$imageFileHandle 				= fopen($imageFilePath, "rb");
-			$request->ImageData				= bin2hex(fread($imageFileHandle, filesize($imageFilePath)));
+			$request->ImageData				= fread($imageFileHandle, filesize($imageFilePath));
 			fclose($imageFileHandle);
 		} else {
 // TO DO: create IMAGE NOT AVAILABLE image
