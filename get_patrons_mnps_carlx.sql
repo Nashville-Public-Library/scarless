@@ -34,6 +34,7 @@ select patron_v.patronid as "Patron ID"						-- 00
   , udf1.valuename as "Tech Opt Out"						-- 31
   , patron_v.street2 as "Teacher ID"						-- 32
   , patron_v.sponsor as "Teacher Name"						-- 33
+  , patron_v.emailnotices as "Email Notices"					-- 34
 
 from patron_v
 join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
