@@ -8,11 +8,11 @@
 
 DROP TABLE IF EXISTS carlx;
 -- CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryStreetAddress,SecondaryCity,SecondaryState,SecondaryZipCode,PrimaryPhoneNumber,SecondaryPhoneNumber,AlternateID,NonvalidatedStats,DefaultBranch,ValidatedStatCodes,StatusCode,RegistrationDate,LastActionDate,ExpirationDate,EmailAddress,Notes,BirthDate,Guarantor,RacialorEthnicCategory,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName);
-CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName);
+CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName,EmailNotices);
 
 DROP TABLE IF EXISTS infinitecampus;
 -- CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryStreetAddress,SecondaryCity,SecondaryState,SecondaryZipCode,PrimaryPhoneNumber,SecondaryPhoneNumber,AlternateID,NonvalidatedStats,DefaultBranch,ValidatedStatCodes,StatusCode,RegistrationDate,LastActionDate,ExpirationDate,EmailAddress,Notes,BirthDate,Guarantor,RacialorEthnicCategory,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName);
-CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName);
+CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName,EmailNotices);
 
 .headers on
 .mode csv
@@ -28,7 +28,7 @@ where carlx.PatronID IS NULL
 order by infinitecampus.PatronID
 ;
 
--- UPDATE CARLX PATRON (IGNORE GUARANTOR; IGNORE UDF VALUES)
+-- UPDATE CARLX PATRON (IGNORE EMAIL; IGNORE GUARANTOR; IGNORE UDF VALUES)
 .output ../data/patrons_mnps_carlx_update.csv
 select PatronID,
 	Borrowertypecode,
@@ -43,7 +43,6 @@ select PatronID,
 	SecondaryPhoneNumber,
 	DefaultBranch,
 	ExpirationDate,
-	EmailAddress,
 	BirthDate,
 	TeacherID,
 	TeacherName
@@ -62,7 +61,6 @@ select carlx.PatronID,
 	carlx.SecondaryPhoneNumber,
 	carlx.DefaultBranch,
 	carlx.ExpirationDate,
-	carlx.EmailAddress,
 	carlx.BirthDate,
 	carlx.TeacherID,
 	carlx.TeacherName
@@ -81,7 +79,6 @@ except
 		infinitecampus.SecondaryPhoneNumber,
 		infinitecampus.DefaultBranch,
 		infinitecampus.ExpirationDate,
-		infinitecampus.EmailAddress,
 		infinitecampus.BirthDate,
 		infinitecampus.TeacherID,
 		infinitecampus.TeacherName
@@ -91,7 +88,30 @@ except
 	order by infinitecampus.PatronID
 ;
 
+-- EMAIL
+.output ../data/patrons_mnps_carlx_updateEmail.csv
+select i.PatronID as PatronID,
+	i.EmailAddress as Email,
+	'send email' as EmailNotices
+from infinitecampus i
+left join carlx c on i.PatronID = c.PatronID
+where (c.EmailAddress like '%mnpsk12.org'
+	and c.EmailNotices != 1)
+or (c.EmailAddress not like '%mnpsk12.org'
+	and c.EmailNotices in (0,3))
+;
+.headers off
+select c.PatronID as PatronID,
+        i.EmailAddress as Email,
+        'send email' as EmailNotices
+from infinitecampus i
+left join carlx c on i.PatronID = c.PatronID
+where c.EmailAddress not like '%mnpsk12.org'
+and c.EmailNotices = 2
+;
+
 -- GUARANTOR
+.headers on
 .output ../data/patrons_mnps_carlx_createNoteGuarantor.csv
 select i.PatronID, 
 	i.Guarantor

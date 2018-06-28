@@ -2,8 +2,6 @@
 
 // echo 'SYNTAX: path/to/php NashvilleCarlXPatronLoader.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXPatronLoader.php\n';
 // 
-// TO DO: update guarantor note
-// TO DO: guarantor notes only get inserted for appropriate age students. or all of em?
 // TO DO: update PIN. First ask: should we?
 //	In cases where staff are... staff: I assume: yes
 //	In cases where student patron record has been merged with another account: I assume: yes
@@ -30,7 +28,7 @@ $patronApiDebugMode	= $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode	= $configArray['Catalog']['patronApiReportMode'];
 $reportPath		= '../data/';
 
-function callAPI($wsdl, $requestName, $request) {
+function callAPI($wsdl, $requestName, $request, $tag) {
 	$connectionPassed = false;
 	$numTries = 0;
 	$result = new stdClass();
@@ -52,13 +50,13 @@ function callAPI($wsdl, $requestName, $request) {
 					preg_match('/<ns2:ShortMessage>(.+?)<\/ns2:ShortMessage>/', $result->response, $shortMessages);
 				}
 				if(!$result->success) {
-					$result->error = "$request->SearchID : Failed" . (isset($longMessages[1]) ? ' : ' . $longMessages[1] : (isset($shortMessages[0]) ? ' : ' . $shortMessages[0] : ''));
+					$result->error = $tag . " : Failed : " . (isset($longMessages[1]) ? ' : ' . $longMessages[1] : (isset($shortMessages[0]) ? ' : ' . $shortMessages[0] : ''));
 				}
 			} else {
-				$result->error = "$request->SearchID : Failed : No SOAP response from API.";
+				$result->error = $tag . " : Failed : No SOAP response from API.";
 			}
 		} catch (SoapFault $e) {
-			if ($numTries == 2) { $result->error = "$request->SearchID : Exception : " . $e->getMessage(); }
+			if ($numTries == 2) { $result->error = $tag . " : Exception : " . $e->getMessage(); }
 		}
 		$numTries++;
 	}
@@ -115,8 +113,9 @@ if ($fhnd){
 
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['PatronID'] > 190999115) { break; }
+	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
+	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'createPatron';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
@@ -160,7 +159,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->RegisteredBy					= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate				= date('c'); // Registration Date, format ISO 8601
 //var_dump($request);
-	$result = callAPI($patronApiWsdl, $requestName, $request);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	//var_dump($result);
 	if (isset($result->error)) {
 		echo "$result->error\n";
@@ -173,6 +172,7 @@ foreach ($all_rows as $patron) {
 // createPatron is not setting PIN as requested. See TLC ticket 452557
 // Therefore we use updatePatron to set PIN
 	// CREATE REQUEST
+	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'updatePatron';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
@@ -187,7 +187,7 @@ foreach ($all_rows as $patron) {
 		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
 	}
 //var_dump($request);
-	$result = callAPI($patronApiWsdl, $requestName, $request);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	//var_dump($result);
 	if (isset($result->error)) {
 		echo "$result->error\n";
@@ -212,8 +212,9 @@ if ($fhnd){
 
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['PatronID'] > 190999115) { break; }
+	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
+	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'updatePatron';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
@@ -240,7 +241,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
 	$request->Patron->LastEditBranch				= $patron['DefaultBranch']; // Patron Last Edit Branch
 	$request->Patron->RegBranch					= $patron['DefaultBranch']; // Patron Registration Branch
-	$request->Patron->Email						= $patron['EmailAddress']; // Patron Email
+	//$request->Patron->Email					= $patron['EmailAddress']; // Patron Email
 	$request->Patron->BirthDate					= $patron['BirthDate']; // Patron Birth Date as Y-m-d
 	// Sponsor: Homeroom Teacher
 	$request->Patron->Addresses->Address[1]				= new stdClass();
@@ -259,7 +260,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	$request->Patron->PreferredAddress				= 'Sponsor';
 //var_dump($request);
-	$result = callAPI($patronApiWsdl, $requestName, $request);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	//var_dump($result);
 	if (isset($result->error)) {
 		echo "$result->error\n";
@@ -268,6 +269,43 @@ foreach ($all_rows as $patron) {
 		echo "$request->SearchID : updated\n";
 	}
 }
+
+// UPDATE EMAIL ADDRESS AND NOTICES
+$all_rows = array();
+$fhnd = fopen("../data/patrons_mnps_carlx_updateEmail.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_updateEmail.csv");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+//print_r($all_rows);
+foreach ($all_rows as $patron) {
+	// TESTING
+	//if ($patron['PatronID'] > 190999115) { break; }
+	// CREATE REQUEST
+	$tag								= $patron['PatronID']; // Patron ID
+	$requestName							= 'updatePatron';
+	$request							= new stdClass();
+	$request->Modifiers						= new stdClass();
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->SearchType						= 'Patron ID';
+	$request->SearchID						= $patron['PatronID']; // Patron ID
+	$request->Patron						= new stdClass();
+	$request->Patron->Email						= $patron['Email']; // Email Address
+	$request->Patron->EmailNotices					= $patron['EmailNotices']; // Email Address
+//var_dump($request);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	//var_dump($result);
+	if (isset($result->error)) {
+		echo "$result->error\n";
+		$errors[] = $result->error;
+	} else {
+		echo $request->Note->PatronID . " : Email updated\n";
+	}
+}
+
 
 // CREATE GUARANTOR NOTES
 $all_rows = array();
@@ -281,8 +319,9 @@ if ($fhnd){
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['PatronID'] > 190999115) { break; }
+	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
+	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'addPatronNote';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
@@ -294,7 +333,7 @@ foreach ($all_rows as $patron) {
 	$request->Note->NoteType					= 2; 
 	$request->Note->NoteText					= 'NPL: MNPS Guarantor effective ' . date('Y-m-d') . ' - ' . $patron['Guarantor']; // Patron Guarantor as Note
 //var_dump($request);
-	$result = callAPI($patronApiWsdl, $requestName, $request);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	//var_dump($result);
 	if (isset($result->error)) {
 		echo "$result->error\n";
@@ -303,6 +342,8 @@ foreach ($all_rows as $patron) {
 		echo $request->Note->PatronID . " : Guarantor note set\n";
 	}
 }
+
+// TO DO: DELETE OBSOLETE GUARANTOR NOTES
 
 // CREATE USER DEFINED FIELDS ENTRIES
 
@@ -320,6 +361,7 @@ foreach ($all_rows as $patron) {
 	if ($patron['patronid'] > 190999115) { continue; }
 	if ($patron['patronid'] > 190999115 && $patron['fieldid'] == 4) { break; }
 	// CREATE REQUEST
+	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'createPatronUserDefinedFields';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
@@ -333,7 +375,7 @@ foreach ($all_rows as $patron) {
 	$request->PatronUserDefinedField->type				= $patron['type'];
 	$request->PatronUserDefinedField->valuename			= $patron['valuename'];
 //var_dump($request);
-	$result = callAPI($patronApiWsdl, $requestName, $request);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	//var_dump($result);
 	if (isset($result->error)) {
 		echo "$result->error\n";
@@ -358,6 +400,7 @@ foreach ($all_rows as $patron) {
 	// TESTING
 	if ($patron['new_patronid'] > 190999115) { break; }
 	// CREATE REQUEST
+	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'updatePatronUserDefinedFields';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
@@ -378,7 +421,7 @@ foreach ($all_rows as $patron) {
 	$request->NewPatronUserDefinedField->type			= $patron['new_type'];
 	$request->NewPatronUserDefinedField->valuename			= $patron['new_valuename'];
 //var_dump($request);
-	$result = callAPI($patronApiWsdl, $requestName, $request);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	//var_dump($result);
 	if (isset($result->error)) {
 		echo "$result->error\n";
@@ -400,6 +443,7 @@ foreach ($iterator as $fileinfo) {
         $file = $fileinfo->getFilename();
         $mtime = $fileinfo->getMTime();
         if ($fileinfo->isFile() && preg_match('/^190\d{6}.jpg$/', $file) === 1 && $mtime >= $today) {
+		$tag							= $patron['PatronID']; // Patron ID
 		$requestName						= 'updateImage';
 		$request						= new stdClass();
 		$request->Modifiers					= new stdClass();
@@ -419,7 +463,7 @@ foreach ($iterator as $fileinfo) {
 
 		if (isset($request->ImageData)) {
 //var_dump($request);
-			$result = callAPI($patronApiWsdl, $requestName, $request);
+			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 //var_dump($result);
 			if (isset($result->error)) {
 				echo "$result->error\n";
@@ -430,33 +474,5 @@ foreach ($iterator as $fileinfo) {
 		}
 	}
 }
-
-/*
-// TO DO: UPDATE Guarantor notes
-// Lane says the note should be like: 
-// NPL: MNPS Guarantor effective 03/29/2017 - 7/31/2017: BOBBY BROWN
-	// Note: Guarantor // Notes appears weird in the API // BE CAREFUL TO NOT OVERWRITE UNRELATED NOTES
-	$request->Patron->Notes						= new stdClass();
-	$request->Patron->Notes->NoteType				= 2; 
-	$request->Patron->Notes->NoteText				= 'NPL: MNPS Guarantor: ' . $patron[27]; // Patron Guarantor Name
-*/
-
-/*
-// VERIFY ALL UPDATED VALUES WERE UPDATED
-	$request							= new stdClass();
-	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= $patronApiDebugMode;
-	$request->Modifiers->ReportMode					= $patronApiReportMode;
-	$request->SearchType						= 'Patron ID';
-	$request->SearchID						= $patron['PatronID']; // Patron ID
-	try {
-		$result = $client->getPatronInformation($request);
-		$result = $client->__getLastResponse();
-var_dump($result);
-	} catch (Exception $e) {
-		echo $e->getMessage();
-	}
-
-*/
 
 ?>

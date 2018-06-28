@@ -62,6 +62,8 @@ perl -F'\|' -lane '
 	$F[23] = "2019-09-01";
 # PREPEND EXPIRATION DATE TO GUARANTOR FOR COMPARISON AGAINST CARL
 	$F[27] = $F[23] . ": " . $F[27];
+# ADD EMAIL NOTICES VALUE 1 = SEND EMAIL NOTICES
+	$F[34] = "1";
 # FORMAT AS CSV
 	foreach (@F) {
 		# CHANGE QUOTATION MARK IN ALL FIELDS TO AN APOSTROPHE
@@ -72,7 +74,7 @@ perl -F'\|' -lane '
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
 # REPLACE PIPE DELIMITERS WITH COMMAS, ELIMINATE COLUMNS THAT WILL NOT BE COMPARED
-	print join q/,/, @F[0..9,14,18,23,24,26,27,29..33]' ../data/patrons_mnps_infinitecampus.txt > ../data/patrons_mnps_infinitecampus.csv;
+	print join q/,/, @F[0..9,14,18,23,24,26,27,29..34]' ../data/patrons_mnps_infinitecampus.txt > ../data/patrons_mnps_infinitecampus.csv;
 # REMOVE HEADERS
 perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^Patron/)' ../data/patrons_mnps_infinitecampus.csv
 # SORT BY ID
