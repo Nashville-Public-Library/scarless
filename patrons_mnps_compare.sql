@@ -120,8 +120,8 @@ left join carlx c on i.PatronID = c.PatronID
 where i.Guarantor != c.Guarantor
 ;
 
-
 -- CreatePatronUserDefinedFields
+.headers off
 .output ../data/patrons_mnps_carlx_createUdf.csv
 select 'patronid',
 	'occur',
@@ -129,7 +129,6 @@ select 'patronid',
 	'numcode',
 	'type',
 	'valuename';
-
 -- CreatePatronUserDefinedFields UDF1 TechOptOut 
 .headers off
 select i.* 
@@ -149,7 +148,6 @@ from (
 where c.PatronID IS NULL
 order by i.PatronID
 ;
-
 -- CreatePatronUserDefinedFields UDF3 LapTopCheckOut 
 .headers off
 select i.* 
@@ -169,8 +167,8 @@ from (
 where c.PatronID IS NULL
 order by i.PatronID
 ;
-
 -- CreatePatronUserDefinedFields UDF4 LimitlessLibraryUse
+.headers off
 select i.* 
 from (
         select infinitecampus.PatronID as patronid, 
@@ -254,6 +252,7 @@ and i.new_numcode != c.old_numcode
 order by i.new_patronid
 ;
 -- UpdatePatronUserDefinedFields UDF4 LimitlessLibraryUse
+.headers off
 select *
 from (
         select infinitecampus.PatronID as new_patronid,
