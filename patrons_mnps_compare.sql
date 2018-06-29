@@ -120,8 +120,18 @@ left join carlx c on i.PatronID = c.PatronID
 where i.Guarantor != c.Guarantor
 ;
 
--- CreatePatronUserDefinedFields UDF1 TechOptOut 
+
+-- CreatePatronUserDefinedFields
 .output ../data/patrons_mnps_carlx_createUdf.csv
+select 'patronid',
+	'occur',
+	'fieldid',
+	'numcode',
+	'type',
+	'valuename';
+
+-- CreatePatronUserDefinedFields UDF1 TechOptOut 
+.headers off
 select i.* 
 from (
         select infinitecampus.PatronID as patronid, 
@@ -179,9 +189,22 @@ where c.PatronID IS NULL
 order by i.PatronID
 ;
 
--- UpdatePatronUserDefinedFields UDF1 TechOptOut
-.headers on
+-- UpdatePatronUserDefinedFields
 .output ../data/patrons_mnps_carlx_updateUdf.csv
+select 'new_patronid',
+	'new_occur',
+	'new_fieldid',
+	'new_numcode',
+	'new_type',
+	'new_valuename',
+	'old_patronid',
+	'old_occur',
+	'old_fieldid',
+	'old_numcode',
+	'old_type',
+	'old_valuename';
+-- UpdatePatronUserDefinedFields UDF1 TechOptOut
+.headers off
 select *
 from (
         select infinitecampus.PatronID as new_patronid,
@@ -205,7 +228,6 @@ where c.old_patronid IS NOT NULL
 and i.new_numcode != c.old_numcode
 order by i.new_patronid
 ;
-
 -- UpdatePatronUserDefinedFields UDF3 LapTopCheckOut
 .headers off
 select *
@@ -231,7 +253,6 @@ where c.old_patronid IS NOT NULL
 and i.new_numcode != c.old_numcode
 order by i.new_patronid
 ;
-
 -- UpdatePatronUserDefinedFields UDF4 LimitlessLibraryUse
 select *
 from (

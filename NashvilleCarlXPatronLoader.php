@@ -60,6 +60,12 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 		}
 		$numTries++;
 	}
+	if (isset($result->error)) {
+		echo "$result->error\n";
+		$errors[] = $result->error;
+	} else {
+		echo $tag . " : Successful operation\n";
+	}
 	return $result;
 }
 
@@ -115,8 +121,8 @@ foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
-	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'createPatron';
+	$tag								= $requestName . " " . $patron['PatronID'];
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -158,22 +164,14 @@ foreach ($all_rows as $patron) {
 	$request->Patron->PreferredAddress				= 'Sponsor';
 	$request->Patron->RegisteredBy					= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate				= date('c'); // Registration Date, format ISO 8601
-//var_dump($request);
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-	//var_dump($result);
-	if (isset($result->error)) {
-		echo "$result->error\n";
-		$errors[] = $result->error;
-	} else {
-		echo $request->Patron->PatronID . " : created\n";
-	}
 
 // SET PIN FOR CREATED PATRON
 // createPatron is not setting PIN as requested. See TLC ticket 452557
 // Therefore we use updatePatron to set PIN
 	// CREATE REQUEST
-	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'updatePatron';
+	$tag								= 'updatePatronPIN ' . $patron['PatronID']; // Patron ID
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -186,16 +184,7 @@ foreach ($all_rows as $patron) {
 	} else {
 		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
 	}
-//var_dump($request);
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-	//var_dump($result);
-	if (isset($result->error)) {
-		echo "$result->error\n";
-		$errors[] = $result->error;
-	} else {
-		echo $request->SearchID . " : PIN set\n";
-	}
-
 }
 
 // UPDATE CARLX PATRONS
@@ -214,8 +203,8 @@ foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
-	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'updatePatron';
+	$tag								= $requestName . " " . $patron['PatronID']; // Patron ID
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -259,15 +248,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	$request->Patron->PreferredAddress				= 'Sponsor';
-//var_dump($request);
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-	//var_dump($result);
-	if (isset($result->error)) {
-		echo "$result->error\n";
-		$errors[] = $result->error;
-	} else {
-		echo "$request->SearchID : updated\n";
-	}
 }
 
 // UPDATE EMAIL ADDRESS AND NOTICES
@@ -284,8 +265,8 @@ foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
-	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'updatePatron';
+	$tag								= 'updatePatronEmail ' . $patron['PatronID']; // Patron ID
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -295,15 +276,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron						= new stdClass();
 	$request->Patron->Email						= $patron['Email']; // Email Address
 	$request->Patron->EmailNotices					= $patron['EmailNotices']; // Email Address
-//var_dump($request);
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-	//var_dump($result);
-	if (isset($result->error)) {
-		echo "$result->error\n";
-		$errors[] = $result->error;
-	} else {
-		echo $request->Note->PatronID . " : Email updated\n";
-	}
 }
 
 
@@ -321,8 +294,8 @@ foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
-	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'addPatronNote';
+	$tag								= 'addPatronGuarantor ' . $patron['PatronID']; // Patron ID
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -332,15 +305,7 @@ foreach ($all_rows as $patron) {
 	$request->Note->PatronID					= $patron['PatronID']; // Patron ID
 	$request->Note->NoteType					= 2; 
 	$request->Note->NoteText					= 'NPL: MNPS Guarantor effective ' . date('Y-m-d') . ' - ' . $patron['Guarantor']; // Patron Guarantor as Note
-//var_dump($request);
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-	//var_dump($result);
-	if (isset($result->error)) {
-		echo "$result->error\n";
-		$errors[] = $result->error;
-	} else {
-		echo $request->Note->PatronID . " : Guarantor note set\n";
-	}
 }
 
 // TO DO: DELETE OBSOLETE GUARANTOR NOTES
@@ -361,8 +326,8 @@ foreach ($all_rows as $patron) {
 	if ($patron['patronid'] > 190999115) { continue; }
 	if ($patron['patronid'] > 190999115 && $patron['fieldid'] == 4) { break; }
 	// CREATE REQUEST
-	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'createPatronUserDefinedFields';
+	$tag								= $requestName . $patron['fieldid'] . " " . $patron['PatronID'];
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -374,15 +339,7 @@ foreach ($all_rows as $patron) {
 	$request->PatronUserDefinedField->numcode			= $patron['numcode'];
 	$request->PatronUserDefinedField->type				= $patron['type'];
 	$request->PatronUserDefinedField->valuename			= $patron['valuename'];
-//var_dump($request);
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-	//var_dump($result);
-	if (isset($result->error)) {
-		echo "$result->error\n";
-		$errors[] = $result->error;
-	} else {
-		echo $request->PatronUserDefinedField->patronid . " : created udf" . $request->PatronUserDefinedField->fieldid . " value\n";
-	}
 }
 
 // UPDATE USER DEFINED FIELDS ENTRIES
@@ -400,8 +357,8 @@ foreach ($all_rows as $patron) {
 	// TESTING
 	if ($patron['new_patronid'] > 190999115) { break; }
 	// CREATE REQUEST
-	$tag								= $patron['PatronID']; // Patron ID
 	$requestName							= 'updatePatronUserDefinedFields';
+	$tag								= $requestName . $patron['fieldid'] . " " . $patron['PatronID'];
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -420,15 +377,7 @@ foreach ($all_rows as $patron) {
 	$request->NewPatronUserDefinedField->numcode			= $patron['new_numcode'];
 	$request->NewPatronUserDefinedField->type			= $patron['new_type'];
 	$request->NewPatronUserDefinedField->valuename			= $patron['new_valuename'];
-//var_dump($request);
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-	//var_dump($result);
-	if (isset($result->error)) {
-		echo "$result->error\n";
-		$errors[] = $result->error;
-	} else {
-		echo $request->NewPatronUserDefinedField->patronid . " : updated udf" . $request->NewPatronUserDefinedField->fieldid . " value\n";
-	}
 }
 
 // CREATE/UPDATE PATRON IMAGES
@@ -443,8 +392,8 @@ foreach ($iterator as $fileinfo) {
         $file = $fileinfo->getFilename();
         $mtime = $fileinfo->getMTime();
         if ($fileinfo->isFile() && preg_match('/^190\d{6}.jpg$/', $file) === 1 && $mtime >= $today) {
-		$tag							= $patron['PatronID']; // Patron ID
 		$requestName						= 'updateImage';
+		$tag							= $requestName . " " . $patron['PatronID'];
 		$request						= new stdClass();
 		$request->Modifiers					= new stdClass();
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;
@@ -460,17 +409,8 @@ foreach ($iterator as $fileinfo) {
 		} else {
 // TO DO: create IMAGE NOT AVAILABLE image
 		}
-
 		if (isset($request->ImageData)) {
-//var_dump($request);
 			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-//var_dump($result);
-			if (isset($result->error)) {
-				echo "$result->error\n";
-				$errors[] = $result->error;
-			} else {
-				echo "$request->SearchID : updated image\n";
-			}
 		}
 	}
 }
