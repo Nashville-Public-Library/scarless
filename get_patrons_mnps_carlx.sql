@@ -78,8 +78,8 @@ left outer join (
   where udfpatron_v.fieldid = 4
 ) udf4 on patron_v.patronid = udf4.patronid
 where
-   patronbranch.branchgroup = '2'
---   or patron_v.bty = 13 or (patron_v.bty >= 21 and patron_v.bty <= 42)
---   or regexp_like(patron_v.patronid,'^190[0-9]{6}$')
-  and regexp_like(patron_v.patronid,'^190999[0-9]{3}$') -- TEST STUDENT PATRONS
+  patronbranch.branchgroup = '2'
+  or patron_v.bty >= 21 and patron_v.bty <= 37
+  or regexp_like(patron_v.patronid,'^190[0-9]{6}$')
+  or regexp_like(patron_v.patronid,'^190999[0-9]{3}$') -- TEST STUDENT PATRONS
 order by patron_v.patronid
