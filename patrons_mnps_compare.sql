@@ -118,6 +118,7 @@ select i.PatronID,
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
 where i.Guarantor != c.Guarantor
+and i.Guarantor != ''
 ;
 
 -- CreatePatronUserDefinedFields
