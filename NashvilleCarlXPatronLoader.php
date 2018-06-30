@@ -323,11 +323,11 @@ if ($fhnd){
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['patronid'] > 190999115) { continue; }
-	if ($patron['patronid'] > 190999115 && $patron['fieldid'] == 4) { break; }
+	//if ($patron['patronid'] > 190999115) { continue; }
+	//if ($patron['patronid'] > 190999115 && $patron['fieldid'] == 4) { break; }
 	// CREATE REQUEST
 	$requestName							= 'createPatronUserDefinedFields';
-	$tag								= $requestName . $patron['fieldid'] . " " . $patron['PatronID'];
+	$tag								= $requestName . $patron['fieldid'] . " " . $patron['patronid'];
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -355,10 +355,10 @@ if ($fhnd){
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
-	if ($patron['new_patronid'] > 190999115) { break; }
+	//if ($patron['new_patronid'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'updatePatronUserDefinedFields';
-	$tag								= $requestName . $patron['fieldid'] . " " . $patron['PatronID'];
+	$tag								= $requestName . $patron['old_fieldid'] . " " . $patron['old_patronID'];
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
