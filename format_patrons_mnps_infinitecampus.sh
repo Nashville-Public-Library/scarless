@@ -11,7 +11,7 @@ cat ../data/TEST_INFINITECAMPUS_STUDENT.txt ../data/CARLX_INFINITECAMPUS_STUDENT
 # SORT AND UNIQ PATRONS
 sort -u -o ../data/patrons_mnps_infinitecampus.txt ../data/patrons_mnps_infinitecampus.txt
 
-perl -F'\|' -lane '
+perl -MDate::Calc=Add_N_Delta_YMD,Delta_Days,Today -F'\|' -lane '
 # SCRUB NON-ASCII CHARACTERS
 	@F = map { s/[^\012\015\040-\176]//g; $_ } @F;
 # SKIP STUDENTS AT NON-ELIGIBLE SCHOOLS
@@ -60,10 +60,17 @@ perl -F'\|' -lane '
 	$F[20] = "";
 # CHANGE DATE VALUE FOR EXPIRATION TO 2019-09-01
 	$F[23] = "2019-09-01";
-# PREPEND EXPIRATION DATE TO GUARANTOR FOR COMPARISON AGAINST CARL
-	$F[27] = $F[23] . ": " . $F[27];
+# GUARANTOR EFFECTIVE STOP DATE (GESD)
+	($birthyear,$birthmonth,$birthdate) = split("-",$F[26]);
+	($gesy,$gesm,$gesd) = Date::Calc::Add_N_Delta_YMD($birthyear,$birthmonth,$birthdate,13,0,-1);
+	if (join("-",$gesy,$gesm,$gesd) > $F[23]) { $gesdate = $F[23]; } else { $gesdate = join("-",$gesy,$gesm,$gesd); }
+# PREPEND GESD TO GUARANTOR FOR COMPARISON AGAINST CARL
+	$F[27] = $gesdate . ": " . $F[27];
+# GUARANTOR NOTE NOT INCLUDED IF PATRON IS 13+ YEARS OLD
+	($ty,$tm,$td) = Date::Calc::Today();
+	if (Date::Calc::Delta_Days($gesy,$gesm,$gesd,$ty,$tm,$td) >= 0) { $F[27] = ""; }
 # ADD EMAIL NOTICES VALUE 1 = SEND EMAIL NOTICES
-	$F[34] = "1";
+	$F[34] = "send email";
 # FORMAT AS CSV
 	foreach (@F) {
 		# CHANGE QUOTATION MARK IN ALL FIELDS TO AN APOSTROPHE
