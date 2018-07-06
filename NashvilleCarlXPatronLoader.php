@@ -14,6 +14,8 @@
 // TO DO: STAFF
 // TO DO: for patron data privacy, kill data files when actions are complete
 
+//////////////////// CONFIGURATION ////////////////////
+
 date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);
 
@@ -27,6 +29,8 @@ $patronApiWsdl		= $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode	= $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode	= $configArray['Catalog']['patronApiReportMode'];
 $reportPath		= '../data/';
+
+//////////////////// FUNCTIONS ////////////////////
 
 function callAPI($wsdl, $requestName, $request, $tag) {
 	$connectionPassed = false;
@@ -69,6 +73,8 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 	return $result;
 }
 
+//////////////////// ORACLE DB ////////////////////
+
 // connect to carlx oracle db
 $conn = oci_connect($carlx_db_php_user, $carlx_db_php_password, $carlx_db_php);
 if (!$conn) {
@@ -96,6 +102,8 @@ echo "Patrons MNPS CARLX retrieved and written\n";
 oci_free_statement($stid);
 oci_close($conn);
 
+//////////////////// SQLITE3 ////////////////////
+
 // Using shell instead of php as per https://stackoverflow.com/questions/35999597/importing-csv-file-into-sqlite3-from-php#36001304
 // FROM https://www.sqlite.org/cli.html:
 // "The dot-commands are interpreted by the sqlite3.exe command-line program, not by SQLite itself."
@@ -105,7 +113,85 @@ exec("bash format_patrons_mnps_infinitecampus.sh");
 exec("sqlite3 ../data/ic2carlx.db < patrons_mnps_compare.sql");
 echo "Infinitecampus vs. CarlX patron record comparison complete\n";
 
-// CREATE CARLX PATRONS
+//////////////////// REMOVE CARLX PATRONS ////////////////////
+// See https://trello.com/c/lK7HgZgX for spec
+$all_rows = array();
+$fhnd = fopen("../data/patrons_mnps_carlx_remove.csv", "r");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+//print_r($all_rows);
+
+foreach ($all_rows as $patron) {
+	// TESTING
+	//if ($patron['PatronID'] > 190999115) { break; }
+	// CREATE REQUEST
+	$requestName							= 'updatePatron';
+	$tag								= removePatron . " " . $patron['patronid'];
+	$request							= new stdClass();
+	$request->Modifiers						= new stdClass();
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->SearchType						= 'Patron ID';
+	$request->SearchID						= $patron['patronid']; // Patron ID
+	$request->Patron						= new stdClass();
+	$request->Patron->Addresses					= new stdClass();
+	$request->Patron->Addresses->Address[0]				= new stdClass();
+	$request->Patron->Addresses->Address[0]->Type			= 'Primary';
+	$request->Patron->Addresses->Address[0]->Street			= ''; // Patron Address Street
+	$request->Patron->Addresses->Address[0]->City			= ''; // Patron Address City
+	$request->Patron->Addresses->Address[0]->State			= ''; // Patron Address State
+	$request->Patron->Addresses->Address[0]->PostalCode		= ''; // Patron Address ZIP Code
+	$request->Patron->PatronType					= '38'; // Patron Type = Expired MNPS
+	$request->Patron->Phone2					= ''; // Patron Secondary Phone
+	$request->Patron->DefaultBranch					= 'XMNPS'; // Patron Default Branch
+	$request->Patron->LastActionBranch				= 'XMNPS'; // Patron Last Action Branch
+	$request->Patron->LastEditBranch				= 'XMNPS'; // Patron Last Edit Branch
+	$request->Patron->RegBranch					= 'XMNPS'; // Patron Registration Branch
+// TO DO: grab email from sqlite query
+	if (stripos($patron['email'],'@mnpsk12.org') > 0) {
+		$request->Patron->Email					= ''; // Patron Email
+	}
+	if (stripos($patron['email'],'@mnps.org') > 0) {
+		$request->Patron->Email					= ''; // Patron Email
+	}
+	// REMOVE VALUES FOR Sponsor: Homeroom Teacher
+	$request->Patron->Addresses->Address[1]				= new stdClass();
+	$request->Patron->Addresses->Address[1]->Type			= 'Secondary';
+	$request->Patron->Addresses->Address[1]->Street			= ''; // Patron Homeroom Teacher ID
+	$request->Patron->SponsorName					= ''; // Patron Homeroom Teacher Name
+	// NON-CSV STUFF
+	if (!empty($patron['patron_seen'])) {
+		$request->Patron->ExpirationDate			= date_create_from_format('Y-m-d',$patron['patron_seen'])->format('c'); // Patron Expiration Date as ISO 8601
+	} else {
+		$request->Patron->ExpirationDate			= date('c', strtotime('yesterday')); // Patron Expiration Date as ISO 8601
+	}
+	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
+	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
+	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
+	$request->Patron->PreferredAddress				= 'Primary';
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+
+// CREATE URGENT 'Former MNPS Patron' NOTE
+	// CREATE REQUEST
+	$requestName							= 'addPatronNote';
+	$tag								= 'addPatronRemoveNote ' . $patron['PatronID']; // Patron ID
+	$request							= new stdClass();
+	$request->Modifiers						= new stdClass();
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->Modifiers->StaffID					= 'PIK'; // Pika Patron Loader
+	$request->Note							= new stdClass();
+	$request->Note->PatronID					= $patron['patronid']; // Patron ID
+	$request->Note->NoteType					= '800'; 
+	$request->Note->NoteText					= 'MNPS patron expired ' . $request->Patron->ExpirationDate . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, default branch, guarantor.'; 
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+}
+
+//////////////////// CREATE CARLX PATRONS ////////////////////
 
 $all_rows = array();
 $fhnd = fopen("../data/patrons_mnps_carlx_create.csv", "r");
@@ -187,7 +273,7 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-// UPDATE CARLX PATRONS
+//////////////////// UPDATE CARLX PATRONS ////////////////////
 
 $all_rows = array();
 $fhnd = fopen("../data/patrons_mnps_carlx_update.csv", "r");
@@ -251,7 +337,7 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-// UPDATE EMAIL ADDRESS AND NOTICES
+//////////////////// UPDATE EMAIL ADDRESS AND NOTICES ////////////////////
 $all_rows = array();
 $fhnd = fopen("../data/patrons_mnps_carlx_updateEmail.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_updateEmail.csv");
 if ($fhnd){
@@ -280,7 +366,7 @@ foreach ($all_rows as $patron) {
 }
 
 
-// CREATE GUARANTOR NOTES
+//////////////////// CREATE GUARANTOR NOTES ////////////////////
 $all_rows = array();
 $fhnd = fopen("../data/patrons_mnps_carlx_createNoteGuarantor.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_createNoteGuarantor.csv");
 if ($fhnd){
@@ -310,8 +396,7 @@ foreach ($all_rows as $patron) {
 
 // TO DO: DELETE OBSOLETE GUARANTOR NOTES
 
-// CREATE USER DEFINED FIELDS ENTRIES
-
+//////////////////// CREATE USER DEFINED FIELDS ENTRIES ////////////////////
 $all_rows = array();
 $fhnd = fopen("../data/patrons_mnps_carlx_createUdf.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_createUdf.csv");
 if ($fhnd){
@@ -342,8 +427,7 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-// UPDATE USER DEFINED FIELDS ENTRIES
-
+//////////////////// UPDATE USER DEFINED FIELDS ENTRIES ////////////////////
 $all_rows = array();
 $fhnd = fopen("../data/patrons_mnps_carlx_updateUdf.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_updateUdf.csv");
 if ($fhnd){
@@ -380,12 +464,8 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-// CREATE/UPDATE PATRON IMAGES
+//////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
-
-// currently the data sent by this script does not get caught by Carl correctly. I can send what I think is identical information via SOAPUI and Carl catches it,
-// renders a good image in Carl.Connect. But the images sent by this script result in white fields.
-// I should check the Carl logs to see whether I can see the incoming request and compare a SOAPUI request against one sent by this script
 $iterator = new DirectoryIterator('../data/images');
 $today = date_create('today')->format('U');
 foreach ($iterator as $fileinfo) {
