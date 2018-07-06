@@ -19,6 +19,36 @@ CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirs
 .import ../data/patrons_mnps_carlx.csv carlx
 .import ../data/patrons_mnps_infinitecampus.csv infinitecampus
 
+-- UPDATE PATRON SEEN
+update patron_seen 
+set patron_seen = CURRENT_DATE 
+where patronid in (
+	select i.patronid 
+	from infinitecampus i 
+	inner join patron_seen p on i.patronid = p.patronid
+); 
+
+-- INSERT PATRON SEEN
+insert into patron_seen 
+select i.patronid, CURRENT_DATE 
+from infinitecampus i 
+left join patron_seen p on i.patronid = p.patronid 
+where p.patronid is null;
+
+-- "REMOVE" CARLX PATRON
+.output ../data/patrons_mnps_carlx_remove.csv
+select p.patronid,
+	p.patron_seen,
+	c.emailaddress
+from patron_seen p
+left join carlx c on p.patronid = c.PatronID
+where patron_seen < date('now','-7 days')
+; 
+delete
+from patron_seen 
+where patron_seen < date('now','-7 days')
+; 
+
 -- CREATE CARLX PATRON
 .output ../data/patrons_mnps_carlx_create.csv
 select infinitecampus.*
