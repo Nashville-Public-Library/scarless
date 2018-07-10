@@ -151,7 +151,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastActionBranch				= 'XMNPS'; // Patron Last Action Branch
 	$request->Patron->LastEditBranch				= 'XMNPS'; // Patron Last Edit Branch
 	$request->Patron->RegBranch					= 'XMNPS'; // Patron Registration Branch
-	if ($patron['CollectionStatus']==78) {
+	if ($patron['CollectionStatus']==0 || $patron['CollectionStatus']==1 || $patron['CollectionStatus']==78) {
 		$request->Patron->CollectionStatus			= 'not sent';
 	}
 	if (stripos($patron['EmailAddress'],'@mnpsk12.org') > 0) {
@@ -324,7 +324,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
 	$request->Patron->LastEditBranch				= $patron['DefaultBranch']; // Patron Last Edit Branch
 	$request->Patron->RegBranch					= $patron['DefaultBranch']; // Patron Registration Branch
-	if ($patron['CollectionStatus']==78) {
+	if ($patron['CollectionStatus']==0 || $patron['CollectionStatus']==1 || $patron['CollectionStatus']==78) {
 		$request->Patron->CollectionStatus			= 'do not send';
 	}
 	//$request->Patron->Email					= $patron['EmailAddress']; // Patron Email
