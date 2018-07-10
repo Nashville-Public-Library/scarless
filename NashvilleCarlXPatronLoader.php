@@ -187,7 +187,7 @@ foreach ($all_rows as $patron) {
 	$request->Note							= new stdClass();
 	$request->Note->PatronID					= $patron['patronid']; // Patron ID
 	$request->Note->NoteType					= '800'; 
-	$request->Note->NoteText					= 'MNPS patron expired ' . $request->Patron->ExpirationDate . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, default branch, guarantor.'; 
+	$request->Note->NoteText					= 'MNPS patron expired ' . $request->Patron->ExpirationDate . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, default branch, guarantor, and change Collections from Do Not Send to Not sent'; 
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
@@ -395,6 +395,33 @@ foreach ($all_rows as $patron) {
 }
 
 // TO DO: DELETE OBSOLETE GUARANTOR NOTES
+
+//////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES //////////////////// 
+$all_rows = array();
+$fhnd = fopen("../data/patrons_mnps_carlx_deleteExpiredNotes.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_deleteExpiredNotes.csv");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+//print_r($all_rows);
+foreach ($all_rows as $patron) {
+	// TESTING
+	//if ($patron['PatronID'] > 190999115) { continue; }
+	$noteIDs = explode(',', $patron['ExpiredNoteIDs']);
+	foreach ($noteIDs as $noteID) {
+		// CREATE REQUEST
+		$requestName						= 'deletePatronNote';
+		$tag							= 'deleteExpiredNotes ' . $patron['PatronID'] . " " . $noteID;
+		$request						= new stdClass();
+		$request->Modifiers					= new stdClass();
+		$request->Modifiers->DebugMode				= $patronApiDebugMode;
+		$request->Modifiers->ReportMode				= $patronApiReportMode;
+		$request->NoteID					= $noteID;
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	}
+}
 
 //////////////////// CREATE USER DEFINED FIELDS ENTRIES ////////////////////
 $all_rows = array();

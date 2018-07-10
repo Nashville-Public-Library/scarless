@@ -35,6 +35,9 @@ select patron_v.patronid as "Patron ID"						-- 00
   , patron_v.street2 as "Teacher ID"						-- 32
   , patron_v.sponsor as "Teacher Name"						-- 33
   , patron_v.emailnotices as "Email Notices"					-- 34
+--  , guarantor.noteids as "Guarantor Note IDs"					-- 35
+, '' as "Guarantor Note IDs"
+  , expired.noteids as "Expired MNPS Note IDs"					-- 36
 
 from patron_v
 join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
@@ -77,6 +80,14 @@ left outer join (
   from udfpatron_v
   where udfpatron_v.fieldid = 4
 ) udf4 on patron_v.patronid = udf4.patronid
+left outer join (
+  select distinct
+    refid
+    , listagg(noteid,',') within group (order by timestamp desc) as noteids
+  from patronnotetext_v
+  where regexp_like(patronnotetext_v.text, 'MNPS patron expired')
+  group by refid
+) expired on patron_v.patronid = expired.refid
 where
   patronbranch.branchgroup = '2'
   or patron_v.bty >= 21 and patron_v.bty <= 37
