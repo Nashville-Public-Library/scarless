@@ -130,13 +130,13 @@ foreach ($all_rows as $patron) {
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'updatePatron';
-	$tag								= removePatron . " " . $patron['patronid'];
+	$tag								= 'removePatron ' . $patron['PatronID'];
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
 	$request->Modifiers->ReportMode					= $patronApiReportMode;
 	$request->SearchType						= 'Patron ID';
-	$request->SearchID						= $patron['patronid']; // Patron ID
+	$request->SearchID						= $patron['PatronID']; // Patron ID
 	$request->Patron						= new stdClass();
 	$request->Patron->Addresses					= new stdClass();
 	$request->Patron->Addresses->Address[0]				= new stdClass();
@@ -151,11 +151,13 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastActionBranch				= 'XMNPS'; // Patron Last Action Branch
 	$request->Patron->LastEditBranch				= 'XMNPS'; // Patron Last Edit Branch
 	$request->Patron->RegBranch					= 'XMNPS'; // Patron Registration Branch
-// TO DO: grab email from sqlite query
-	if (stripos($patron['email'],'@mnpsk12.org') > 0) {
+	if ($patron['CollectionStatus']==78) {
+		$request->Patron->CollectionStatus			= 'not sent';
+	}
+	if (stripos($patron['EmailAddress'],'@mnpsk12.org') > 0) {
 		$request->Patron->Email					= ''; // Patron Email
 	}
-	if (stripos($patron['email'],'@mnps.org') > 0) {
+	if (stripos($patron['EmailAddress'],'@mnps.org') > 0) {
 		$request->Patron->Email					= ''; // Patron Email
 	}
 	// REMOVE VALUES FOR Sponsor: Homeroom Teacher
@@ -185,9 +187,14 @@ foreach ($all_rows as $patron) {
 	$request->Modifiers->ReportMode					= $patronApiReportMode;
 	$request->Modifiers->StaffID					= 'PIK'; // Pika Patron Loader
 	$request->Note							= new stdClass();
-	$request->Note->PatronID					= $patron['patronid']; // Patron ID
+	$request->Note->PatronID					= $patron['PatronID']; // Patron ID
 	$request->Note->NoteType					= '800'; 
-	$request->Note->NoteText					= 'MNPS patron expired ' . $request->Patron->ExpirationDate . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, default branch, guarantor, and change Collections from Do Not Send to Not sent'; 
+	if (!empty($patron['patron_seen'])) {
+		$PatronExpirationDate					= $patron['patron_seen']; // Patron Expiration Date as ISO 8601
+	} else {
+		$PatronExpirationDate					= date('Y-m-d', strtotime('yesterday')); // Patron Expiration Date
+	}
+	$request->Note->NoteText					= 'MNPS patron expired ' . $PatronExpirationDate . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, branch, and guarantor.'; 
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
@@ -241,6 +248,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->Addresses->Address[1]->Street			= $patron['TeacherID']; // Patron Homeroom Teacher ID
 	$request->Patron->SponsorName					= $patron['TeacherName'];
 	// NON-CSV STUFF
+	$request->Patron->CollectionStatus				= 'do not send';
 	$request->Patron->EmailNotices					= 'send email';
 	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('c'); // Patron Expiration Date as ISO 8601
 	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
@@ -316,6 +324,9 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
 	$request->Patron->LastEditBranch				= $patron['DefaultBranch']; // Patron Last Edit Branch
 	$request->Patron->RegBranch					= $patron['DefaultBranch']; // Patron Registration Branch
+	if ($patron['CollectionStatus']==78) {
+		$request->Patron->CollectionStatus			= 'do not send';
+	}
 	//$request->Patron->Email					= $patron['EmailAddress']; // Patron Email
 	$request->Patron->BirthDate					= $patron['BirthDate']; // Patron Birth Date as Y-m-d
 	// Sponsor: Homeroom Teacher
@@ -328,6 +339,7 @@ foreach ($all_rows as $patron) {
 	} else {
 		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
 	}
+	
 	// NON-CSV STUFF
 	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('c'); // Patron Expiration Date as ISO 8601
 	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
@@ -469,7 +481,7 @@ foreach ($all_rows as $patron) {
 	//if ($patron['new_patronid'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'updatePatronUserDefinedFields';
-	$tag								= $requestName . $patron['old_fieldid'] . " " . $patron['old_patronID'];
+	$tag								= $requestName . $patron['old_fieldid'] . " " . $patron['old_patronid'];
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;

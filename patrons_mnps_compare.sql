@@ -8,11 +8,11 @@
 
 DROP TABLE IF EXISTS carlx;
 -- CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryStreetAddress,SecondaryCity,SecondaryState,SecondaryZipCode,PrimaryPhoneNumber,SecondaryPhoneNumber,AlternateID,NonvalidatedStats,DefaultBranch,ValidatedStatCodes,StatusCode,RegistrationDate,LastActionDate,ExpirationDate,EmailAddress,Notes,BirthDate,Guarantor,RacialorEthnicCategory,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName);
-CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName,EmailNotices,GuarantorNoteIDs,ExpiredNoteIDs);
+CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName,EmailNotices,ExpiredNoteIDs,GuarantorNoteIDsDates,OutstandingTransDates,CollectionStatus);
 
 DROP TABLE IF EXISTS infinitecampus;
 -- CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryStreetAddress,SecondaryCity,SecondaryState,SecondaryZipCode,PrimaryPhoneNumber,SecondaryPhoneNumber,AlternateID,NonvalidatedStats,DefaultBranch,ValidatedStatCodes,StatusCode,RegistrationDate,LastActionDate,ExpirationDate,EmailAddress,Notes,BirthDate,Guarantor,RacialorEthnicCategory,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName);
-CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName,EmailNotices,GuarantorNoteIDs,ExpiredNoteIDs);
+CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName,EmailNotices,ExpiredNoteIDs,GuarantorNoteIDsDates,OutstandingTransDates,CollectionStatus);
 
 .headers on
 .mode csv
@@ -39,7 +39,8 @@ where p.patronid is null;
 .output ../data/patrons_mnps_carlx_remove.csv
 select p.patronid,
 	p.patron_seen,
-	c.emailaddress
+	c.emailaddress,
+	c.collectionstatus
 from patron_seen p
 left join carlx c on p.patronid = c.PatronID
 where patron_seen < date('now','-7 days')
@@ -75,7 +76,8 @@ select PatronID,
 	ExpirationDate,
 	BirthDate,
 	TeacherID,
-	TeacherName
+	TeacherName,
+	CollectionStatus
 from infinitecampus
 except
 select carlx.PatronID,
@@ -93,7 +95,8 @@ select carlx.PatronID,
 	carlx.ExpirationDate,
 	carlx.BirthDate,
 	carlx.TeacherID,
-	carlx.TeacherName
+	carlx.TeacherName,
+	carlx.CollectionStatus
 from carlx
 except
 	select 	infinitecampus.PatronID,
@@ -111,7 +114,8 @@ except
 		infinitecampus.ExpirationDate,
 		infinitecampus.BirthDate,
 		infinitecampus.TeacherID,
-		infinitecampus.TeacherName
+		infinitecampus.TeacherName,
+		infinitecampus.CollectionStatus
 	from infinitecampus
 	left join carlx on infinitecampus.PatronID = carlx.PatronID
 	where carlx.PatronID IS NULL
@@ -140,7 +144,7 @@ where c.EmailAddress not like '%mnpsk12.org'
 and c.EmailNotices = 2
 ;
 
--- GUARANTOR
+-- GUARANTOR (ADD GUARANTOR NOTE)
 .headers on
 .output ../data/patrons_mnps_carlx_createNoteGuarantor.csv
 select i.PatronID, 
@@ -317,3 +321,5 @@ from infinitecampus i
 inner join carlx c on i.patronid = c. patronid 
 where c.ExpiredNoteIDs != ""
 ;
+
+-- TO DO: DELETE GUARANTOR NOTES WHEN APPROPRIATE
