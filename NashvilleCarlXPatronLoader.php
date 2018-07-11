@@ -2,17 +2,13 @@
 
 // echo 'SYNTAX: path/to/php NashvilleCarlXPatronLoader.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXPatronLoader.php\n';
 // 
-// TO DO: update PIN. First ask: should we?
-//	In cases where staff are... staff: I assume: yes
-//	In cases where student patron record has been merged with another account: I assume: yes
-//	Ergo, yes?
 // TO DO: logging
 // TO DO: retry after oracle connect error
 // TO DO: review oracle php error handling https://docs.oracle.com/cd/E17781_01/appdev.112/e18555/ch_seven_error.htm#TDPPH165
 // TO DO: capture other patron api errors, e.g., org.hibernate.exception.ConstraintViolationException: could not execute statement; No matching records found
-// TO DO: consider whether to make the SQL write the SOAP into a single table
 // TO DO: STAFF
 // TO DO: for patron data privacy, kill data files when actions are complete
+// TO DO: create IMAGE NOT AVAILABLE image
 
 //////////////////// CONFIGURATION ////////////////////
 
@@ -54,13 +50,13 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 					preg_match('/<ns2:ShortMessage>(.+?)<\/ns2:ShortMessage>/', $result->response, $shortMessages);
 				}
 				if(!$result->success) {
-					$result->error = $tag . " : Failed : " . (isset($longMessages[1]) ? ' : ' . $longMessages[1] : (isset($shortMessages[0]) ? ' : ' . $shortMessages[0] : ''));
+					$result->error = "ERROR: " . $tag . " : " . (isset($longMessages[1]) ? ' : ' . $longMessages[1] : (isset($shortMessages[0]) ? ' : ' . $shortMessages[0] : ''));
 				}
 			} else {
-				$result->error = $tag . " : Failed : No SOAP response from API.";
+				$result->error = "ERROR: " . $tag . " : No SOAP response from API.";
 			}
 		} catch (SoapFault $e) {
-			if ($numTries == 2) { $result->error = $tag . " : Exception : " . $e->getMessage(); }
+			if ($numTries == 2) { $result->error = "EXCEPTION: " . $tag . " : " . $e->getMessage(); }
 		}
 		$numTries++;
 	}
@@ -68,7 +64,7 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 		echo "$result->error\n";
 		$errors[] = $result->error;
 	} else {
-		echo $tag . " : Successful operation\n";
+		echo "SUCCESS: " . $tag . "\n";
 	}
 	return $result;
 }
@@ -130,7 +126,7 @@ foreach ($all_rows as $patron) {
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'updatePatron';
-	$tag								= 'removePatron ' . $patron['PatronID'];
+	$tag								= $patron['PatronID'] . ' : removePatron';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -180,7 +176,7 @@ foreach ($all_rows as $patron) {
 // CREATE URGENT 'Former MNPS Patron' NOTE
 	// CREATE REQUEST
 	$requestName							= 'addPatronNote';
-	$tag								= 'addPatronRemoveNote ' . $patron['PatronID']; // Patron ID
+	$tag								= $patron['PatronID'] . ' : addPatronRemoveNote';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -215,7 +211,7 @@ foreach ($all_rows as $patron) {
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'createPatron';
-	$tag								= $requestName . " " . $patron['PatronID'];
+	$tag								= $patron['PatronID'] . ' : ' . $requestName;
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -265,7 +261,7 @@ foreach ($all_rows as $patron) {
 // Therefore we use updatePatron to set PIN
 	// CREATE REQUEST
 	$requestName							= 'updatePatron';
-	$tag								= 'updatePatronPIN ' . $patron['PatronID']; // Patron ID
+	$tag								= $patron['PatronID'] . ' : updatePatronPIN';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -298,7 +294,7 @@ foreach ($all_rows as $patron) {
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'updatePatron';
-	$tag								= $requestName . " " . $patron['PatronID']; // Patron ID
+	$tag								= $patron['PatronID'] . ' : ' . $requestName;
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -364,7 +360,7 @@ foreach ($all_rows as $patron) {
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'updatePatron';
-	$tag								= 'updatePatronEmail ' . $patron['PatronID']; // Patron ID
+	$tag								= $patron['PatronID'] . ' : updatePatronEmail';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -393,7 +389,7 @@ foreach ($all_rows as $patron) {
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'addPatronNote';
-	$tag								= 'addPatronGuarantor ' . $patron['PatronID']; // Patron ID
+	$tag								= $patron['PatronID'] . ' : addPatronGuarantor';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -402,11 +398,9 @@ foreach ($all_rows as $patron) {
 	$request->Note							= new stdClass();
 	$request->Note->PatronID					= $patron['PatronID']; // Patron ID
 	$request->Note->NoteType					= 2; 
-	$request->Note->NoteText					= 'NPL: MNPS Guarantor effective ' . date('Y-m-d') . ' - ' . $patron['Guarantor']; // Patron Guarantor as Note
+	$request->Note->NoteText					= 'NPL: MNPS Guarantor effective ' . date('m/d/Y') . ' - ' . date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('m/d/Y') . ": " . $patron['Guarantor']; // Patron Guarantor as Note
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
-
-// TO DO: DELETE OBSOLETE GUARANTOR NOTES
 
 //////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES //////////////////// 
 $all_rows = array();
@@ -425,7 +419,34 @@ foreach ($all_rows as $patron) {
 	foreach ($noteIDs as $noteID) {
 		// CREATE REQUEST
 		$requestName						= 'deletePatronNote';
-		$tag							= 'deleteExpiredNotes ' . $patron['PatronID'] . " " . $noteID;
+		$tag							= $patron['PatronID'] . ' : deleteExpiredNote ' . $noteID;
+		$request						= new stdClass();
+		$request->Modifiers					= new stdClass();
+		$request->Modifiers->DebugMode				= $patronApiDebugMode;
+		$request->Modifiers->ReportMode				= $patronApiReportMode;
+		$request->NoteID					= $noteID;
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	}
+}
+
+//////////////////// REMOVE OBSOLETE "NPL: MNPS GUARANTOR EFFECTIVE" NOTES //////////////////// 
+$all_rows = array();
+$fhnd = fopen("../data/patrons_mnps_carlx_deleteGuarantorNotes.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_deleteGuarantorNotes.csv");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+//print_r($all_rows);
+foreach ($all_rows as $patron) {
+	// TESTING
+	//if ($patron['PatronID'] > 190999115) { continue; }
+	$noteIDs = explode(',', $patron['DeleteGuarantorNoteIDs']);
+	foreach ($noteIDs as $noteID) {
+		// CREATE REQUEST
+		$requestName						= 'deletePatronNote';
+		$tag							= $patron['PatronID'] . ' : deleteGuarantorNote ' . $noteID;
 		$request						= new stdClass();
 		$request->Modifiers					= new stdClass();
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;
@@ -451,7 +472,7 @@ foreach ($all_rows as $patron) {
 	//if ($patron['patronid'] > 190999115 && $patron['fieldid'] == 4) { break; }
 	// CREATE REQUEST
 	$requestName							= 'createPatronUserDefinedFields';
-	$tag								= $requestName . $patron['fieldid'] . " " . $patron['patronid'];
+	$tag								= $patron['patronid'] . ' : ' . $requestName . $patron['fieldid'];
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -481,7 +502,7 @@ foreach ($all_rows as $patron) {
 	//if ($patron['new_patronid'] > 190999115) { break; }
 	// CREATE REQUEST
 	$requestName							= 'updatePatronUserDefinedFields';
-	$tag								= $requestName . $patron['old_fieldid'] . " " . $patron['old_patronid'];
+	$tag								= $patron['old_patronid'] . ' : ' . $requestName . $patron['old_fieldid'];
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
@@ -512,7 +533,7 @@ foreach ($iterator as $fileinfo) {
         $mtime = $fileinfo->getMTime();
         if ($fileinfo->isFile() && preg_match('/^190\d{6}.jpg$/', $file) === 1 && $mtime >= $today) {
 		$requestName						= 'updateImage';
-		$tag							= $requestName . " " . $patron['PatronID'];
+		$tag							= $patron['PatronID'] . ' : ' . $requestName;
 		$request						= new stdClass();
 		$request->Modifiers					= new stdClass();
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;

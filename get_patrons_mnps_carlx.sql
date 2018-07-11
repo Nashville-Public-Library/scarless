@@ -36,9 +36,8 @@ select patron_v.patronid as "Patron ID"						-- 00
   , patron_v.sponsor as "Teacher Name"						-- 33
   , patron_v.emailnotices as "Email Notices"					-- 34
   , expired.noteids as "Expired MNPS Note IDs"					-- 35
-  , gNotes.gNoteIDsDates as "Guarantor Note IDs and Dates"			-- 36
-  , outstanding.transdates as "Outstanding Transdates"				-- 37
-  , patron_v.collectionstatus as "Collection Status"				-- 38
+  , gDeleteNotes.deleteGuarantorNotes as "Delete Guarantor Note IDs"		-- 36
+  , patron_v.collectionstatus as "Collection Status"				-- 37
 
 from patron_v
 join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
@@ -89,24 +88,40 @@ left outer join (
   group by refid
 ) expired on patron_v.patronid = expired.refid
 left outer join (
-  select 
-    refid
-    , listagg(patronnotetext_v.noteid || ':' || upper(trim(regexp_substr(patronnotetext_v.text, '^NPL: MNPS Guarantor effective ([-/0-9 ]+?):',1,1,'i',1))),',') within group (order by patronnotetext_v.timestamp) as gNoteIDsDates
-  from patronnotetext_v
-  where regexp_like(patronnotetext_v.text, 'NPL: MNPS Guarantor effective')
-  group by patronnotetext_v.refid
-) gNotes on patron_v.patronid = gNotes.refid
-left outer join (
-  select t.patronid
-    , listagg(to_char(jts.todate(t.transdate), 'YYYY-MM-DD'),',') within group (order by t.transdate asc) as transdates
-  from transitem_v t 
-  where  t.transcode in ('C', 'O', 'L','F1','F2','FS')
-  and regexp_like(t.patronid, '^190[0-9]{6}$')
-  group by t.patronid
-) outstanding on patron_v.patronid = outstanding.patronid
+  select gDelete.refid
+      , listagg(gDelete.noteid,',') within group(order by gDelete.noteid) as deleteGuarantorNotes
+  from patronnotetext_v gDelete
+  left join
+    (
+      select * from
+      (
+        select 
+          n.refid
+          , n.noteid
+          , to_date(trim(regexp_substr(n.text, '^NPL: MNPS Guarantor effective (\d+?/\d+?/\d+?) - (\d+?/\d+?/\d+?):',1,1,'i',1)),'DS') as gStart
+          , to_date(trim(regexp_substr(n.text, '^NPL: MNPS Guarantor effective (\d+?/\d+?/\d+?) - (\d+?/\d+?/\d+?):',1,1,'i',2)),'DS') as gStop
+        from patronnotetext_v n
+        where regexp_like(n.text, 'NPL: MNPS Guarantor effective (\d+?/\d+?/\d+?) - (\d+?/\d+?/\d+?):')
+        order by n.refid, n.noteid
+      ) n
+      inner join (
+        select distinct t.patronid
+          , trunc(jts.todate(t.transdate)) as tdate
+        from transitem_v t
+        where  t.transcode in ('C', 'O', 'L','F1','F2','FS')
+        order by t.patronid
+      ) o on n.refid = o.patronid 
+          and n.gStart <= o.tdate 
+          and n.gStop >= o.tdate
+    ) gKeep on gDelete.noteid = gKeep.noteid
+  where regexp_like(gDelete.text, 'NPL: MNPS Guarantor effective (\d+?/\d+?/\d+?) - (\d+?/\d+?/\d+?):')
+  and to_date(trim(regexp_substr(gDelete.text, 'NPL: MNPS Guarantor effective (\d+?/\d+?/\d+?) - (\d+?/\d+?/\d+?):',1,1,'i',2)),'DS') < trunc(sysdate)
+  and gKeep.noteid is null
+  group by gDelete.refid
+) gDeleteNotes on patron_v.patronid = gDeleteNotes.refid
 where
   patronbranch.branchgroup = '2'
-  or patron_v.bty >= 21 and patron_v.bty <= 37
+  or patron_v.bty >= 21 and patron_v.bty <= 38
   or regexp_like(patron_v.patronid,'^190[0-9]{6}$')
   or regexp_like(patron_v.patronid,'^190999[0-9]{3}$') -- TEST STUDENT PATRONS
 order by patron_v.patronid

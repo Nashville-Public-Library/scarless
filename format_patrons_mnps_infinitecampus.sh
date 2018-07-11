@@ -73,12 +73,10 @@ perl -MDate::Calc=Add_N_Delta_YMD,Delta_Days,Today -F'\|' -lane '
 	$F[34] = "send email";
 # ADD EMPTY FOR EXPIRED MNPS NOTE IDS
 	$F[35] = "";
-# ADD EMPTY FOR GUARANTOR NOTE IDS AND DATES
+# ADD EMPTY FOR DELETE GUARANTOR NOTE IDS
 	$F[36] = "";
-# ADD EMPTY FOR OUTSTANDING TRANSDATES
-	$F[37] = "";
 # COLLECTION STATUS = 78 (do not send)
-	$F[38] = "78";
+	$F[37] = "78";
 # FORMAT AS CSV
 	foreach (@F) {
 		# CHANGE QUOTATION MARK IN ALL FIELDS TO AN APOSTROPHE
@@ -89,7 +87,7 @@ perl -MDate::Calc=Add_N_Delta_YMD,Delta_Days,Today -F'\|' -lane '
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
 # REPLACE PIPE DELIMITERS WITH COMMAS, ELIMINATE COLUMNS THAT WILL NOT BE COMPARED
-	print join q/,/, @F[0..9,14,18,23,24,26,27,29..38]' ../data/patrons_mnps_infinitecampus.txt > ../data/patrons_mnps_infinitecampus.csv;
+	print join q/,/, @F[0..9,14,18,23,24,26,27,29..37]' ../data/patrons_mnps_infinitecampus.txt > ../data/patrons_mnps_infinitecampus.csv;
 # REMOVE HEADERS
 perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^Patron/)' ../data/patrons_mnps_infinitecampus.csv
 # SORT BY ID
