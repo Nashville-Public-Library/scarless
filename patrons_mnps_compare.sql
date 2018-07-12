@@ -3,7 +3,8 @@
 -- Nashville Public Library
 -- Using shell instead of php as per https://stackoverflow.com/questions/35999597/importing-csv-file-into-sqlite3-from-php#36001304
 -- TO DO: bug in SQLite 3.7.17 forces us to create the table before importing data into it. See https://stackoverflow.com/questions/38035543/sqlite3-import-csv-not-working
--- TO DO: determine the benefit and method of useing prepare()
+-- TO DO: update SQLite to version 3.24.0 (2018-06-04) to get UPSERT https://sqlite.org/lang_UPSERT.html
+-- TO DO: determine the benefit and method of using prepare()
 -- TO DO: for patron data privacy, kill this database when actions are complete
 
 DROP TABLE IF EXISTS carlx;
@@ -36,11 +37,14 @@ left join patron_seen p on i.patronid = p.patronid
 where p.patronid is null;
 
 -- "REMOVE" CARLX PATRON
+.headers on
 .output ../data/patrons_mnps_carlx_remove.csv
 select p.patronid,
 	p.patron_seen,
 	c.emailaddress,
-	c.collectionstatus
+	c.collectionstatus,
+	c.defaultbranch,
+	c.borrowertypecode
 from patron_seen p
 left join carlx c on p.patronid = c.PatronID
 where patron_seen < date('now','-7 days')
@@ -51,6 +55,7 @@ where patron_seen < date('now','-7 days')
 ; 
 
 -- CREATE CARLX PATRON
+.headers on
 .output ../data/patrons_mnps_carlx_create.csv
 select infinitecampus.*
 from infinitecampus
@@ -60,6 +65,7 @@ order by infinitecampus.PatronID
 ;
 
 -- UPDATE CARLX PATRON (IGNORE EMAIL; IGNORE GUARANTOR; IGNORE UDF VALUES)
+.headers on
 .output ../data/patrons_mnps_carlx_update.csv
 select PatronID,
 	Borrowertypecode,
@@ -123,6 +129,7 @@ except
 ;
 
 -- EMAIL
+.headers on
 .output ../data/patrons_mnps_carlx_updateEmail.csv
 select i.PatronID as PatronID,
 	i.EmailAddress as Email,
@@ -224,6 +231,7 @@ order by i.PatronID
 ;
 
 -- UpdatePatronUserDefinedFields
+.headers off
 .output ../data/patrons_mnps_carlx_updateUdf.csv
 select 'new_patronid',
 	'new_occur',
@@ -331,3 +339,16 @@ select c.PatronID,
 from carlx c
 where c.DeleteGuarantorNoteIDs != ""
 ;
+
+-- REPORT
+
+DROP TABLE carlx_create
+CREATE TABLE carlx_create (
+	patronid text primary key,
+	patron_seen,
+	emailaddress,
+	collectionstatus,
+	defaultbranch,
+	borrowertypecode
+)
+.import ../data/patrons_mnps_carlx_create.csv carlx_create
