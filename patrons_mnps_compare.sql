@@ -327,7 +327,7 @@ order by i.new_patronid
 select c.PatronID, 
 	c.ExpiredNoteIDs 
 from infinitecampus i 
-inner join carlx c on i.patronid = c. patronid 
+inner join carlx c on i.patronid = c.patronid 
 where c.ExpiredNoteIDs != ""
 ;
 
