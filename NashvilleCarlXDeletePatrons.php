@@ -44,7 +44,6 @@ function callAPI($wsdl, $requestName, $request) {
 	return $result;
 }
 
-/*
 // connect to carlx oracle db
 $conn = oci_connect($carlx_db_php_user, $carlx_db_php_password, $carlx_db_php);
 if (!$conn) {
@@ -53,32 +52,15 @@ if (!$conn) {
 }
 
 $sql = <<<EOT
--- query to use 2018 03 22 to delete 10K+ patrons
--- BY DEFAULTBRANCH
-select distinct patronid
-from (
-  select patron_v.patronid, patron_v.bty, branch_v.branchname, to_char
-(jts.todate(patron_v.actdate), 'YYYYMMDD') as activity, to_char(jts.todate
-(patron_v.sactdate), 'YYYYMMDD') as selfactivity, to_char(jts.todate
-(patron_v.editdate), 'YYYYMMDD') as edited, patron_v.userid as staff
---  select count(patron_v.patronid)
-  from patron_v, branch_v
-  where patron_v.defaultbranch = branch_v.branchnumber
-  and branch_v.branchgroup = 2
-  and patron_v.regby not in ('JAM','MDB')
-  and not (patron_v.defaultbranch = '143' and patron_v.bty in ('13','40'))
-  and not patron_v.patronid like '190999%'
-  and not patron_v.patronid = '117357'
-  and not patron_v.name like '%NAZA%'
-  and patron_v.bty != '42'
-  and not (patron_v.bty = '40' and patron_v.patronid like '25192%')
-  and to_number(to_char(jts.todate(patron_v.editdate),'YYYYMMDD')) <= 20180228
---  and to_number(to_char(jts.todate(patron_v.actdate),'YYYYMMDD')) <= 20171231
---  and (to_number(to_char(jts.todate(patron_v.sactdate),'YYYYMMDD')) <= 20170630 or patron_v.sactdate is null)
---  order by dbms_random.value
-  order by patron_v.patronid
-)
---where rownum <= 100
+-- LANE IS CLEANING HOUSE
+select patronid
+from patron_v
+where bty in (22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37)
+and defaultbranch < 30
+and (jts.todate(expdate) > '04-AUG-18' 
+or jts.todate(expdate) < '04-AUG-18')
+and regexp_like(patronid, '^(190)?[0-9]{6}$')
+and regby != 'JES'
 order by patronid
 EOT;
 
@@ -97,7 +79,6 @@ fclose($df);
 echo "CARLX MNPS patrons to be deleted retrieved and written\n";
 oci_free_statement($stid);
 oci_close($conn);
-*/
 
 $records = array();
 $fhnd = fopen($reportPath . "CARLX_MNPS_DELETE_PATRONS.CSV", "r");
