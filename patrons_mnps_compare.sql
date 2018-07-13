@@ -37,9 +37,10 @@ left join patron_seen p on i.patronid = p.patronid
 where p.patronid is null;
 
 -- "REMOVE" CARLX PATRON
-.headers on
-.output ../data/patrons_mnps_carlx_remove.csv
-select p.patronid,
+delete 
+from carlx_remove
+;
+insert into carlx_remove select p.patronid,
 	p.patron_seen,
 	c.emailaddress,
 	c.collectionstatus,
@@ -49,25 +50,36 @@ from patron_seen p
 left join carlx c on p.patronid = c.PatronID
 where patron_seen < date('now','-7 days')
 ; 
+.headers on
+.output ../data/patrons_mnps_carlx_remove.csv
+select * from carlx_remove;
+.output stdout
+
 delete
 from patron_seen 
 where patron_seen < date('now','-7 days')
 ; 
 
 -- CREATE CARLX PATRON
-.headers on
-.output ../data/patrons_mnps_carlx_create.csv
-select infinitecampus.*
+delete 
+from carlx_create
+;
+insert into carlx_create select infinitecampus.*
 from infinitecampus
 left join carlx on infinitecampus.PatronID = carlx.PatronID
 where carlx.PatronID IS NULL
 order by infinitecampus.PatronID
 ;
+.headers on
+.output ../data/patrons_mnps_carlx_create.csv
+select * from carlx_create;
+.output stdout
 
 -- UPDATE CARLX PATRON (IGNORE EMAIL; IGNORE GUARANTOR; IGNORE UDF VALUES)
-.headers on
-.output ../data/patrons_mnps_carlx_update.csv
-select PatronID,
+delete 
+from carlx_update
+;
+insert into carlx_update select PatronID,
 	Borrowertypecode,
 	Patronlastname,
 	Patronfirstname,
@@ -127,6 +139,10 @@ except
 	where carlx.PatronID IS NULL
 	order by infinitecampus.PatronID
 ;
+.headers on
+.output ../data/patrons_mnps_carlx_update.csv
+select * from carlx_update;
+.output stdout
 
 -- EMAIL
 .headers on
@@ -150,6 +166,7 @@ left join carlx c on i.PatronID = c.PatronID
 where c.EmailAddress not like '%mnpsk12.org'
 and c.EmailNotices = 2
 ;
+.output stdout
 
 -- GUARANTOR (ADD GUARANTOR NOTE)
 .headers on
@@ -162,6 +179,7 @@ left join carlx c on i.PatronID = c.PatronID
 where i.Guarantor != c.Guarantor
 and i.Guarantor != ''
 ;
+.output stdout
 
 -- CreatePatronUserDefinedFields
 .headers off
@@ -229,6 +247,7 @@ from (
 where c.PatronID IS NULL
 order by i.PatronID
 ;
+.output stdout
 
 -- UpdatePatronUserDefinedFields
 .headers off
@@ -320,6 +339,7 @@ where c.old_patronid IS NOT NULL
 and i.new_numcode != c.old_numcode
 order by i.new_patronid
 ;
+.output stdout
 
 -- Delete Expired MNPS Patron Notes when patron re-appears in Infinite Campus
 .headers on
@@ -330,6 +350,7 @@ from infinitecampus i
 inner join carlx c on i.patronid = c.patronid 
 where c.ExpiredNoteIDs != ""
 ;
+.output stdout
 
 -- DELETE GUARANTOR NOTES WHEN APPROPRIATE
 .headers on
@@ -339,16 +360,71 @@ select c.PatronID,
 from carlx c
 where c.DeleteGuarantorNoteIDs != ""
 ;
+.output stdout
 
 -- REPORT
+insert into report_branch 
+select CURRENT_DATE as date, 
+	x.defaultbranch,
+	carlx,
+	infinitecampus,
+	created,
+	updated,
+	removed
+from (
+	select defaultbranch,
+	count(patronid) as carlx
+	from carlx
+	group by defaultbranch
+	order by defaultbranch
+) x 
+left outer join (
+	select defaultbranch,
+	count(patronid) as infinitecampus
+	from infinitecampus
+	group by defaultbranch
+	order by defaultbranch
+) i on x.defaultbranch = i.defaultbranch
+left outer join (
+	select defaultbranch, count(patronid) as created
+	from carlx_create 
+	group by defaultbranch
+	order by defaultbranch
+) c on x.defaultbranch = c.defaultbranch
+left outer join (
+	select defaultbranch, count(patronid) as updated
+	from carlx_update 
+	group by defaultbranch
+	order by defaultbranch
+) u on x.defaultbranch = u.defaultbranch
+left outer join (
+	select defaultbranch, count(patronid) as removed
+	from carlx_remove 
+	group by defaultbranch
+	order by defaultbranch
+) r on x.defaultbranch = r.defaultbranch
+;
+.headers on
+.output ../data/patrons_mnps_carlx_report_branch.csv
+select defaultbranch,
+	carlx,
+	infinitecampus,
+	created,
+	updated,
+	removed
+from report_branch
+where report_branch.date = CURRENT_DATE
+;
+.output stdout
 
-DROP TABLE carlx_create
-CREATE TABLE carlx_create (
-	patronid text primary key,
-	patron_seen,
-	emailaddress,
-	collectionstatus,
-	defaultbranch,
-	borrowertypecode
-)
-.import ../data/patrons_mnps_carlx_create.csv carlx_create
+.headers on
+.output ../data/patrons_mnps_carlx_report_ABORT.csv
+select *
+from report_branch
+where date = CURRENT_DATE
+and (infinitecampus <= carlx*.9
+	or created >= carlx*.1
+	or updated >= carlx*.1
+	or removed >= carlx*.1)
+;
+.output stdout
