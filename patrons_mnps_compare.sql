@@ -362,15 +362,19 @@ where c.DeleteGuarantorNoteIDs != ""
 ;
 .output stdout
 
--- REPORT
-insert into report_branch 
+-- REPORT x BRANCH
+insert into report_defaultbranch 
 select CURRENT_DATE as date, 
 	x.defaultbranch,
 	carlx,
 	infinitecampus,
 	created,
 	updated,
-	removed
+	removed,
+	cx_ll_yes,
+	ic_ll_yes,
+	cx_ll_no,
+	ic_ll_no
 from (
 	select defaultbranch,
 	count(patronid) as carlx
@@ -386,45 +390,201 @@ left outer join (
 	order by defaultbranch
 ) i on x.defaultbranch = i.defaultbranch
 left outer join (
-	select defaultbranch, count(patronid) as created
+	select defaultbranch, 
+	count(patronid) as created
 	from carlx_create 
 	group by defaultbranch
 	order by defaultbranch
 ) c on x.defaultbranch = c.defaultbranch
 left outer join (
-	select defaultbranch, count(patronid) as updated
+	select defaultbranch, 
+	count(patronid) as updated
 	from carlx_update 
 	group by defaultbranch
 	order by defaultbranch
 ) u on x.defaultbranch = u.defaultbranch
 left outer join (
-	select defaultbranch, count(patronid) as removed
+	select defaultbranch, 
+	count(patronid) as removed
 	from carlx_remove 
 	group by defaultbranch
 	order by defaultbranch
 ) r on x.defaultbranch = r.defaultbranch
+left outer join (
+	select defaultbranch, 
+	count(patronid) as cx_ll_yes
+	from carlx
+	where limitlesslibraryuse = 'Yes' 
+	group by defaultbranch 
+	order by defaultbranch
+) x1 on x.defaultbranch = x1.defaultbranch
+left outer join (
+	select defaultbranch, 
+	count(patronid) as ic_ll_yes
+	from infinitecampus
+	where limitlesslibraryuse = 'Yes' 
+	group by defaultbranch 
+	order by defaultbranch
+) i1 on x.defaultbranch = i1.defaultbranch
+left outer join (
+	select defaultbranch, 
+	count(patronid) as cx_ll_no
+	from carlx
+	where limitlesslibraryuse = 'No' 
+	group by defaultbranch 
+	order by defaultbranch
+) x0 on x.defaultbranch = x0.defaultbranch
+left outer join (
+	select defaultbranch, 
+	count(patronid) as ic_ll_no
+	from infinitecampus
+	where limitlesslibraryuse = 'No' 
+	group by defaultbranch 
+	order by defaultbranch
+) i0 on x.defaultbranch = i0.defaultbranch
 ;
 .headers on
-.output ../data/patrons_mnps_carlx_report_branch.csv
+.output ../data/patrons_mnps_carlx_report_defaultbranch.csv
 select defaultbranch,
 	carlx,
 	infinitecampus,
 	created,
 	updated,
-	removed
-from report_branch
-where report_branch.date = CURRENT_DATE
+	removed,
+	cx_ll_yes,
+	ic_ll_yes,
+	cx_ll_no,
+	ic_ll_no
+from report_defaultbranch
+where report_defaultbranch.date = CURRENT_DATE
 ;
 .output stdout
 
+-- REPORT x BRANCH : ABORT PATRON LOAD
 .headers on
-.output ../data/patrons_mnps_carlx_report_ABORT.csv
+.output ../data/patrons_mnps_carlx_report_defaultbranch_ABORT.csv
 select *
-from report_branch
+from report_defaultbranch
 where date = CURRENT_DATE
 and (infinitecampus <= carlx*.9
 	or created >= carlx*.1
 	or updated >= carlx*.1
-	or removed >= carlx*.1)
+	or removed >= carlx*.1
+	or abs(cx_ll_yes - ic_ll_yes)/cx_ll_yes >= .1
+)
+;
+.output stdout
+
+-- REPORT x BORROWER TYPE
+insert into report_borrowertypecode
+select CURRENT_DATE as date, 
+	x.borrowertypecode,
+	carlx,
+	infinitecampus,
+	created,
+	updated,
+	removed,
+	cx_ll_yes,
+	ic_ll_yes,
+	cx_ll_no,
+	ic_ll_no
+from (
+	select borrowertypecode,
+	count(patronid) as carlx
+	from carlx
+	group by borrowertypecode
+	order by borrowertypecode
+) x 
+left outer join (
+	select borrowertypecode,
+	count(patronid) as infinitecampus
+	from infinitecampus
+	group by borrowertypecode
+	order by borrowertypecode
+) i on x.borrowertypecode = i.borrowertypecode
+left outer join (
+	select borrowertypecode, 
+	count(patronid) as created
+	from carlx_create 
+	group by borrowertypecode
+	order by borrowertypecode
+) c on x.borrowertypecode = c.borrowertypecode
+left outer join (
+	select borrowertypecode, 
+	count(patronid) as updated
+	from carlx_update 
+	group by borrowertypecode
+	order by borrowertypecode
+) u on x.borrowertypecode = u.borrowertypecode
+left outer join (
+	select borrowertypecode, 
+	count(patronid) as removed
+	from carlx_remove 
+	group by borrowertypecode
+	order by borrowertypecode
+) r on x.borrowertypecode = r.borrowertypecode
+left outer join (
+	select borrowertypecode, 
+	count(patronid) as cx_ll_yes
+	from carlx
+	where limitlesslibraryuse = 'Yes' 
+	group by borrowertypecode 
+	order by borrowertypecode
+) x1 on x.borrowertypecode = x1.borrowertypecode
+left outer join (
+	select borrowertypecode, 
+	count(patronid) as ic_ll_yes
+	from infinitecampus
+	where limitlesslibraryuse = 'Yes' 
+	group by borrowertypecode 
+	order by borrowertypecode
+) i1 on x.borrowertypecode = i1.borrowertypecode
+left outer join (
+	select borrowertypecode, 
+	count(patronid) as cx_ll_no
+	from carlx
+	where limitlesslibraryuse = 'No' 
+	group by borrowertypecode 
+	order by borrowertypecode
+) x0 on x.borrowertypecode = x0.borrowertypecode
+left outer join (
+	select borrowertypecode, 
+	count(patronid) as ic_ll_no
+	from infinitecampus
+	where limitlesslibraryuse = 'No' 
+	group by borrowertypecode 
+	order by borrowertypecode
+) i0 on x.borrowertypecode = i0.borrowertypecode
+
+;
+.headers on
+.output ../data/patrons_mnps_carlx_report_borrowertypecode.csv
+select borrowertypecode,
+	carlx,
+	infinitecampus,
+	created,
+	updated,
+	removed
+	cx_ll_yes,
+	ic_ll_yes,
+	cx_ll_no,
+	ic_ll_no
+from report_borrowertypecode
+where report_borrowertypecode.date = CURRENT_DATE
+;
+.output stdout
+
+-- REPORT x BORROWER TYPE : ABORT PATRON LOAD
+.headers on
+.output ../data/patrons_mnps_carlx_report_borrowertypecode_ABORT.csv
+select *
+from report_borrowertypecode
+where date = CURRENT_DATE
+and (infinitecampus <= carlx*.9
+	or created >= carlx*.1
+	or updated >= carlx*.1
+	or removed >= carlx*.1
+	or abs(cx_ll_yes - ic_ll_yes)/cx_ll_yes >= .1
+)
 ;
 .output stdout
