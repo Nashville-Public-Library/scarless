@@ -108,6 +108,10 @@ oci_close($conn);
 exec("bash format_patrons_mnps_infinitecampus.sh");
 exec("sqlite3 ../data/ic2carlx.db < patrons_mnps_compare.sql");
 echo "Infinitecampus vs. CarlX patron record comparison complete\n";
+if (file_exists("../data/patrons_mnps_carlx_defaultbranch_ABORT.csv")||file_exists("../data/patrons_mnps_carlx_borrowertype_ABORT.csv") {
+	echo "ABORT!!!\n";
+	exit;
+}
 
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec

@@ -363,6 +363,8 @@ where c.DeleteGuarantorNoteIDs != ""
 .output stdout
 
 -- REPORT x BRANCH
+delete from report_defaultbranch
+where date = CURRENT_DATE;
 insert into report_defaultbranch 
 select CURRENT_DATE as date, 
 	x.defaultbranch,
@@ -476,6 +478,8 @@ and (infinitecampus <= carlx*.9
 .output stdout
 
 -- REPORT x BORROWER TYPE
+delete from report_borrowertypecode
+where date = CURRENT_DATE;
 insert into report_borrowertypecode
 select CURRENT_DATE as date, 
 	x.borrowertypecode,
