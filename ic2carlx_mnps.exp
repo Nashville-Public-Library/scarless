@@ -4,7 +4,7 @@
 # James Staub
 # Nashville Public Library
 
-exp_internal 1 ; # 1 = verbose debugging to stdout
+exp_internal 0 ; # 1 = verbose debugging to stdout
 log_user 1 ; # 1 = send screens to stdout
 
 # READ CONFIG.PWD.INI
@@ -98,16 +98,30 @@ logWrite $logFile "START compare carlx vs infinitecampus"
 send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
 expect -re $prompt
 send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
-expect -re $prompt
 # ABORT IF CHANGE THRESHOLDS ARE EXCEEDED
+#expect -re $prompt
 #if (file_exists("../data/patrons_mnps_carlx_defaultbranch_ABORT.csv")||file_exists("../data/patrons_mnps_carlx_borrowertype_ABORT.csv") {
 #        echo "ABORT!!!\n";
 #        exit;
 #}
+# ENSURE ALL DATA FILES ARE CHMOD 700
+expect -re $prompt
+send "chmod -R 700 ../data/*\r"
+expect -re $prompt
 logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 
 # ADD/UPDATE/REMOVE FROM CARLX
 # This is where I need to clobber the CarlX API service with multiple threads
 # see https://github.com/Nashville-Public-Library/millennium2carlx/blob/master/fines.sh for example
+# see also https://nikic.github.io/2012/12/22/Cooperative-multitasking-using-coroutines-in-PHP.html
+# see also https://blog.ircmaxell.com/2012/07/what-generators-can-do-for-you.html#Other-Uses
+# but until then, the purely sequential way...
+
+logWrite $logFile "START put carlx"
+#send "$phpPath ic2carlx_mnps_staff_put_carlx.php\r"
+#expect -re $prompt
+#send "$phpPath ic2carlx_mnps_student_put_carlx.php\r"
+#expect -re $prompt
+logWrite $logFile "STOP put carlx"
 
 exit
