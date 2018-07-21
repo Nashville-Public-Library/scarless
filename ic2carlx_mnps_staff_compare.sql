@@ -20,6 +20,13 @@ CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirs
 
 -- UPDATE PATRON SEEN
 create table if not exists patron_seen (patronid,patron_seen);
+
+insert into patron_seen (patronid,patron_seen) 
+select carlx.patronid, null 
+from carlx 
+left join patron_seen on carlx.patronid = patron_seen.patronid 
+where patron_seen.patronid is null;
+
 update patron_seen 
 set patron_seen = CURRENT_DATE 
 where patronid in (

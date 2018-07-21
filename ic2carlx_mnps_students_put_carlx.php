@@ -1,12 +1,9 @@
 <?php
 
-// echo 'SYNTAX: path/to/php NashvilleCarlXPatronLoader.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXPatronLoader.php\n';
-// 
+// echo 'SYNTAX: path/to/php ic2carlx.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php ic2carlx.php\n';
+//
 // TO DO: logging
-// TO DO: retry after oracle connect error
-// TO DO: review oracle php error handling https://docs.oracle.com/cd/E17781_01/appdev.112/e18555/ch_seven_error.htm#TDPPH165
 // TO DO: capture other patron api errors, e.g., org.hibernate.exception.ConstraintViolationException: could not execute statement; No matching records found
-// TO DO: STAFF
 // TO DO: for patron data privacy, kill data files when actions are complete
 // TO DO: create IMAGE NOT AVAILABLE image
 
@@ -16,107 +13,18 @@ date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);
 
 require_once 'PEAR.php';
+require_once 'ic2carlx_put_carlx.php';
 
-$configArray		= parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
-$carlx_db_php		= $configArray['Catalog']['carlx_db_php'];
-$carlx_db_php_user	= $configArray['Catalog']['carlx_db_php_user'];
-$carlx_db_php_password	= $configArray['Catalog']['carlx_db_php_password'];
-$patronApiWsdl		= $configArray['Catalog']['patronApiWsdl'];
-$patronApiDebugMode	= $configArray['Catalog']['patronApiDebugMode'];
-$patronApiReportMode	= $configArray['Catalog']['patronApiReportMode'];
-$reportPath		= '../data/';
-
-//////////////////// FUNCTIONS ////////////////////
-
-function callAPI($wsdl, $requestName, $request, $tag) {
-	$connectionPassed = false;
-	$numTries = 0;
-	$result = new stdClass();
-	$result->response = "";
-	while (!$connectionPassed && $numTries < 3) {
-		try {
-			$client = new SOAPClient($wsdl, array('connection_timeout' => 3, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-			$result->response = $client->$requestName($request);
-//echo "REQUEST:\n" . $client->__getLastRequest() . "\n";
-			$connectionPassed = true;
-			if (is_null($result->response)) {$result->response = $client->__getLastResponse();}
-			if (!empty($result->response)) {
-				if (gettype($result->response) == 'object') {
-					$ShortMessage[0] = $result->response->ResponseStatuses->ResponseStatus->ShortMessage;
-					$result->success = $ShortMessage[0] == 'Successful operation';
-				} else if (gettype($result->response) == 'string') {
-					$result->success = stripos($result->response, '<ns2:ShortMessage>Successful operation</ns2:ShortMessage>') !== false;
-					preg_match('/<ns2:LongMessage>(.+?)<\/ns2:LongMessage>/', $result->response, $longMessages);
-					preg_match('/<ns2:ShortMessage>(.+?)<\/ns2:ShortMessage>/', $result->response, $shortMessages);
-				}
-				if(!$result->success) {
-					$result->error = "ERROR: " . $tag . " : " . (isset($longMessages[1]) ? ' : ' . $longMessages[1] : (isset($shortMessages[0]) ? ' : ' . $shortMessages[0] : ''));
-				}
-			} else {
-				$result->error = "ERROR: " . $tag . " : No SOAP response from API.";
-			}
-		} catch (SoapFault $e) {
-			if ($numTries == 2) { $result->error = "EXCEPTION: " . $tag . " : " . $e->getMessage(); }
-		}
-		$numTries++;
-	}
-	if (isset($result->error)) {
-		echo "$result->error\n";
-		$errors[] = $result->error;
-	} else {
-		echo "SUCCESS: " . $tag . "\n";
-	}
-	return $result;
-}
-
-//////////////////// ORACLE DB ////////////////////
-
-// connect to carlx oracle db
-$conn = oci_connect($carlx_db_php_user, $carlx_db_php_password, $carlx_db_php);
-if (!$conn) {
-	$e = oci_error();
-	trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
-}
-
-// get_patrons_mnps_carlx.sql
-$get_patrons_mnps_carlx_filehandle = fopen("get_patrons_mnps_carlx.sql", "r") or die("Unable to open get_patrons_mnps_carlx.sql");
-$sql = fread($get_patrons_mnps_carlx_filehandle, filesize("get_patrons_mnps_carlx.sql"));
-fclose($get_patrons_mnps_carlx_filehandle);
-
-$stid = oci_parse($conn, $sql);
-// TO DO: consider tuning oci_set_prefetch to improve performance. See https://docs.oracle.com/database/121/TDPPH/ch_eight_query.htm#TDPPH172
-oci_set_prefetch($stid, 10000);
-oci_execute($stid);
-// start a new file for the CarlX patron extract
-$patrons_mnps_carlx_filehandle = fopen($reportPath . "patrons_mnps_carlx.csv", 'w');
-while (($row = oci_fetch_array ($stid, OCI_ASSOC+OCI_RETURN_NULLS)) != false) {
-	// CSV OUTPUT
-	fputcsv($patrons_mnps_carlx_filehandle, $row);
-}
-fclose($patrons_mnps_carlx_filehandle);
-echo "Patrons MNPS CARLX retrieved and written\n";
-oci_free_statement($stid);
-oci_close($conn);
-
-//////////////////// SQLITE3 ////////////////////
-
-// Using shell instead of php as per https://stackoverflow.com/questions/35999597/importing-csv-file-into-sqlite3-from-php#36001304
-// FROM https://www.sqlite.org/cli.html:
-// "The dot-commands are interpreted by the sqlite3.exe command-line program, not by SQLite itself."
-// "So none of the dot-commands will work as an argument to SQLite interfaces like sqlite3_prepare() or sqlite3_exec()."
-
-exec("bash format_patrons_mnps_infinitecampus.sh");
-exec("sqlite3 ../data/ic2carlx.db < patrons_mnps_compare.sql");
-echo "Infinitecampus vs. CarlX patron record comparison complete\n";
-if (file_exists("../data/patrons_mnps_carlx_defaultbranch_ABORT.csv")||file_exists("../data/patrons_mnps_carlx_borrowertype_ABORT.csv") {
-	echo "ABORT!!!\n";
-	exit;
-}
+$configArray            = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
+$patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
+$patronApiDebugMode     = $configArray['Catalog']['patronApiDebugMode'];
+$patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
+$reportPath             = '../data/';
 
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_remove.csv", "r");
+$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
@@ -124,7 +32,6 @@ if ($fhnd){
 	}
 }
 //print_r($all_rows);
-
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
@@ -176,7 +83,6 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	$request->Patron->PreferredAddress				= 'Primary';
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-
 // CREATE URGENT 'Former MNPS Patron' NOTE
 	// CREATE REQUEST
 	$requestName							= 'addPatronNote';
@@ -199,9 +105,8 @@ foreach ($all_rows as $patron) {
 }
 
 //////////////////// CREATE CARLX PATRONS ////////////////////
-
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_create.csv", "r");
+$fhnd = fopen("../data/ic2carlx_mnps_students_create.csv", "r");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
@@ -209,7 +114,6 @@ if ($fhnd){
 	}
 }
 //print_r($all_rows);
-
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
@@ -259,7 +163,6 @@ foreach ($all_rows as $patron) {
 	$request->Patron->RegisteredBy					= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate				= date('c'); // Registration Date, format ISO 8601
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-
 // SET PIN FOR CREATED PATRON
 // createPatron is not setting PIN as requested. See TLC ticket 452557
 // Therefore we use updatePatron to set PIN
@@ -282,9 +185,8 @@ foreach ($all_rows as $patron) {
 }
 
 //////////////////// UPDATE CARLX PATRONS ////////////////////
-
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_update.csv", "r");
+$fhnd = fopen("../data/ic2carlx_mnps_students_update.csv", "r");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
@@ -292,7 +194,6 @@ if ($fhnd){
 	}
 }
 //print_r($all_rows);
-
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
@@ -351,7 +252,7 @@ foreach ($all_rows as $patron) {
 
 //////////////////// UPDATE EMAIL ADDRESS AND NOTICES ////////////////////
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_updateEmail.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_updateEmail.csv");
+$fhnd = fopen("../data/ic2carlx_mnps_students_updateEmail.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_updateEmail.csv");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
@@ -377,10 +278,9 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-
 //////////////////// CREATE GUARANTOR NOTES ////////////////////
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_createNoteGuarantor.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_createNoteGuarantor.csv");
+$fhnd = fopen("../data/ic2carlx_mnps_students_createNoteGuarantor.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_createNoteGuarantor.csv");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
@@ -405,10 +305,9 @@ foreach ($all_rows as $patron) {
 	$request->Note->NoteText					= 'NPL: MNPS Guarantor effective ' . date('m/d/Y') . ' - ' . date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('m/d/Y') . ": " . $patron['Guarantor']; // Patron Guarantor as Note
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
-
 //////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES //////////////////// 
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_deleteExpiredNotes.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_deleteExpiredNotes.csv");
+$fhnd = fopen("../data/ic2carlx_mnps_students_deleteExpiredNotes.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_deleteExpiredNotes.csv");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
@@ -432,10 +331,9 @@ foreach ($all_rows as $patron) {
 		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	}
 }
-
 //////////////////// REMOVE OBSOLETE "NPL: MNPS GUARANTOR EFFECTIVE" NOTES //////////////////// 
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_deleteGuarantorNotes.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_deleteGuarantorNotes.csv");
+$fhnd = fopen("../data/ic2carlx_mnps_students_deleteGuarantorNotes.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_deleteGuarantorNotes.csv");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
@@ -459,10 +357,9 @@ foreach ($all_rows as $patron) {
 		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	}
 }
-
 //////////////////// CREATE USER DEFINED FIELDS ENTRIES ////////////////////
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_createUdf.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_createUdf.csv");
+$fhnd = fopen("../data/ic2carlx_mnps_students_createUdf.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_createUdf.csv");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
@@ -490,10 +387,9 @@ foreach ($all_rows as $patron) {
 	$request->PatronUserDefinedField->valuename			= $patron['valuename'];
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
-
 //////////////////// UPDATE USER DEFINED FIELDS ENTRIES ////////////////////
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_updateUdf.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_updateUdf.csv");
+$fhnd = fopen("../data/ic2carlx_mnps_students_updateUdf.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_updateUdf.csv");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
@@ -527,7 +423,6 @@ foreach ($all_rows as $patron) {
 	$request->NewPatronUserDefinedField->valuename			= $patron['new_valuename'];
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
-
 //////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
 $iterator = new DirectoryIterator('../data/images');
@@ -558,5 +453,4 @@ foreach ($iterator as $fileinfo) {
 		}
 	}
 }
-
 ?>
