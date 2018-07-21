@@ -390,15 +390,15 @@ where date = CURRENT_DATE;
 insert into report_defaultbranch 
 select CURRENT_DATE as date, 
 	x.defaultbranch,
-	carlx,
-	infinitecampus,
-	created,
-	updated,
-	removed,
-	cx_ll_yes,
-	ic_ll_yes,
-	cx_ll_no,
-	ic_ll_no
+	ifnull(carlx,0),
+	ifnull(infinitecampus,0),
+	ifnull(created,0),
+	ifnull(updated,0),
+	ifnull(removed,0),
+	ifnull(cx_ll_yes,0),
+	ifnull(ic_ll_yes,0),
+	ifnull(cx_ll_no,0),
+	ifnull(ic_ll_no,0)
 from (
 	select defaultbranch,
 	count(patronid) as carlx
@@ -505,15 +505,15 @@ where date = CURRENT_DATE;
 insert into report_borrowertypecode
 select CURRENT_DATE as date, 
 	x.borrowertypecode,
-	carlx,
-	infinitecampus,
-	created,
-	updated,
-	removed,
-	cx_ll_yes,
-	ic_ll_yes,
-	cx_ll_no,
-	ic_ll_no
+	ifnull(carlx,0),
+	ifnull(infinitecampus,0),
+	ifnull(created,0),
+	ifnull(updated,0),
+	ifnull(removed,0),
+	ifnull(cx_ll_yes,0),
+	ifnull(ic_ll_yes,0),
+	ifnull(cx_ll_no,0),
+	ifnull(ic_ll_no,0)
 from (
 	select borrowertypecode,
 	count(patronid) as carlx
