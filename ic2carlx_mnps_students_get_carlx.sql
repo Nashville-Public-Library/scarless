@@ -120,8 +120,9 @@ left outer join (
   group by gDelete.refid
 ) gDeleteNotes on patron_v.patronid = gDeleteNotes.refid
 where
-  patronbranch.branchgroup = '2'
-  or patron_v.bty >= 21 and patron_v.bty <= 38
+--  patronbranch.branchgroup = '2'
+--  or 
+  patron_v.bty >= 21 and patron_v.bty <= 38
   or regexp_like(patron_v.patronid,'^190[0-9]{6}$')
-  or regexp_like(patron_v.patronid,'^190999[0-9]{3}$') -- TEST STUDENT PATRONS
+  or regexp_like(patron_v.patronid,'^190999[0-9]{3}$') -- TEST MNPS STUDENT PATRONS
 order by patron_v.patronid

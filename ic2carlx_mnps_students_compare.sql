@@ -1,4 +1,4 @@
--- patrons_mnps_compare.sql
+-- ic2carlx_mnps_students_compare.sql
 -- James Staub
 -- Nashville Public Library
 -- Using shell instead of php as per https://stackoverflow.com/questions/35999597/importing-csv-file-into-sqlite3-from-php#36001304
@@ -17,12 +17,20 @@ CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirs
 
 .headers on
 .mode csv
-.import ../data/patrons_mnps_carlx.csv carlx
-.import ../data/patrons_mnps_infinitecampus.csv infinitecampus
+.import ../data/ic2carlx_mnps_students_carlx.csv carlx
+.import ../data/ic2carlx_mnps_students_infinitecampus.csv infinitecampus
 
 -- UPDATE PATRON SEEN
-update patron_seen 
-set patron_seen = CURRENT_DATE 
+create table if not exists patron_seen (patronid,patron_seen);
+
+insert into patron_seen (patronid,patron_seen)
+select carlx.patronid, null
+from carlx
+left join patron_seen on carlx.patronid = patron_seen.patronid
+where patron_seen.patronid is null;
+
+update patron_seen
+set patron_seen = CURRENT_DATE
 where patronid in (
 	select i.patronid 
 	from infinitecampus i 
@@ -51,7 +59,7 @@ left join carlx c on p.patronid = c.PatronID
 where patron_seen < date('now','-7 days')
 ; 
 .headers on
-.output ../data/patrons_mnps_carlx_remove.csv
+.output ../data/ic2carlx_mnps_students_remove.csv
 select * from carlx_remove;
 .output stdout
 
@@ -71,7 +79,7 @@ where carlx.PatronID IS NULL
 order by infinitecampus.PatronID
 ;
 .headers on
-.output ../data/patrons_mnps_carlx_create.csv
+.output ../data/ic2carlx_mnps_students_create.csv
 select * from carlx_create;
 .output stdout
 
@@ -140,22 +148,27 @@ except
 	order by infinitecampus.PatronID
 ;
 .headers on
-.output ../data/patrons_mnps_carlx_update.csv
+.output ../data/ic2carlx_mnps_students_update.csv
 select * from carlx_update;
 .output stdout
 
 -- EMAIL
 .headers on
-.output ../data/patrons_mnps_carlx_updateEmail.csv
+.output ../data/ic2carlx_mnps_students_updateEmail.csv
 select i.PatronID as PatronID,
 	i.EmailAddress as Email,
 	'send email' as EmailNotices
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
-where (c.EmailAddress like '%mnpsk12.org'
-	and c.EmailNotices != 1)
-or (c.EmailAddress not like '%mnpsk12.org'
-	and c.EmailNotices in (0,3))
+where i.EmailAddress != ''
+and i.EmailAddress is not null
+and ((c.EmailAddress like '%mnpsk12.org'
+		and c.EmailNotices != 1)
+	or (c.EmailAddress not like '%mnpsk12.org'
+		and c.EmailNotices in (0,3))
+	or c.EmailAddress = ''
+	or c.EmailAddress is null
+)
 ;
 .headers off
 select c.PatronID as PatronID,
@@ -170,9 +183,9 @@ and c.EmailNotices = 2
 
 -- GUARANTOR (ADD GUARANTOR NOTE)
 .headers on
-.output ../data/patrons_mnps_carlx_createNoteGuarantor.csv
+.output ../data/ic2carlx_mnps_students_createNoteGuarantor.csv
 select i.PatronID, 
-	i.Guarantor,
+	'NPL: MNPS Guarantor effective ' || CURRENT_DATE || ' - ' || i.Guarantor as Guarantor,
 	i.ExpirationDate
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
@@ -183,7 +196,7 @@ and i.Guarantor != ''
 
 -- CreatePatronUserDefinedFields
 .headers off
-.output ../data/patrons_mnps_carlx_createUdf.csv
+.output ../data/ic2carlx_mnps_students_createUdf.csv
 select 'patronid',
 	'occur',
 	'fieldid',
@@ -201,10 +214,11 @@ from (
 		'0' as type, 
 		infinitecampus.TechOptOut as valuename
         from infinitecampus
+	where valuename in ('Yes','No')
 ) i left join (
         select carlx.PatronID, carlx.TechOptOut
         from carlx
-	where carlx.TechOptOut != ''
+	where carlx.TechOptOut in ('Yes','No')
 ) c on i.PatronID = c.PatronID
 where c.PatronID IS NULL
 order by i.PatronID
@@ -220,10 +234,11 @@ from (
 		'0' as type, 
 		infinitecampus.LapTopCheckOut as valuename
         from infinitecampus
+	where valuename in ('Yes','No')
 ) i left join (
         select carlx.PatronID, carlx.LapTopCheckOut
         from carlx
-	where carlx.LapTopCheckOut != ''
+	where carlx.LapTopCheckOut in ('Yes','No')
 ) c on i.PatronID = c.PatronID
 where c.PatronID IS NULL
 order by i.PatronID
@@ -235,10 +250,11 @@ from (
         select infinitecampus.PatronID as patronid, 
 		'0' as occur, 
 		'4' as fieldid, 
-		case when infinitecampus.LimitlessLibraryUse = 'Yes' then '1' else '2' end as numcode, 
+		case when infinitecampus.LimitlessLibraryUse = 'No' then '2' else '1' end as numcode, 
 		'0' as type, 
-		infinitecampus.LimitlessLibraryUse as valuename
+		case when infinitecampus.LimitlessLibraryUse = 'No' then 'No' else 'Yes' end as valuename, 
         from infinitecampus
+	where valuename in ('Yes','No','')
 ) i left join (
         select carlx.PatronID, carlx.LimitlessLibraryUse
         from carlx
@@ -251,7 +267,7 @@ order by i.PatronID
 
 -- UpdatePatronUserDefinedFields
 .headers off
-.output ../data/patrons_mnps_carlx_updateUdf.csv
+.output ../data/ic2carlx_mnps_students_updateUdf.csv
 select 'new_patronid',
 	'new_occur',
 	'new_fieldid',
@@ -275,6 +291,8 @@ from (
                 '0' as new_type,
                 infinitecampus.TechOptOut as new_valuename
         from infinitecampus
+	where new_valuename is not null
+	and new_valuename != ''
 ) i left join (
         select carlx.PatronID as old_patronid,
         '0' as old_occur,
@@ -300,6 +318,8 @@ from (
                 '0' as new_type,
                 infinitecampus.LapTopCheckOut as new_valuename
         from infinitecampus
+	where new_valuename is not null
+	and new_valuename != ''
 ) i left join (
         select carlx.PatronID as old_patronid,
         	'0' as old_occur,
@@ -325,6 +345,8 @@ from (
                 '0' as new_type,
                 infinitecampus.LimitlessLibraryUse as new_valuename
         from infinitecampus
+	where new_valuename is not null
+	and new_valuename != ''
 ) i left join (
         select carlx.PatronID as old_patronid,
         	'0' as old_occur,
@@ -343,7 +365,7 @@ order by i.new_patronid
 
 -- Delete Expired MNPS Patron Notes when patron re-appears in Infinite Campus
 .headers on
-.output ../data/patrons_mnps_carlx_deleteExpiredNotes.csv
+.output ../data/ic2carlx_mnps_students_deleteExpiredNotes.csv
 select c.PatronID, 
 	c.ExpiredNoteIDs 
 from infinitecampus i 
@@ -354,7 +376,7 @@ where c.ExpiredNoteIDs != ""
 
 -- DELETE GUARANTOR NOTES WHEN APPROPRIATE
 .headers on
-.output ../data/patrons_mnps_carlx_deleteGuarantorNotes.csv
+.output ../data/ic2carlx_mnps_students_deleteGuarantorNotes.csv
 select c.PatronID, 
 	c.DeleteGuarantorNoteIDs
 from carlx c
@@ -446,7 +468,7 @@ left outer join (
 ) i0 on x.defaultbranch = i0.defaultbranch
 ;
 .headers on
-.output ../data/patrons_mnps_carlx_report_defaultbranch.csv
+.output ../data/ic2carlx_mnps_students_report_defaultbranch.csv
 select defaultbranch,
 	carlx,
 	infinitecampus,
@@ -464,7 +486,7 @@ where report_defaultbranch.date = CURRENT_DATE
 
 -- REPORT x BRANCH : ABORT PATRON LOAD
 .headers on
-.output ../data/patrons_mnps_carlx_report_defaultbranch_ABORT.csv
+.output ../data/ic2carlx_mnps_students_report_defaultbranch_ABORT.csv
 select *
 from report_defaultbranch
 where date = CURRENT_DATE
@@ -562,7 +584,7 @@ left outer join (
 
 ;
 .headers on
-.output ../data/patrons_mnps_carlx_report_borrowertypecode.csv
+.output ../data/ic2carlx_mnps_students_report_borrowertypecode.csv
 select borrowertypecode,
 	carlx,
 	infinitecampus,
@@ -580,7 +602,7 @@ where report_borrowertypecode.date = CURRENT_DATE
 
 -- REPORT x BORROWER TYPE : ABORT PATRON LOAD
 .headers on
-.output ../data/patrons_mnps_carlx_report_borrowertypecode_ABORT.csv
+.output ../data/ic2carlx_mnps_students_report_borrowertypecode_ABORT.csv
 select *
 from report_borrowertypecode
 where date = CURRENT_DATE

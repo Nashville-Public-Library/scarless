@@ -1,0 +1,17 @@
+#!/usr/bin/expect
+
+# log.exp
+# James Staub
+# Nashville Public Library
+# LOG FILE : write to it with
+# logWrite $logFileFullPath "My log entry."
+
+#exp_internal 0 ; # 1 = verbose debugging to stdout
+#log_user 0 ; # 1 = send screens to stdout
+
+proc logWrite {logFile logEntry} {
+	set logFileId [open $logFile "a+"]
+	puts "[clock format [clock seconds] -format "%y%m%d %H:%M:%S"] >> $logEntry"
+	puts $logFileId "[clock format [clock seconds] -format "%y%m%d %H:%M:%S"] >> $logEntry"
+	close $logFileId
+}

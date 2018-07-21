@@ -1,0 +1,113 @@
+#!/usr/bin/expect
+
+# ic2carlx_mnps.exp
+# James Staub
+# Nashville Public Library
+
+exp_internal 1 ; # 1 = verbose debugging to stdout
+log_user 1 ; # 1 = send screens to stdout
+
+# READ CONFIG.PWD.INI
+source ic2carlx_read_config.exp
+
+# SET UP LOG
+# TO WRITE TO THE LOG:
+# logWrite $logFile "log entry"
+source ic2carlx_log.exp
+set logFile "$localPath$name.log"
+logWrite $logFile "START get infinitecampus"
+
+set nowEpoch [clock seconds]
+
+# START BASH
+set prompt {\$ $}
+spawn bash
+
+# RETRIEVE INFINITECAMPUS PACKAGE AND IMAGES
+expect -re $prompt
+send "rsync -a "
+send $icUser
+send ":"
+send $icPath
+send "CARLX_INFINITECAMPUS.zip $localPath/CARLX_INFINITECAMPUS.zip"
+send "\r"
+expect "password:"
+send $icPassword
+send "\r"
+
+expect -re $prompt
+send "rsync -a "
+send $icUser
+send ":"
+send $icPath
+send "images/ $localPath/images/"
+send "\r"
+expect "password:"
+send $icPassword
+send "\r"
+
+# UNZIP INFINITE CAMPUS PACKAGE
+expect -re $prompt
+send "7za x -o"
+send $localPath
+send " "
+send $localPath
+send "CARLX_INFINITECAMPUS.zip"
+send "\r"
+expect "Would you like to replace the existing file*uit?"
+send "y\r"
+expect "Enter password \(will not be echoed\): "
+send "$icPassword\r"
+expect "Would you like to replace the existing file*uit?"
+send "y\r"
+set timeout -1
+expect -re $prompt
+send "stat -c %Y $localPath/CARLX_INFINITECAMPUS_STAFF.txt\r"
+expect -re "(\[0-9]{10})"
+set staffModified $expect_out(1,string)
+expect -re $prompt
+send "stat -c %Y $localPath/CARLX_INFINITECAMPUS_STUDENT.txt\r"
+expect -re "(\[0-9]{10})"
+set studentModified $expect_out(1,string)
+if {$nowEpoch - $staffModified > 86400 || $nowEpoch - $studentModified > 86400} then {
+	exec echo "EOM" | mail -s "Infinite Campus error: file too old" james.staub@nashville.gov
+}
+expect -re $prompt
+send "chmod 700 $localPath/CARLX_INFINITECAMPUS*\r"
+expect -re $prompt
+send "chmod -R 700 $localPath/images/\r"
+expect -re $prompt
+logWrite $logFile "COMPLETE get infinitecampus"
+
+# FORMAT INFINITECAMPUS 
+logWrite $logFile "START format infinitecampus"
+send "bash ic2carlx_mnps_staff_format_infinitecampus.sh\r"
+expect -re $prompt
+send "bash ic2carlx_mnps_students_format_infinitecampus.sh\r"
+expect -re $prompt
+logWrite $logFile "COMPLETE format infinitecampus"
+
+# RETRIEVE CARLX MNPS STAFF AND STUDENTS
+logWrite $logFile "START get carlx"
+send "$phpPath ic2carlx_get_carlx.php\r"
+expect -re $prompt
+logWrite $logFile "COMPLETE get carlx"
+
+# COMPARE CARLX VS INFINITECAMPUS
+logWrite $logFile "START compare carlx vs infinitecampus"
+send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
+expect -re $prompt
+send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
+expect -re $prompt
+# ABORT IF CHANGE THRESHOLDS ARE EXCEEDED
+#if (file_exists("../data/patrons_mnps_carlx_defaultbranch_ABORT.csv")||file_exists("../data/patrons_mnps_carlx_borrowertype_ABORT.csv") {
+#        echo "ABORT!!!\n";
+#        exit;
+#}
+logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
+
+# ADD/UPDATE/REMOVE FROM CARLX
+# This is where I need to clobber the CarlX API service with multiple threads
+# see https://github.com/Nashville-Public-Library/millennium2carlx/blob/master/fines.sh for example
+
+exit

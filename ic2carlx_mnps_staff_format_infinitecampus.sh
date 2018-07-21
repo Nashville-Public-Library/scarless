@@ -6,11 +6,14 @@
 # STAFF
 
 # APPEND TEST PATRONS
-cat ../data/ic2carlx_mnps_staff_test.txt ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/ic2carlx_mnps_staff_infinitecampus.txt
+cat ../data/ic2carlx_mnps_staff_test.txt ../data/CARLX_INFINITECAMPUS_STAFF.txt > ../data/ic2carlx_mnps_staff_infinitecampus.txt
 
 perl -F'\|' -lane '
 # SCRUB NON-ASCII CHARACTERS
 	@F = map { s/[^\012\015\040-\176]//g; $_ } @F;
+# ADD EMPTY VALUE[S] TO MATCH PATRON LOADER FORMAT
+	@filler = ("");
+	splice @F, 7, 0, @filler;
 # REMOVE SPECTRUM EMPLOYEES - I.E., REMOVE ALL NON-6-DIGIT EMPLOYEE IDS
 	if ($F[0] !~ m/^\d{6}$/) { next; }
 # SCHOOL LIBRARIANS
@@ -30,19 +33,19 @@ perl -F'\|' -lane '
 	if (grep(/^$F[0]$/,@schoolLibrarians)) {$F[1]=40;}
 # STAFF HARDCODED STUFF
 	# 20180125 259150 Taylor Brophy should be at Eakin ES
-	if ($F[0]==259150) {$F[18]="1H280";}
+	if ($F[0]==259150) {$F[6]="1H280";}
 	# 20171024 501277 Ann Martin should be at Bellevue MS
-	if ($F[0]==501277) {$F[18]="44130";} 
+	if ($F[0]==501277) {$F[6]="44130";} 
 	# 20180306 505725 Kathleen McGee should be at Norman Binkley ES
-	if ($F[0]==505725) {$F[18]="13145";}
+	if ($F[0]==505725) {$F[6]="13145";}
 	# 20171025 643626 Rachael Black should be at Glenview ES
-	if ($F[0]==643626) {$F[18]="1P345";}
+	if ($F[0]==643626) {$F[6]="1P345";}
 # CHANGE DATE VALUE FOR EXPIRATION TO 2019-09-01
 	$F[7] = "2019-09-01";
 # REMOVE STAFF RECORDS ASSOCIATED WITH usd475.org EMAIL
 	if ($F[8] =~ m/usd475\.org/) { next; }
 # ADD EMAIL NOTICES VALUE 1 = SEND EMAIL NOTICES
-	$F[9] = "send email";
+	$F[9] = "1";
 # ADD EMPTY FOR EXPIRED MNPS NOTE IDS
 	$F[10] = "";
 # COLLECTION STATUS = 78 (do not send)
@@ -57,6 +60,6 @@ perl -F'\|' -lane '
 # REPLACE PIPE DELIMITERS WITH COMMAS
 	print join q/,/, @F' ../data/ic2carlx_mnps_staff_infinitecampus.txt > ../data/ic2carlx_mnps_staff_infinitecampus.csv;
 # REMOVE HEADERS
-perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^Patron/)' ../data/ic2carlx_mnps_staff_infinitecampus.csv
-# SORT BY ID
-sort -o ../data/ic2carlx_mnps_staff_infinitecampus.csv ../data/ic2carlx_mnps_staff_infinitecampus.csv
+#perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^patronid/i)' ../data/ic2carlx_mnps_staff_infinitecampus.csv
+# SORT UNIQ BY ID
+sort -t',' -k1 -u -o ../data/ic2carlx_mnps_staff_infinitecampus.csv ../data/ic2carlx_mnps_staff_infinitecampus.csv

@@ -1,0 +1,45 @@
+#!/usr/bin/expect
+
+# ic2carlx_read_config.exp
+# James Staub
+# Nashville Public Library
+# READ CONFIG.PWD.INI
+# VARIABLES SET IN CONFIG.PWD.INI
+
+exp_internal 0 ; # 1 = verbose debugging to stdout
+log_user 0 ; # 1 = send screens to stdout
+
+set confpwd "/home/scarless/config.pwd.ini"
+if {[file exists $confpwd] != 1} {
+        puts "config.pwd.ini not found at $confpwd"
+        exit
+}
+set fd [open $confpwd r]
+while {![eof $fd]} {
+        set line [string trim [gets $fd] " "]
+        if {$line == ""} continue
+        switch -regexp -nocase -- $line {
+                "^\\[Infinite Campus\\]" {
+                        set section true
+                }
+                "^\\[System\\]" {
+                        set section true
+                }
+                "^\\[" {
+                        set section false
+                }
+                "^#" {
+                        continue
+                }
+                "^.+?" {
+                        if {$section == true} {
+                                set pair [split $line =]
+                                set variable [string trim [lindex $pair 0]]
+                                set value [string trim [lindex $pair 1]]
+                                set $variable $value
+                                #puts "$variable=$value"
+                        }
+                }
+                default {}
+        }
+}

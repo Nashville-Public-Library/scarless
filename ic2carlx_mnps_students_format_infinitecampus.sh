@@ -1,4 +1,4 @@
-# format_patrons_mnps_infinitecampus.sh
+# ic2carlx_mnps_students_format_infinitecampus.sh
 # James Staub
 # Nashville Public Library
 # Preprocess Infinite Campus patron data extract
@@ -6,12 +6,16 @@
 # STUDENTS
 
 # APPEND TEST PATRONS
-cat ../data/TEST_INFINITECAMPUS_STUDENT.txt ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/patrons_mnps_infinitecampus.txt
+cat ../data/ic2carlx_mnps_students_test.txt ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/ic2carlx_mnps_students_infinitecampus.txt
+# USE ONLY TEST PATRONS
+#cat ../data/ic2carlx_mnps_students_test.txt > ../data/ic2carlx_mnps_students_infinitecampus.txt
 
 # SORT AND UNIQ PATRONS
-sort -u -o ../data/patrons_mnps_infinitecampus.txt ../data/patrons_mnps_infinitecampus.txt
+sort -u -o ../data/ic2carlx_mnps_students_infinitecampus.txt ../data/ic2carlx_mnps_students_infinitecampus.txt
 
-perl -MDate::Calc=Add_N_Delta_YMD,Delta_Days,Today -F'\|' -lane '
+perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
+# SCRUB HEADERS AND RECORDS WITH WEIRD STUDENT IDS
+	if ($F[0] !~ m/^190\d{6}$/) { next; }
 # SCRUB NON-ASCII CHARACTERS
 	@F = map { s/[^\012\015\040-\176]//g; $_ } @F;
 # SKIP STUDENTS AT NON-ELIGIBLE SCHOOLS
@@ -61,16 +65,32 @@ perl -MDate::Calc=Add_N_Delta_YMD,Delta_Days,Today -F'\|' -lane '
 # CHANGE DATE VALUE FOR EXPIRATION TO 2019-09-01
 	$F[23] = "2019-09-01";
 # GUARANTOR EFFECTIVE STOP DATE (GESD)
-	($birthyear,$birthmonth,$birthdate) = split("-",$F[26]);
-	($gesy,$gesm,$gesd) = Date::Calc::Add_N_Delta_YMD($birthyear,$birthmonth,$birthdate,13,0,-1);
-	if (join("-",$gesy,$gesm,$gesd) > $F[23]) { $gesdate = $F[23]; } else { $gesdate = join("-",$gesy,$gesm,$gesd); }
-# PREPEND GESD TO GUARANTOR FOR COMPARISON AGAINST CARL
-	$F[27] = $gesdate . ": " . $F[27];
+	if ($F[26] =~ m/^\d{4}-\d{2}-\d{2}$/) {
+		$todaydt	= DateTime->today();
+		$expdate 	= $F[23];
+		$expdt   	= DateTime::Format::ISO8601->parse_datetime($expdate);
+		$birdate 	= $F[26];
+		$birdt		= DateTime::Format::ISO8601->parse_datetime($birdate);
+		$gesdt		= $birdt + DateTime::Duration->new( years => 13, days => -1 );
 # GUARANTOR NOTE NOT INCLUDED IF PATRON IS 13+ YEARS OLD
-	($ty,$tm,$td) = Date::Calc::Today();
-	if (Date::Calc::Delta_Days($gesy,$gesm,$gesd,$ty,$tm,$td) >= 0) { $F[27] = ""; }
+		if (DateTime->compare($gesdt,$todaydt) == -1) {
+			$F[27] = "";
+# PREPEND GESD TO GUARANTOR FOR COMPARISON AGAINST CARL
+		} elsif (DateTime->compare($gesdt,$expdt) == 1) {
+			$gesdate = $expdt->date();
+			$F[27] = $gesdate . ": " . $F[27];
+# PREPEND GESD TO GUARANTOR FOR COMPARISON AGAINST CARL
+		} else {
+			$gesdate = $gesdt->date();
+			$F[27] = $gesdate . ": " . $F[27];
+		}
+	} else {
+# -- IF BIRTHDATE IS EMPTY OR INCORRECT FORMAT, SET GESD TO EXPIRATION DATE
+		$gesdate = $expdt->date();;
+		$F[27] = $gesdate . ": " . $F[27];
+	}
 # ADD EMAIL NOTICES VALUE 1 = SEND EMAIL NOTICES
-	$F[34] = "send email";
+	$F[34] = "1";
 # ADD EMPTY FOR EXPIRED MNPS NOTE IDS
 	$F[35] = "";
 # ADD EMPTY FOR DELETE GUARANTOR NOTE IDS
@@ -87,9 +107,8 @@ perl -MDate::Calc=Add_N_Delta_YMD,Delta_Days,Today -F'\|' -lane '
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
 # REPLACE PIPE DELIMITERS WITH COMMAS, ELIMINATE COLUMNS THAT WILL NOT BE COMPARED
-	print join q/,/, @F[0..9,14,18,23,24,26,27,29..37]' ../data/patrons_mnps_infinitecampus.txt > ../data/patrons_mnps_infinitecampus.csv;
+	print join q/,/, @F[0..9,14,18,23,24,26,27,29..37]' ../data/ic2carlx_mnps_students_infinitecampus.txt > ../data/ic2carlx_mnps_students_infinitecampus.csv;
 # REMOVE HEADERS
-perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^Patron/)' ../data/patrons_mnps_infinitecampus.csv
+#perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^patronid/i)' ../data/ic2carlx_mnps_students_infinitecampus.csv
 # SORT BY ID
-sort -o ../data/patrons_mnps_infinitecampus.csv ../data/patrons_mnps_infinitecampus.csv
-
+sort -o ../data/ic2carlx_mnps_students_infinitecampus.csv ../data/ic2carlx_mnps_students_infinitecampus.csv
