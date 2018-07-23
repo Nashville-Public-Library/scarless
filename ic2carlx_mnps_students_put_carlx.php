@@ -302,7 +302,7 @@ foreach ($all_rows as $patron) {
 	$request->Note							= new stdClass();
 	$request->Note->PatronID					= $patron['PatronID']; // Patron ID
 	$request->Note->NoteType					= 2; 
-	$request->Note->NoteText					= 'NPL: MNPS Guarantor effective ' . date('m/d/Y') . ' - ' . date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('m/d/Y') . ": " . $patron['Guarantor']; // Patron Guarantor as Note
+	$request->Note->NoteText					= $patron['Guarantor']; // Patron Guarantor as Note
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 //////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES //////////////////// 
