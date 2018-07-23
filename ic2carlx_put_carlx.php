@@ -22,6 +22,7 @@ $reportPath		= '../data/';
 //////////////////// FUNCTIONS ////////////////////
 
 function callAPI($wsdl, $requestName, $request, $tag) {
+//echo "REQUEST:\n" . var_dump($request) ."\n";
 	$connectionPassed = false;
 	$numTries = 0;
 	$result = new stdClass();

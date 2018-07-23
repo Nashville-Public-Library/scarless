@@ -117,11 +117,13 @@ logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 # see also https://blog.ircmaxell.com/2012/07/what-generators-can-do-for-you.html#Other-Uses
 # but until then, the purely sequential way...
 
-logWrite $logFile "START put carlx"
-#send "$phpPath ic2carlx_mnps_staff_put_carlx.php\r"
-#expect -re $prompt
-#send "$phpPath ic2carlx_mnps_student_put_carlx.php\r"
-#expect -re $prompt
-logWrite $logFile "STOP put carlx"
+logWrite $logFile "START mnps staff put carlx"
+send "$phpPath ic2carlx_mnps_staff_put_carlx.php\r"
+expect -re $prompt
+logWrite $logFile "STOP mnps staff put carlx"
+logWrite $logFile "START mnps students put carlx"
+send "$phpPath ic2carlx_mnps_students_put_carlx.php\r"
+expect -re $prompt
+logWrite $logFile "STOP mnps students put carlx"
 
 exit
