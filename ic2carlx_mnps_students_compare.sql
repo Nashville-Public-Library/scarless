@@ -160,10 +160,11 @@ select i.PatronID as PatronID,
 	'send email' as EmailNotices
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
-where i.EmailAddress != ''
+where i.EmailAddress != c.EmailAddress
+and i.EmailAddress != ''
 and i.EmailAddress is not null
 and ((c.EmailAddress like '%mnpsk12.org'
-		and c.EmailNotices != 1)
+		and c.EmailNotices != '1')
 	or (c.EmailAddress not like '%mnpsk12.org'
 		and c.EmailNotices in (0,3))
 	or c.EmailAddress = ''
@@ -173,11 +174,11 @@ and ((c.EmailAddress like '%mnpsk12.org'
 .headers off
 select c.PatronID as PatronID,
         i.EmailAddress as Email,
-        'send email' as EmailNotices
+        i.EmailNotices as EmailNotices
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
 where c.EmailAddress not like '%mnpsk12.org'
-and c.EmailNotices = 2
+and c.EmailNotices = '2'
 ;
 .output stdout
 
@@ -185,12 +186,13 @@ and c.EmailNotices = 2
 .headers on
 .output ../data/ic2carlx_mnps_students_createNoteGuarantor.csv
 select i.PatronID, 
-	'NPL: MNPS Guarantor effective ' || CURRENT_DATE || ' - ' || i.Guarantor as Guarantor,
+	'NPL: MNPS Guarantor effective ' || max(CURRENT_DATE,'2018-07-07') || ' - ' || upper(i.Guarantor) as Guarantor,
 	i.ExpirationDate
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
-where i.Guarantor != c.Guarantor
+where upper(i.Guarantor) != upper(c.Guarantor)
 and i.Guarantor != ''
+and i.Guarantor is not null
 ;
 .output stdout
 
@@ -252,7 +254,7 @@ from (
 		'4' as fieldid, 
 		case when infinitecampus.LimitlessLibraryUse = 'No' then '2' else '1' end as numcode, 
 		'0' as type, 
-		case when infinitecampus.LimitlessLibraryUse = 'No' then 'No' else 'Yes' end as valuename, 
+		case when infinitecampus.LimitlessLibraryUse = 'No' then 'No' else 'Yes' end as valuename 
         from infinitecampus
 	where valuename in ('Yes','No','')
 ) i left join (
