@@ -186,7 +186,7 @@ and c.EmailNotices = '2'
 .headers on
 .output ../data/ic2carlx_mnps_students_createNoteGuarantor.csv
 select i.PatronID, 
-	'NPL: MNPS Guarantor effective ' || max(CURRENT_DATE,'2018-07-07') || ' - ' || upper(i.Guarantor) as Guarantor,
+	'NPL: MNPS Guarantor effective ' || max(CURRENT_DATE,'2018-08-07') || ' - ' || upper(i.Guarantor) as Guarantor,
 	i.ExpirationDate
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
