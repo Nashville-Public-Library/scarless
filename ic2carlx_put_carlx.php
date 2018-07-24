@@ -8,6 +8,8 @@
 
 //////////////////// CONFIGURATION ////////////////////
 
+//require_once 'Log.php';
+
 date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);
 
@@ -22,6 +24,7 @@ $reportPath		= '../data/';
 //////////////////// FUNCTIONS ////////////////////
 
 function callAPI($wsdl, $requestName, $request, $tag) {
+//	$logger = Log::singleton('file', $reportPath . 'ic2carlx.log');
 //echo "REQUEST:\n" . var_dump($request) ."\n";
 	$connectionPassed = false;
 	$numTries = 0;
@@ -56,7 +59,7 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 	}
 	if (isset($result->error)) {
 		echo "$result->error\n";
-		$errors[] = $result->error;
+//		$logger->log("$result->error");
 	} else {
 		echo "SUCCESS: " . $tag . "\n";
 	}
