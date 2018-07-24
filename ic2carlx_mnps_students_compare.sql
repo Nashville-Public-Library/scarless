@@ -174,7 +174,7 @@ and ((c.EmailAddress like '%mnpsk12.org'
 .headers off
 select c.PatronID as PatronID,
         i.EmailAddress as Email,
-        i.EmailNotices as EmailNotices
+        'send email' as EmailNotices
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
 where c.EmailAddress not like '%mnpsk12.org'
