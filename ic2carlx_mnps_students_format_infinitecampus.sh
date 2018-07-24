@@ -65,7 +65,7 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 # CHANGE DATE VALUE FOR EXPIRATION TO 2019-09-01
 	$F[23] = "2019-09-01";
 # GUARANTOR EFFECTIVE STOP DATE (GESD)
-	if ($F[26] =~ m/^\d{4}-\d{2}-\d{2}$/) {
+	if ($F[27] ne "" && $F[26] =~ m/^\d{4}-\d{2}-\d{2}$/) {
 		$todaydt	= DateTime->today();
 		$expdate 	= $F[23];
 		$expdt   	= DateTime::Format::ISO8601->parse_datetime($expdate);
@@ -84,7 +84,7 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 			$gesdate = $gesdt->date();
 			$F[27] = $gesdate . ": " . $F[27];
 		}
-	} else {
+	} elsif ($F[27] ne "") {
 # -- IF BIRTHDATE IS EMPTY OR INCORRECT FORMAT, SET GESD TO EXPIRATION DATE
 		$gesdate = $expdt->date();;
 		$F[27] = $gesdate . ": " . $F[27];
