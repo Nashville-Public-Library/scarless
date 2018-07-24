@@ -71,6 +71,8 @@ expect -re "(\[0-9]{10})"
 set studentModified $expect_out(1,string)
 if {$nowEpoch - $staffModified > 86400 || $nowEpoch - $studentModified > 86400} then {
 	exec echo "EOM" | mail -s "Infinite Campus error: file too old" james.staub@nashville.gov
+	logWrite $logFile "ABORTED: Infinite Campus error: file too old"
+	exit
 }
 expect -re $prompt
 send "chmod 700 $localPath/CARLX_INFINITECAMPUS*\r"
@@ -98,12 +100,14 @@ logWrite $logFile "START compare carlx vs infinitecampus"
 send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
 expect -re $prompt
 send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
+
 # ABORT IF CHANGE THRESHOLDS ARE EXCEEDED
 #expect -re $prompt
 #if (file_exists("../data/patrons_mnps_carlx_defaultbranch_ABORT.csv")||file_exists("../data/patrons_mnps_carlx_borrowertype_ABORT.csv") {
 #        echo "ABORT!!!\n";
 #        exit;
 #}
+
 # ENSURE ALL DATA FILES ARE CHMOD 700
 expect -re $prompt
 send "chmod -R 700 ../data/*\r"
