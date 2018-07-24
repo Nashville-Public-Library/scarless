@@ -1,4 +1,4 @@
-This a patron loader built with [TLC](https://tlcdelivers.com/)'s [CarlX API](https://tlcdelivers.com/2016/06/21/carlx-api-version-1-7-8-released/). It converts fields from [Infinite Campus](https://www.infinitecampus.com/) to [CarlX](https://tlcdelivers.com/carlsystem/) patron fields. 
+This is a patron loader built with [TLC](https://tlcdelivers.com/)'s [CarlX API](https://tlcdelivers.com/2016/06/21/carlx-api-version-1-7-8-released/). It converts [Infinite Campus](https://www.infinitecampus.com/) student data fields to [CarlX](https://tlcdelivers.com/carlsystem/) patron fields with help from additional scripts in this repository. 
 
 |Infinite Campus EXTRACT FIELD   |If CarlX value is NULL, CarlX value should be |If CarlX value not NULL, CX Value should be |  
 |-----|-----|-----|
@@ -26,17 +26,21 @@ This a patron loader built with [TLC](https://tlcdelivers.com/)'s [CarlX API](ht
 |registrationDate|TODAY |CarlX value |		
 |lastActiondate|TODAY |CarlX value |		
 |expirationDate|Infinite Campus value |Infinite Campus value |		
-|emailAddress|Infinite Campus value |IT'S COMPLICATED |		
+|emailAddress|Infinite Campus value |* |		
 |notes|NULL |CarlX value |		
 |birthDate|Infinite Campus value |Infinite Campus value |		
-|guardian|Infinite Campus value |	IT'S COMPLICATED |		
+|guardian|Infinite Campus value |** |		
 |racialOrethniccategory|NULL |CarlX value |		
 |laptopCheckout|Infinite Campus value |Infinite Campus value |		
 |limitlessLibrariesuse|Infinite Campus value |Infinite Campus value |		
 |techOptout|Infinite Campus value |Infinite Campus value |		
 |teacherId|Infinite Campus value |Infinite Campus value |		
 |teacherName|Infinite Campus value |Infinite Campus value |		
-|EmailNotices|Infinite Campus value |IT'S COMPLICATED |		
+|EmailNotices|Infinite Campus value |Always set to "Yes"* |		
 |ExpiredNoteIDs|NULL |CarlX value |		
 |DeleteGuarantorNoteIDs|NULL |CarlX value |		
 |CollectionStatus|do not send |if CX=="sent", then "sent"; else "do not send" |				
+
+\* If email domain is "mnpsk12.org," then CX Email Notice status set to "Yes" even if CX Email Status is "Bounced." CX Email Notice value of "Yes" is kept. CX Email Notice value of "No - Do not send" or "No - Opted out," then CX Email Notice status set to "Yes."
+
+\*\* Guarantor status will appear as CX Note. In addition to new CX Note, previous Guarantor CX Note will kept if outstanding checkouts or fees within previous Guarantor effective dates. Start value will be first day of school, or date of Guarantor's appearance in IC extract. Stop date will be day before student's thirteenth birthday, the date the Guarantor stops appearing, or the presumed last day of school.  
