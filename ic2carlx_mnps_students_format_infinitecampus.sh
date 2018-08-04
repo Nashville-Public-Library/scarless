@@ -30,6 +30,12 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	# Academy at Opry Mills
 	elsif ($F[18] =~ m/^76613$/) { next; }
 # ASSIGN NON-DELIVERY BORROWER TYPE TO ONLINE-ONLY STUDENT PATRONS
+	# MNPS VIRTUAL SCHOOL
+	elsif ($F[18] =~ m/^(7F748)$/) {
+		if ($F[1] =~ m/^(25|26)$/) { $F[1] = 35; }
+		elsif ($F[1] =~ m/^(27|28|29|30)$/) { $F[1] = 36; }
+		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
+	}
 	# NASHVILLE BIG PICTURE
 	elsif ($F[18] =~ m/^(70142)$/) { $F[1] = 37; }
 # THE FOLLOWING LOCATIONS ARE NOW SET IN PIKA AS NOT VALID HOLD PICKUP BRANCHES
