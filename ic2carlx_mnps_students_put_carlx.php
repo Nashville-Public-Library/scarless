@@ -23,6 +23,9 @@ $reportPath             = '../data/';
 
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
+
+/* DEACTIVATE UNTIL 2018-09-01
+
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
 if ($fhnd){
@@ -104,6 +107,8 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
+*/ // DEACTIVATE UNTIL 2018-09-01
+
 //////////////////// CREATE CARLX PATRONS ////////////////////
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_create.csv", "r");
@@ -159,7 +164,11 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	$request->Patron->PatronStatusCode				= 'G'; // Patron Status Code = GOOD
-	$request->Patron->PreferredAddress				= 'Sponsor';
+	if (!empty($patron['TeacherID'])) {
+		$request->Patron->PreferredAddress			= 'Sponsor';
+	} else {
+		$request->Patron->PreferredAddress			= 'Primary';
+	}
 	$request->Patron->RegisteredBy					= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate				= date('c'); // Registration Date, format ISO 8601
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
@@ -246,7 +255,11 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
 	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
-	$request->Patron->PreferredAddress				= 'Sponsor';
+	if (!empty($patron['TeacherID'])) {
+		$request->Patron->PreferredAddress			= 'Sponsor';
+	} else {
+		$request->Patron->PreferredAddress			= 'Primary';
+	}
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
@@ -279,6 +292,7 @@ foreach ($all_rows as $patron) {
 }
 
 //////////////////// CREATE GUARANTOR NOTES ////////////////////
+/*
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_createNoteGuarantor.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_createNoteGuarantor.csv");
 if ($fhnd){
@@ -305,6 +319,7 @@ foreach ($all_rows as $patron) {
 	$request->Note->NoteText					= $patron['Guarantor']; // Patron Guarantor as Note
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
+*/
 //////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES //////////////////// 
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_deleteExpiredNotes.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_deleteExpiredNotes.csv");
