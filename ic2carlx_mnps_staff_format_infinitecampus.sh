@@ -40,6 +40,11 @@ perl -F'\|' -lane '
 	if ($F[0]==505725) {$F[6]="13145";}
 	# 20171025 643626 Rachael Black should be at Glenview ES
 	if ($F[0]==643626) {$F[6]="1P345";}
+# LEFT PAD WITH ZEROES EARLY LEARNING CENTERS
+	if (length($F[6]) == 3) { $F[6] = "00" . $F[6]; }
+	if (length($F[6]) == 4) { $F[6] = "0" . $F[6]; }
+# FIX CUMBERLAND ELEMENTARY DEFAULTBRANCH CODE
+	if ($F[6] == "1.00E+240") { $F[6] = "1E240"; }
 # CHANGE DATE VALUE FOR EXPIRATION TO 2019-09-01
 	$F[7] = "2019-09-01";
 # REMOVE STAFF RECORDS ASSOCIATED WITH usd475.org EMAIL
