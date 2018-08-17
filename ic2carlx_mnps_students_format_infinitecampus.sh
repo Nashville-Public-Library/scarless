@@ -20,6 +20,11 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	if ($F[0] !~ m/^190\d{6}$/) { next; }
 # SCRUB NON-ASCII CHARACTERS
 	@F = map { s/[^\012\015\040-\176]//g; $_ } @F;
+# LEFT PAD WITH ZEROES EARLY LEARNING CENTERS
+	if (length($F[18]) == 3) { $F[18] = "00" . $F[18]; }
+	if (length($F[18]) == 4) { $F[18] = "0" . $F[18]; }
+# FIX CUMBERLAND ELEMENTARY DEFAULTBRANCH CODE
+        if ($F[18] == "1.00E+240") { $F[18] = "1E240"; }
 # SKIP STUDENTS AT NON-ELIGIBLE SCHOOLS
 	# Academy at Old Cockrill
 	if ($F[18] =~ m/^72211$/) { next; }
