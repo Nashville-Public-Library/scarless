@@ -160,29 +160,27 @@ select i.PatronID as PatronID,
 	'send email' as EmailNotices
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
-where i.EmailAddress != c.EmailAddress
-and i.EmailAddress != ''
-and i.EmailAddress is not null
-and ((c.EmailAddress like '%mnpsk12.org'
-		and c.EmailNotices != '1')
-	or (c.EmailAddress not like '%mnpsk12.org'
-		and c.EmailNotices in (0,3))
-	or c.EmailAddress = ''
-	or c.EmailAddress is null
+where (
+	(c.EmailAddress like '%mnpsk12.org' and c.EmailNotices != '1') 
+	or (c.EmailAddress != '' and c.EmailAddress not like '%mnpsk12.org' and c.EmailNotices in (0,3)) 
+	or (c.EmailAddress = '' and i.EmailAddress = '' and c.EmailNotices != '1') 
+	or (c.EmailAddress = '' and i.EmailAddress != '')
 )
 ;
 .headers off
 select c.PatronID as PatronID,
-        i.EmailAddress as Email,
+        c.EmailAddress as Email,
         'send email' as EmailNotices
 from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
-where c.EmailAddress not like '%mnpsk12.org'
-and c.EmailNotices = '2'
+where c.EmailAddress != ''
+	and c.EmailAddress not like '%mnpsk12.org'
+	and c.EmailNotices = '2'
 ;
 .output stdout
 
 -- GUARANTOR (ADD GUARANTOR NOTE)
+/* GUARANTOR ADD TURNED OFF UNTIL IC TEAM FIXES GUARANTOR
 .headers on
 .output ../data/ic2carlx_mnps_students_createNoteGuarantor.csv
 select i.PatronID, 
@@ -195,6 +193,7 @@ and i.Guarantor != ''
 and i.Guarantor is not null
 ;
 .output stdout
+*/
 
 -- CreatePatronUserDefinedFields
 .headers off
