@@ -40,7 +40,7 @@ select patron_v.patronid as "Patron ID"						-- 00
   , patron_v.collectionstatus as "Collection Status"				-- 37
 
 from patron_v
-join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
+left outer join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
 left outer join (
   select distinct
     refid
