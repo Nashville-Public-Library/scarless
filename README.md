@@ -29,24 +29,22 @@ Students
 |registrationDate|TODAY |CarlX value |		
 |lastActiondate|TODAY |CarlX value |		
 |expirationDate|Infinite Campus value |Infinite Campus value |		
-|emailAddress|Infinite Campus value |* |		
+|emailAddress|Infinite Campus value |CarlX value |		
 |notes|NULL |CarlX value |		
 |birthDate|Infinite Campus value |Infinite Campus value |		
-|guardian|Infinite Campus value |** |		
+|guardian|Infinite Campus value |* |		
 |racialOrethniccategory|NULL |CarlX value |		
 |laptopCheckout|Infinite Campus value |Infinite Campus value |		
 |limitlessLibrariesuse|Infinite Campus value |Infinite Campus value |		
 |techOptout|Infinite Campus value |Infinite Campus value |		
 |teacherId|Infinite Campus value |Infinite Campus value |		
 |teacherName|Infinite Campus value |Infinite Campus value |		
-|EmailNotices|Infinite Campus value |Always set to "Yes"* |		
+|EmailNotices|Infinite Campus value |"Yes - Do send email" |		
 |ExpiredNoteIDs|NULL |CarlX value |		
 |DeleteGuarantorNoteIDs|NULL |CarlX value |		
 |CollectionStatus|do not send |if CX=="sent", then "sent"; else "do not send" |				
 
-\* If email domain is "mnpsk12.org," then CX Email Notice status set to "Yes" even if CX Email Status is "Bounced." CX Email Notice value of "Yes" is kept. CX Email Notice value of "No - Do not send" or "No - Opted out," then CX Email Notice status set to "Yes."
-
-\*\* Guarantor status will appear as CX Note. In addition to new CX Note, previous Guarantor CX Note will kept if outstanding checkouts or fees within previous Guarantor effective dates. Start value will be first day of school, or date of Guarantor's appearance in IC extract. Stop date will be day before student's thirteenth birthday, the date the Guarantor stops appearing, or the presumed last day of school.  
+\* Guarantor status will appear as CX Note. In addition to new CX Note, previous Guarantor CX Note will kept if outstanding checkouts or fees within previous Guarantor effective dates. Start value will be first day of school, or date of Guarantor's appearance in IC extract. Stop date will be day before student's thirteenth birthday, the date the Guarantor stops appearing, or the presumed last day of school.  
 
 Staff
 =====
