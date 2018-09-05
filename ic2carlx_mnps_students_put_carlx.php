@@ -246,9 +246,11 @@ foreach ($all_rows as $patron) {
 	$request->Patron->SponsorName					= $patron['TeacherName'];
 	if (stripos($patron['PatronID'],'190999') == 0) {
 		$request->Patron->PatronPIN				= '7357';
-	} else {
-		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
-	}
+	} 
+// PIN RESET ENDS 2018 09 03. RESTORE ON 2019 08 01
+//	else {
+//		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
+//	}
 	
 	// NON-CSV STUFF
 	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('c'); // Patron Expiration Date as ISO 8601
