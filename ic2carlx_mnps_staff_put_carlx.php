@@ -23,6 +23,9 @@ $reportPath		= '../data/';
 
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
+
+/* DEACTIVATE UNTIL 2018-09-01
+
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_staff_remove.csv", "r");
 if ($fhnd){
@@ -89,6 +92,8 @@ foreach ($all_rows as $patron) {
 	$request->Note->NoteText					= 'MNPS patron expired ' . $PatronExpirationDate . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, branch, and guarantor.'; 
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
+
+*/ // DEACTIVATE UNTIL 2018-09-01
 
 //////////////////// CREATE CARLX PATRONS ////////////////////
 
@@ -197,9 +202,11 @@ foreach ($all_rows as $patron) {
 	$request->Patron->Email						= $patron['emailaddress']; // Patron Email
 	if (stripos($patron['patronid'],'999') == 0) {
 		$request->Patron->PatronPIN				= '7357';
-	} else {
-		$request->Patron->PatronPIN				= '2018';
-	}
+	} 
+// PIN RESET ENDS 2018 09 03. RESTORE ON 2019 08 01
+//	else {
+//		$request->Patron->PatronPIN				= '2018';
+//	}
 	
 	// NON-CSV STUFF
 	$request->Patron->EmailNotices					= 'send email'; // Patron Email Notices
