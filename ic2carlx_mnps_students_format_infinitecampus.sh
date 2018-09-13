@@ -59,7 +59,9 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	# VALOR VOYAGER ACADEMY
 #	elsif ($F[18] =~ m/^(7D744)$/) { $F[1] = 37; }
 # SET BORROWER TYPE FOR LIMITLESS LIBRARIES OPT-OUT STUDENTS
-	elsif ($F[30] =~ m/^N/) {
+#	elsif ($F[30] =~ m/^N/) {
+# 2018-2019 SCHOOL YEAR INFINITECAMPUS FLIPPED POLARITY ON THIS PERMISSION
+	elsif ($F[30] =~ m/^Y/) {
 		if ($F[1] =~ m/^(25|26)$/) { $F[1] = 35; }
 		elsif ($F[1] =~ m/^(27|28|29|30)$/) { $F[1] = 36; }
 		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
@@ -71,8 +73,9 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 # CHANGE USER DEFINED FIELDS laptopCheckout limitlessLibrariesuse techOptout from N to No and Y to Yes
 	if ($F[29] eq "N") { $F[29] = "No"; }
 	if ($F[29] eq "Y") { $F[29] = "Yes"; }
-	if ($F[30] eq "N") { $F[30] = "No"; }
-	if ($F[30] eq "Y") { $F[30] = "Yes"; }
+# 2018-2019 SCHOOL YEAR INFINITECAMPUS FLIPPED POLARITY ON THIS PERMISSION
+	if ($F[30] eq "N") { $F[30] = "Yes"; }
+	if ($F[30] eq "Y") { $F[30] = "No"; }
 	if ($F[31] eq "N") { $F[31] = "No"; }
 	if ($F[31] eq "Y") { $F[31] = "Yes"; }
 # STATUS EMPTY; SHOULD NOT OVERWRITE CARL.X STATUS
