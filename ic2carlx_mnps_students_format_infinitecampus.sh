@@ -34,6 +34,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	elsif ($F[18] =~ m/^74562$/) { next; }
 	# Academy at Opry Mills
 	elsif ($F[18] =~ m/^76613$/) { next; }
+# SKIP STUDENTS AT OPPORTUNITY MIDDLE; KEEP STUDENTS AT SISTER CHARTER INDEPENDENCE ACADEMY
+	elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 21 && $F[1] <= 30) { next; }
 # ASSIGN NON-DELIVERY BORROWER TYPE TO ONLINE-ONLY STUDENT PATRONS
 	# MNPS VIRTUAL SCHOOL
 	elsif ($F[18] =~ m/^(7F748)$/) {
