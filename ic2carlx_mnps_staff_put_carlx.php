@@ -219,7 +219,7 @@ foreach ($all_rows as $patron) {
 
 //////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES //////////////////// 
 $all_rows = array();
-$fhnd = fopen("../data/patrons_mnps_carlx_deleteExpiredNotes.csv", "r") or die("unable to open ../data/patrons_mnps_carlx_deleteExpiredNotes.csv");
+$fhnd = fopen("../data/ic2carlx_mnps_staff_deleteExpiredNotes.csv", "r") or die("unable to open ../data/ic2carlx_mnps_staff_deleteExpiredNotes.csv");
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
