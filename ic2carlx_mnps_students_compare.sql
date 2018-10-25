@@ -162,7 +162,7 @@ from infinitecampus i
 left join carlx c on i.PatronID = c.PatronID
 where (
 	(c.EmailAddress like '%mnpsk12.org' and c.EmailNotices != '1') 
-	or (c.EmailAddress != '' and c.EmailAddress not like '%mnpsk12.org' and c.EmailNotices in (0,3)) 
+	or (c.EmailAddress != '' and c.EmailAddress not like '%mnpsk12.org' and c.EmailNotices in ('0','3')) 
 	or (c.EmailAddress = '' and i.EmailAddress = '' and c.EmailNotices != '1') 
 	or (c.EmailAddress = '' and i.EmailAddress != '')
 )
