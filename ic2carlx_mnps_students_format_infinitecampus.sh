@@ -23,28 +23,30 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 # LEFT PAD WITH ZEROES EARLY LEARNING CENTERS
 	if (length($F[18]) == 3) { $F[18] = "00" . $F[18]; }
 	if (length($F[18]) == 4) { $F[18] = "0" . $F[18]; }
+# FIX DAVIS ELC DEFAULTBRANCH CODE
+	if ($F[18] == "02152") { $F[18] = "00152"; }
 # FIX CUMBERLAND ELEMENTARY DEFAULTBRANCH CODE
         if ($F[18] == "1.00E+240") { $F[18] = "1E240"; }
-# SKIP STUDENTS AT NON-ELIGIBLE SCHOOLS
+# SET STUDENTS AT NON-ELIGIBLE SCHOOLS TO THE NO-DELIVERY "SCHOOL" 7Z999 AND NO-DELIVERY BTY 35,36,37
+	# NASHVILLE BIG PICTURE SCHOOL
+	if ($F[18] =~ m/^(70142)$/) { $F[18] = "7Z999"; $F[1] = 37; }
 	# Academy at Old Cockrill
-	if ($F[18] =~ m/^72211$/) { next; }
+	elsif ($F[18] =~ m/^72211$/) { $F[18] = "7Z999"; $F[1] = 37; }
 	# Academy at Hickory Hollow
-	elsif ($F[18] =~ m/^73422$/) { next; }
+	elsif ($F[18] =~ m/^73422$/) { $F[18] = "7Z999"; $F[1] = 37; }
 	# Middle College High
-	elsif ($F[18] =~ m/^74562$/) { next; }
+	elsif ($F[18] =~ m/^74562$/) { $F[18] = "7Z999"; $F[1] = 37; }
 	# Academy at Opry Mills
-	elsif ($F[18] =~ m/^76613$/) { next; }
-# SKIP STUDENTS AT OPPORTUNITY MIDDLE; KEEP STUDENTS AT SISTER CHARTER INDEPENDENCE ACADEMY
-	elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 21 && $F[1] <= 30) { next; }
-# ASSIGN NON-DELIVERY BORROWER TYPE TO ONLINE-ONLY STUDENT PATRONS
+	elsif ($F[18] =~ m/^76613$/) { $F[18] = "7Z999"; $F[1] = 37; }
 	# MNPS VIRTUAL SCHOOL
 	elsif ($F[18] =~ m/^(7F748)$/) {
+		$F[18] = "7Z999";
 		if ($F[1] =~ m/^(25|26)$/) { $F[1] = 35; }
 		elsif ($F[1] =~ m/^(27|28|29|30)$/) { $F[1] = 36; }
 		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
 	}
-	# NASHVILLE BIG PICTURE
-	elsif ($F[18] =~ m/^(70142)$/) { $F[1] = 37; }
+# SKIP STUDENTS AT OPPORTUNITY MIDDLE; KEEP STUDENTS AT SISTER CHARTER INDEPENDENCE ACADEMY
+	elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 21 && $F[1] <= 30) { next; }
 # THE FOLLOWING LOCATIONS ARE NOW SET IN PIKA AS NOT VALID HOLD PICKUP BRANCHES
 # TO FACILITATE THESE STUDENTS PLACING HOLDS FOR PICKUP AT AN NPL BRANCH
 	# NEELYS BEND COLLEGE PREP BRANCH CODE FOR STUDENTS FROM 4R601 TO 7E601
@@ -117,6 +119,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	$F[36] = "";
 # COLLECTION STATUS = 78 (do not send)
 	$F[37] = "78";
+# ADD EMPTY FOR EDIT BRANCH
+	$F[38] = "";
 # FORMAT AS CSV
 	foreach (@F) {
 		# CHANGE QUOTATION MARK IN ALL FIELDS TO AN APOSTROPHE
@@ -127,6 +131,6 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
 # REPLACE PIPE DELIMITERS WITH COMMAS, ELIMINATE COLUMNS THAT WILL NOT BE COMPARED
-	print join q/,/, @F[0..9,14,18,23,24,26,27,29..37]' ../data/ic2carlx_mnps_students_infinitecampus.txt > ../data/ic2carlx_mnps_students_infinitecampus.csv;
+	print join q/,/, @F[0..9,14,18,23,24,26,27,29..38]' ../data/ic2carlx_mnps_students_infinitecampus.txt > ../data/ic2carlx_mnps_students_infinitecampus.csv;
 # REMOVE HEADERS
 #perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^patronid/i)' ../data/ic2carlx_mnps_students_infinitecampus.csv
