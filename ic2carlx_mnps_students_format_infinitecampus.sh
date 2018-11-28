@@ -27,24 +27,19 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	if ($F[18] == "02152") { $F[18] = "00152"; }
 # FIX CUMBERLAND ELEMENTARY DEFAULTBRANCH CODE
         if ($F[18] == "1.00E+240") { $F[18] = "1E240"; }
-# SET STUDENTS AT NON-ELIGIBLE SCHOOLS TO THE NO-DELIVERY "SCHOOL" 7Z999 AND NO-DELIVERY BTY 35,36,37
+# SET STUDENTS AT NON-ELIGIBLE SCHOOLS TO THE NO-DELIVERY "SCHOOL" 7Z999
 	# NASHVILLE BIG PICTURE SCHOOL
-	if ($F[18] =~ m/^(70142)$/) { $F[18] = "7Z999"; $F[1] = 37; }
+	if ($F[18] =~ m/^(70142)$/) { $F[18] = "7Z999"; }
 	# Academy at Old Cockrill
-	elsif ($F[18] =~ m/^72211$/) { $F[18] = "7Z999"; $F[1] = 37; }
+	elsif ($F[18] =~ m/^72211$/) { $F[18] = "7Z999"; }
 	# Academy at Hickory Hollow
-	elsif ($F[18] =~ m/^73422$/) { $F[18] = "7Z999"; $F[1] = 37; }
+	elsif ($F[18] =~ m/^73422$/) { $F[18] = "7Z999"; }
 	# Middle College High
-	elsif ($F[18] =~ m/^74562$/) { $F[18] = "7Z999"; $F[1] = 37; }
+	elsif ($F[18] =~ m/^74562$/) { $F[18] = "7Z999"; }
 	# Academy at Opry Mills
-	elsif ($F[18] =~ m/^76613$/) { $F[18] = "7Z999"; $F[1] = 37; }
+	elsif ($F[18] =~ m/^76613$/) { $F[18] = "7Z999"; }
 	# MNPS VIRTUAL SCHOOL
-	elsif ($F[18] =~ m/^(7F748)$/) {
-		$F[18] = "7Z999";
-		if ($F[1] =~ m/^(25|26)$/) { $F[1] = 35; }
-		elsif ($F[1] =~ m/^(27|28|29|30)$/) { $F[1] = 36; }
-		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
-	}
+	elsif ($F[18] =~ m/^(7F748)$/) { $F[18] = "7Z999"; }
 # SKIP STUDENTS AT OPPORTUNITY MIDDLE; KEEP STUDENTS AT SISTER CHARTER INDEPENDENCE ACADEMY
 	elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 21 && $F[1] <= 30) { next; }
 # THE FOLLOWING LOCATIONS ARE NOW SET IN PIKA AS NOT VALID HOLD PICKUP BRANCHES
