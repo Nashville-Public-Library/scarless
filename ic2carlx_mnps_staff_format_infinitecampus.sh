@@ -14,8 +14,8 @@ perl -F'\|' -lane '
 # ADD EMPTY VALUE[S] TO MATCH PATRON LOADER FORMAT
 	@filler = ("");
 	splice @F, 7, 0, @filler;
-# REMOVE SPECTRUM EMPLOYEES - I.E., REMOVE ALL NON-6-DIGIT EMPLOYEE IDS
-	if ($F[0] !~ m/^\d{6}$/) { next; }
+# REMOVE SPECTRUM EMPLOYEES - I.E., REMOVE ALL 7-DIGIT EMPLOYEE IDS STARTING 658
+	if ($F[0] =~ m/^658\d{4}$/) { next; }
 # SCHOOL LIBRARIANS
 # Most Librarians/Library Clerks should be set to BTY 40 in the Infinite Campus extract. 
 # The list below is for stragglers.
@@ -45,6 +45,8 @@ perl -F'\|' -lane '
 	if (length($F[6]) == 4) { $F[6] = "0" . $F[6]; }
 # FIX CUMBERLAND ELEMENTARY DEFAULTBRANCH CODE
 	if ($F[6] == "1.00E+240") { $F[6] = "1E240"; }
+# FIX DAVIS ELC DEFAULTBRANCH CODE
+        if ($F[6] == "02152") { $F[6] = "00152"; }
 # CHANGE DATE VALUE FOR EXPIRATION TO 2019-09-01
 	$F[7] = "2019-09-01";
 # REMOVE STAFF RECORDS ASSOCIATED WITH usd475.org EMAIL
@@ -55,6 +57,8 @@ perl -F'\|' -lane '
 	$F[10] = "";
 # COLLECTION STATUS = 78 (do not send)
 	$F[11] = "78";
+# ADD EMPTY FOR EDIT BRANCH
+	$F[12] = "";
 # FORMAT AS CSV
 	foreach (@F) {
 		$_ =~ s/[\n\r]+//g;
