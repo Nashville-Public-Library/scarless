@@ -24,8 +24,6 @@ $reportPath             = '../data/';
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
-/* DEACTIVATE UNTIL 2018-09-01
-
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
 if ($fhnd){
@@ -107,8 +105,6 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-*/ // DEACTIVATE UNTIL 2018-09-01
-
 //////////////////// CREATE CARLX PATRONS ////////////////////
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_create.csv", "r");
@@ -185,7 +181,7 @@ foreach ($all_rows as $patron) {
 	$request->SearchType						= 'Patron ID';
 	$request->SearchID						= $patron['PatronID']; // Patron ID
 	$request->Patron						= new stdClass();
-	if (stripos($patron['PatronID'],'190999') == 0) {
+	if (stripos($patron['PatronID'],'190999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
 	} else {
 		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
@@ -194,6 +190,7 @@ foreach ($all_rows as $patron) {
 }
 
 //////////////////// UPDATE CARLX PATRONS ////////////////////
+
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_update.csv", "r");
 if ($fhnd){
@@ -244,13 +241,13 @@ foreach ($all_rows as $patron) {
 	$request->Patron->Addresses->Address[1]->Type			= 'Secondary';
 	$request->Patron->Addresses->Address[1]->Street			= $patron['TeacherID']; // Patron Homeroom Teacher ID
 	$request->Patron->SponsorName					= $patron['TeacherName'];
-	if (stripos($patron['PatronID'],'190999') == 0) {
+	if (stripos($patron['PatronID'],'190999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
 	} 
-// PIN RESET ENDS 2018 09 03. RESTORE ON 2019 08 01
-//	else {
-//		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
-//	}
+// PIN RESET RESTARTED 2018 09 28
+	else {
+		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
+	}
 	
 	// NON-CSV STUFF
 	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('c'); // Patron Expiration Date as ISO 8601
@@ -266,6 +263,7 @@ foreach ($all_rows as $patron) {
 }
 
 //////////////////// UPDATE EMAIL ADDRESS AND NOTICES ////////////////////
+
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_updateEmail.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_updateEmail.csv");
 if ($fhnd){
@@ -294,7 +292,9 @@ foreach ($all_rows as $patron) {
 }
 
 //////////////////// CREATE GUARANTOR NOTES ////////////////////
-/*
+
+/* // DEACTIVATE
+
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_createNoteGuarantor.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_createNoteGuarantor.csv");
 if ($fhnd){
@@ -321,8 +321,11 @@ foreach ($all_rows as $patron) {
 	$request->Note->NoteText					= $patron['Guarantor']; // Patron Guarantor as Note
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
-*/
+
+*/ // DEACTIVATE
+
 //////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES //////////////////// 
+
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_deleteExpiredNotes.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_deleteExpiredNotes.csv");
 if ($fhnd){
@@ -348,7 +351,9 @@ foreach ($all_rows as $patron) {
 		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	}
 }
+
 //////////////////// REMOVE OBSOLETE "NPL: MNPS GUARANTOR EFFECTIVE" NOTES //////////////////// 
+
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_deleteGuarantorNotes.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_deleteGuarantorNotes.csv");
 if ($fhnd){
@@ -374,6 +379,7 @@ foreach ($all_rows as $patron) {
 		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	}
 }
+
 //////////////////// CREATE USER DEFINED FIELDS ENTRIES ////////////////////
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_createUdf.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_createUdf.csv");
@@ -405,6 +411,7 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 //////////////////// UPDATE USER DEFINED FIELDS ENTRIES ////////////////////
+
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_updateUdf.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_updateUdf.csv");
 if ($fhnd){
@@ -440,6 +447,7 @@ foreach ($all_rows as $patron) {
 	$request->NewPatronUserDefinedField->valuename			= $patron['new_valuename'];
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
+
 //////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
 $iterator = new DirectoryIterator('../data/images');
