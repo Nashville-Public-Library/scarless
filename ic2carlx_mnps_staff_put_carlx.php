@@ -24,8 +24,6 @@ $reportPath		= '../data/';
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
-/* DEACTIVATE UNTIL 2018-09-01
-
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_staff_remove.csv", "r");
 if ($fhnd){
@@ -93,8 +91,6 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-*/ // DEACTIVATE UNTIL 2018-09-01
-
 //////////////////// CREATE CARLX PATRONS ////////////////////
 
 $all_rows = array();
@@ -154,7 +150,7 @@ foreach ($all_rows as $patron) {
 	$request->SearchType						= 'Patron ID';
 	$request->SearchID						= $patron['patronid']; // Patron ID
 	$request->Patron						= new stdClass();
-	if (stripos($patron['patronid'],'999') == 0) {
+	if (stripos($patron['patronid'],'999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
 	} else {
 		$request->Patron->PatronPIN				= '2018';
@@ -200,7 +196,7 @@ foreach ($all_rows as $patron) {
 		$request->Patron->CollectionStatus			= 'do not send';
 	}
 	$request->Patron->Email						= $patron['emailaddress']; // Patron Email
-	if (stripos($patron['patronid'],'999') == 0) {
+	if (stripos($patron['patronid'],'999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
 	} 
 // PIN RESET ENDS 2018 09 03. RESTORE ON 2019 08 01
@@ -229,12 +225,12 @@ if ($fhnd){
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
-	//if ($patron['patronid'] > 999115) { continue; }
+	//if ($patron['PatronID'] > 999115) { continue; }
 	$noteIDs = explode(',', $patron['ExpiredNoteIDs']);
 	foreach ($noteIDs as $noteID) {
 		// CREATE REQUEST
 		$requestName						= 'deletePatronNote';
-		$tag							= $patron['patronid'] . ' : deleteExpiredNote ' . $noteID;
+		$tag							= $patron['PatronID'] . ' : deleteExpiredNote ' . $noteID;
 		$request						= new stdClass();
 		$request->Modifiers					= new stdClass();
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;
