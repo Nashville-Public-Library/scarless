@@ -38,6 +38,7 @@ select patron_v.patronid as "Patron ID"						-- 00
   , expired.noteids as "Expired MNPS Note IDs"					-- 35 -- 10
 --  , gDeleteNotes.deleteGuarantorNotes as "Delete Guarantor Note IDs"		-- 36
   , patron_v.collectionstatus as "Collection Status"				-- 37 -- 11
+  , editbranch.branchcode as "Edit Branch"					-- 38 -- 12
 
 from patron_v
 left outer join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
@@ -48,6 +49,7 @@ left outer join (
   where regexp_like(patronnotetext_v.text, 'MNPS patron expired')
   group by refid
 ) expired on patron_v.patronid = expired.refid
+left outer join branch_v editbranch on patron_v.editbranch = editbranch.branchnumber
 where
   patron_v.bty in (13,40)
   or regexp_like(patron_v.patronid,'^[0-9]{6}$')
