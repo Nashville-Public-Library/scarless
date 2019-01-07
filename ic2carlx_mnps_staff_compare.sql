@@ -8,10 +8,10 @@
 -- TO DO: for patron data privacy, kill this database when actions are complete
 
 DROP TABLE IF EXISTS carlx;
-CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,DefaultBranch,ExpirationDate,EmailAddress,EmailNotices,ExpiredNoteIDs,CollectionStatus);
+CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,DefaultBranch,ExpirationDate,EmailAddress,EmailNotices,ExpiredNoteIDs,CollectionStatus,EditBranch);
 
 DROP TABLE IF EXISTS infinitecampus;
-CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,DefaultBranch,ExpirationDate,EmailAddress,EmailNotices,ExpiredNoteIDs,CollectionStatus);
+CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,DefaultBranch,ExpirationDate,EmailAddress,EmailNotices,ExpiredNoteIDs,CollectionStatus,EditBranch);
 
 .headers on
 .mode csv
@@ -47,7 +47,7 @@ create table if not exists carlx_remove (patronid,patron_seen,emailaddress,colle
 delete 
 from carlx_remove
 ;
-insert into carlx_remove select p.patronid,
+insert into carlx_remove select distinct p.patronid,
 	p.patron_seen,
 	c.emailaddress,
 	c.collectionstatus,
@@ -55,7 +55,9 @@ insert into carlx_remove select p.patronid,
 	c.borrowertypecode
 from patron_seen p
 left join carlx c on p.patronid = c.PatronID
-where patron_seen < date('now','-7 days')
+where c.editbranch != 'XMNPS'
+and (patron_seen < date('now','-7 days') or patron_seen is null)
+order by p.patronid
 ; 
 .headers on
 .output ../data/ic2carlx_mnps_staff_remove.csv
@@ -65,6 +67,7 @@ select * from carlx_remove;
 delete
 from patron_seen 
 where patron_seen < date('now','-7 days')
+or patron_seen is null
 ; 
 
 -- CREATE CARLX PATRON
@@ -72,7 +75,18 @@ create table if not exists carlx_create (patronid,borrowertypecode,patronlastnam
 delete 
 from carlx_create
 ;
-insert into carlx_create select infinitecampus.*
+insert into carlx_create select infinitecampus.PatronID,
+	infinitecampus.Borrowertypecode,
+	infinitecampus.Patronlastname,
+	infinitecampus.Patronfirstname,
+	infinitecampus.Patronmiddlename,
+	infinitecampus.Patronsuffix,
+	infinitecampus.DefaultBranch,
+	infinitecampus.ExpirationDate,
+	infinitecampus.EmailAddress,
+	infinitecampus.EmailNotices,
+	infinitecampus.ExpiredNoteIDs,
+	infinitecampus.CollectionStatus
 from infinitecampus
 left join carlx on infinitecampus.PatronID = carlx.PatronID
 where carlx.PatronID IS NULL
@@ -143,6 +157,7 @@ select c.PatronID,
 from infinitecampus i 
 inner join carlx c on i.patronid = c.patronid 
 where c.ExpiredNoteIDs != ""
+order by c.PatronID
 ;
 .output stdout
 
@@ -221,6 +236,7 @@ where report_defaultbranch.date = CURRENT_DATE
 select *
 from report_defaultbranch
 where date = CURRENT_DATE
+and defaultbranch != 'XMNPS'
 and (infinitecampus <= carlx*.9
 	or created >= carlx*.1
 	or updated >= carlx*.1
@@ -304,6 +320,7 @@ where report_borrowertypecode.date = CURRENT_DATE
 select *
 from report_borrowertypecode
 where date = CURRENT_DATE
+and borrowertypecode != '38'
 and (infinitecampus <= carlx*.9
 	or created >= carlx*.1
 	or updated >= carlx*.1
