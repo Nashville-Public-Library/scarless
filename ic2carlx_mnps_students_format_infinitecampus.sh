@@ -20,6 +20,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	if ($F[0] !~ m/^190\d{6}$/) { next; }
 # SCRUB NON-ASCII CHARACTERS
 	@F = map { s/[^\012\015\040-\176]//g; $_ } @F;
+# SKIP HARRIS-HILLMAN STUDENTS WITHOUT A HOMEROOM TEACHER VALUE
+	if ($F[18] == "65397" && $F[32] == "") { next; }
 # LEFT PAD WITH ZEROES EARLY LEARNING CENTERS
 	if (length($F[18]) == 3) { $F[18] = "00" . $F[18]; }
 	if (length($F[18]) == 4) { $F[18] = "0" . $F[18]; }
@@ -39,7 +41,7 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	# Academy at Opry Mills
 	elsif ($F[18] =~ m/^76613$/) { $F[18] = "7Z999"; }
 	# MNPS VIRTUAL SCHOOL
-	elsif ($F[18] =~ m/^(7F748)$/) { $F[18] = "7Z999"; }
+	elsif ($F[18] =~ m/^7F748$/) { $F[18] = "7Z999"; }
 # SKIP STUDENTS AT OPPORTUNITY MIDDLE; KEEP STUDENTS AT SISTER CHARTER INDEPENDENCE ACADEMY
 	elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 21 && $F[1] <= 30) { next; }
 # THE FOLLOWING LOCATIONS ARE NOW SET IN PIKA AS NOT VALID HOLD PICKUP BRANCHES
