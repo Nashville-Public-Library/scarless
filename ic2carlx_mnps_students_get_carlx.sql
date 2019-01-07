@@ -38,6 +38,7 @@ select patron_v.patronid as "Patron ID"						-- 00
   , expired.noteids as "Expired MNPS Note IDs"					-- 35
   , gDeleteNotes.deleteGuarantorNotes as "Delete Guarantor Note IDs"		-- 36
   , patron_v.collectionstatus as "Collection Status"				-- 37
+  , editbranch.branchcode as "Edit Branch"					-- 38
 
 from patron_v
 left outer join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
@@ -119,6 +120,7 @@ left outer join (
   and gKeep.noteid is null
   group by gDelete.refid
 ) gDeleteNotes on patron_v.patronid = gDeleteNotes.refid
+left outer join	branch_v editbranch on patron_v.editbranch = editbranch.branchnumber
 where
 --  patronbranch.branchgroup = '2'
 --  or 
