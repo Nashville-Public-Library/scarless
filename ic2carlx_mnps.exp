@@ -70,7 +70,7 @@ send "stat -c %Y $localPath/CARLX_INFINITECAMPUS_STUDENT.txt\r"
 expect -re "(\[0-9]{10})"
 set studentModified $expect_out(1,string)
 if {$nowEpoch - $staffModified > 86400 || $nowEpoch - $studentModified > 86400} then {
-	exec echo "EOM" | mail -s "Infinite Campus error: file too old" james.staub@nashville.gov
+	exec echo "EOM" | mail -s "Infinite Campus error: file too old" james.staub@nashville.gov michelle.bauder@nashville.gov jesse.morros@nashville.gov
 	logWrite $logFile "ABORTED: Infinite Campus error: file too old"
 	exit
 }
@@ -103,7 +103,7 @@ send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare
 
 # ABORT IF CHANGE THRESHOLDS ARE EXCEEDED
 #expect -re $prompt
-#if (file_exists("../data/patrons_mnps_carlx_defaultbranch_ABORT.csv")||file_exists("../data/patrons_mnps_carlx_borrowertype_ABORT.csv") {
+#if (file_exists("../data/ic2carlx_mnps_staff_report_defaultbranch_ABORT.csv")||("../data/ic2carlx_mnps_students_report_defaultbranch_ABORT.csv")||("../data/ic2carlx_mnps_staff_report_borrowertype_ABORT.csv")||("../data/ic2carlx_mnps_students_report_borrowertype_ABORT.csv") {
 #        echo "ABORT!!!\n";
 #        exit;
 #}
