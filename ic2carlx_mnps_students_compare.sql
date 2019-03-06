@@ -53,7 +53,9 @@ insert into carlx_remove select distinct p.patronid,
 	c.emailaddress,
 	c.collectionstatus,
 	c.defaultbranch,
-	c.borrowertypecode
+	c.borrowertypecode,
+	c.primaryphonenumber,
+	c.secondaryphonenumber
 from patron_seen p
 left join carlx c on p.patronid = c.PatronID
 where c.editbranch != 'XMNPS'
