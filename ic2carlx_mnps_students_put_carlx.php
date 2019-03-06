@@ -44,9 +44,12 @@ foreach ($all_rows as $patron) {
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
 	$request->Modifiers->ReportMode					= $patronApiReportMode;
 	$request->SearchType						= 'Patron ID';
-	$request->SearchID						= $patron['PatronID']; // Patron ID
+	$request->SearchID						= $patron['PatronID'];
 	$request->Patron						= new stdClass();
 	$request->Patron->PatronType					= '38'; // Patron Type = Expired MNPS
+	if (empty($patron['PrimaryPhoneNumber']) && !empty($patron['SecondaryPhoneNumber']) {
+	        $request->Patron->Phone1				= $patron['SecondaryPhoneNumber'];
+	}
 	$request->Patron->Phone2					= ''; // Patron Secondary Phone
 	$request->Patron->DefaultBranch					= 'XMNPS'; // Patron Default Branch
 	$request->Patron->LastActionBranch				= 'XMNPS'; // Patron Last Action Branch
