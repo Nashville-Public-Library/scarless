@@ -46,13 +46,6 @@ foreach ($all_rows as $patron) {
 	$request->SearchType						= 'Patron ID';
 	$request->SearchID						= $patron['PatronID']; // Patron ID
 	$request->Patron						= new stdClass();
-	$request->Patron->Addresses					= new stdClass();
-	$request->Patron->Addresses->Address[0]				= new stdClass();
-	$request->Patron->Addresses->Address[0]->Type			= 'Primary';
-	$request->Patron->Addresses->Address[0]->Street			= ''; // Patron Address Street
-	$request->Patron->Addresses->Address[0]->City			= ''; // Patron Address City
-	$request->Patron->Addresses->Address[0]->State			= ''; // Patron Address State
-	$request->Patron->Addresses->Address[0]->PostalCode		= ''; // Patron Address ZIP Code
 	$request->Patron->PatronType					= '38'; // Patron Type = Expired MNPS
 	$request->Patron->Phone2					= ''; // Patron Secondary Phone
 	$request->Patron->DefaultBranch					= 'XMNPS'; // Patron Default Branch
@@ -69,9 +62,10 @@ foreach ($all_rows as $patron) {
 		$request->Patron->Email					= ''; // Patron Email
 	}
 	// REMOVE VALUES FOR Sponsor: Homeroom Teacher
-	$request->Patron->Addresses->Address[1]				= new stdClass();
-	$request->Patron->Addresses->Address[1]->Type			= 'Secondary';
-	$request->Patron->Addresses->Address[1]->Street			= ''; // Patron Homeroom Teacher ID
+	$request->Patron->Addresses					= new stdClass();
+	$request->Patron->Addresses->Address[0]				= new stdClass();
+	$request->Patron->Addresses->Address[0]->Type			= 'Secondary';
+	$request->Patron->Addresses->Address[0]->Street			= ''; // Patron Homeroom Teacher ID
 	$request->Patron->SponsorName					= ''; // Patron Homeroom Teacher Name
 	// NON-CSV STUFF
 	if (!empty($patron['patron_seen'])) {
