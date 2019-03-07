@@ -12,7 +12,7 @@ select patron_v.patronid as "Patron ID"						-- 00
 --  , '' as "Secondary City"							-- 11
 --  , '' as "Secondary State"							-- 12
 --  , '' as "Secondary Zip Code"						-- 13
-  , patron_v.ph2 as "Primary Phone Number"					-- 14 -- CONFUSING. MNPS SUPPLIES PRIMARY HOME PHONE. NPL LOADS INTO SECONDARY PHONE BECAUSE STUDENTS SHOULD NOT RECEIVE ITIVA AUTOMATED CALLS
+  , patron_v.ph2 as "Secondary Phone Number"					-- 14 -- CONFUSING. MNPS SUPPLIES PRIMARY HOME PHONE. NPL LOADS INTO SECONDARY PHONE BECAUSE STUDENTS SHOULD NOT RECEIVE ITIVA AUTOMATED CALLS
 --  , '' as "Secondary Phone Number"						-- 15
 --  , '' as "Alternate ID"							-- 16
 --  , '' as "Non-validated Stats"						-- 17
@@ -39,6 +39,7 @@ select patron_v.patronid as "Patron ID"						-- 00
   , gDeleteNotes.deleteGuarantorNotes as "Delete Guarantor Note IDs"		-- 36
   , patron_v.collectionstatus as "Collection Status"				-- 37
   , editbranch.branchcode as "Edit Branch"					-- 38
+  , patron_v.ph1 as "Primary Phone Number"					-- 39
 
 from patron_v
 left outer join branch_v patronbranch on patron_v.defaultbranch = patronbranch.branchnumber
