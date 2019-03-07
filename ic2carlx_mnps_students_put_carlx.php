@@ -52,7 +52,6 @@ foreach ($all_rows as $patron) {
 	}
 	$request->Patron->Phone2					= ''; // Patron Secondary Phone
 	$request->Patron->DefaultBranch					= 'XMNPS'; // Patron Default Branch
-	$request->Patron->LastActionBranch				= 'XMNPS'; // Patron Last Action Branch
 	$request->Patron->LastEditBranch				= 'XMNPS'; // Patron Last Edit Branch
 	$request->Patron->RegBranch					= 'XMNPS'; // Patron Registration Branch
 	if ($patron['CollectionStatus']==0 || $patron['CollectionStatus']==1 || $patron['CollectionStatus']==78) {
@@ -76,7 +75,6 @@ foreach ($all_rows as $patron) {
 	} else {
 		$request->Patron->ExpirationDate			= date('c', strtotime('yesterday')); // Patron Expiration Date as ISO 8601
 	}
-	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
 	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	$request->Patron->PreferredAddress				= 'Primary';

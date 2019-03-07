@@ -49,7 +49,6 @@ foreach ($all_rows as $patron) {
 	$request->Patron						= new stdClass();
 	$request->Patron->PatronType					= '38'; // Patron Type = Expired MNPS
 	$request->Patron->DefaultBranch					= 'XMNPS'; // Patron Default Branch
-	$request->Patron->LastActionBranch				= 'XMNPS'; // Patron Last Action Branch
 	$request->Patron->LastEditBranch				= 'XMNPS'; // Patron Last Edit Branch
 	$request->Patron->RegBranch					= 'XMNPS'; // Patron Registration Branch
 	if ($patron['collectionstatus']==0 || $patron['collectionstatus']==1 || $patron['collectionstatus']==78) {
@@ -64,7 +63,6 @@ foreach ($all_rows as $patron) {
 	} else {
 		$request->Patron->ExpirationDate			= date('c', strtotime('yesterday')); // Patron Expiration Date as ISO 8601
 	}
-	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
 	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	$request->Patron->PreferredAddress				= 'Primary';
