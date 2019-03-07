@@ -47,7 +47,7 @@ foreach ($all_rows as $patron) {
 	$request->SearchID						= $patron['PatronID'];
 	$request->Patron						= new stdClass();
 	$request->Patron->PatronType					= '38'; // Patron Type = Expired MNPS
-	if (empty($patron['PrimaryPhoneNumber']) && !empty($patron['SecondaryPhoneNumber']) {
+	if (empty($patron['PrimaryPhoneNumber']) && !empty($patron['SecondaryPhoneNumber'])) {
 	        $request->Patron->Phone1				= $patron['SecondaryPhoneNumber'];
 	}
 	$request->Patron->Phone2					= ''; // Patron Secondary Phone
@@ -96,7 +96,7 @@ foreach ($all_rows as $patron) {
 	} else {
 		$PatronExpirationDate					= date('Y-m-d', strtotime('yesterday')); // Patron Expiration Date
 	}
-	$request->Note->NoteText					= 'MNPS patron expired ' . $PatronExpirationDate . '. Previous branchcode: ' . $patron['DefaultBranch'] . '. Previous bty: ' . $patron['BorrowerTypeCode'] . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, branch, and guarantor.'; 
+	$request->Note->NoteText					= 'MNPS patron expired ' . $PatronExpirationDate . '. Previous branchcode: ' . $patron['DefaultBranch'] . '. Previous bty: ' . $patron['Borrowertypecode'] . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, branch, and guarantor.'; 
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
