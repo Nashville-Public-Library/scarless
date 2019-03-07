@@ -87,7 +87,7 @@ foreach ($all_rows as $patron) {
 	} else {
 		$PatronExpirationDate					= date('Y-m-d', strtotime('yesterday')); // Patron Expiration Date
 	}
-	$request->Note->NoteText					= 'Former MNPS staffer, patron expired ' . $PatronExpirationDate . '. DO NOT convert this account to NPL; create new account after outstanding transactions are resolved.';
+	$request->Note->NoteText					= 'Former MNPS staffer, patron expired ' . $PatronExpirationDate . '. Previous branchcode: ' . $patron['defaultbranch'] . '. Previous bty: ' . $patron['borrowertypecode'] . '. DO NOT convert this account to NPL; create new account after outstanding transactions are resolved.';
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
