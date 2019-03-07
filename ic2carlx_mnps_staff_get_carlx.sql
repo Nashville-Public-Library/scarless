@@ -46,7 +46,7 @@ left outer join (
   select refid
     , listagg(noteid,',') within group (order by timestamp desc) as noteids
   from patronnotetext_v
-  where regexp_like(patronnotetext_v.text, 'MNPS patron expired')
+  where regexp_like(patronnotetext_v.text, 'Former MNPS staffer, patron expired')
   group by refid
 ) expired on patron_v.patronid = expired.refid
 left outer join branch_v editbranch on patron_v.editbranch = editbranch.branchnumber
