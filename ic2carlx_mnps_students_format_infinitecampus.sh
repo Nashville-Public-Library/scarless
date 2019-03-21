@@ -67,6 +67,20 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 		elsif ($F[1] =~ m/^(27|28|29|30)$/) { $F[1] = 36; }
 		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
 	} 
+# IF STUDENT IS 18 YEARS OLD AND BTY IS 31-34, THEN BTY SHOULD BE 46
+        if ($F[1] =~ m/^(31|32|33|34)$/ && $F[26] =~ m/^\d{4}-\d{2}-\d{2}$/) {
+                $birdate        = $F[26];
+                $birdt          = DateTime::Format::ISO8601->parse_datetime($birdate);
+                $tnratedrdt     = $birdt + DateTime::Duration->new( years => 18, days => -1 );
+                if (DateTime->compare($tnratedrdt,$todaydt) == -1) { $F[1] = 46; }
+        }
+# IF STUDENT IS 18 YEARS OLD AND BTY IS 37, THEN BTY SHOULD BE 47
+        if ($F[1] =~ m/^37$/ && $F[26] =~ m/^\d{4}-\d{2}-\d{2}$/) {
+                $birdate        = $F[26];
+                $birdt          = DateTime::Format::ISO8601->parse_datetime($birdate);
+                $tnratedrdt     = $birdt + DateTime::Duration->new( years => 18, days => -1 );
+                if (DateTime->compare($tnratedrdt,$todaydt) == -1) { $F[1] = 47; }
+        }
 # ELIMINATE NON-NUMERIC CHARACTERS FROM PHONE NUMBERS LONGER THAN 14 CHARACTERS
 	if (length($F[14]) > 14) { $F[14] =~s/\D//g; }
 # SET LIMITLESS PERMISSION TO YES IF BLANK
