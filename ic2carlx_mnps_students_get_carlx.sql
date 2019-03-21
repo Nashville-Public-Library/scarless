@@ -125,7 +125,7 @@ left outer join	branch_v editbranch on patron_v.editbranch = editbranch.branchnu
 where
 --  patronbranch.branchgroup = '2'
 --  or 
-  patron_v.bty >= 21 and patron_v.bty <= 38
+  ((patron_v.bty >= 21 and patron_v.bty <= 38) or (patron_v.bty >= 46 and patron_v.bty <= 47))
   or regexp_like(patron_v.patronid,'^190[0-9]{6}$')
   or regexp_like(patron_v.patronid,'^190999[0-9]{3}$') -- TEST MNPS STUDENT PATRONS
 order by patron_v.patronid
