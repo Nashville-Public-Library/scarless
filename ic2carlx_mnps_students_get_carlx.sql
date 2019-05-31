@@ -29,9 +29,12 @@ select patron_v.patronid as "Patron ID"						-- 00
   , to_char(jts.todate(patron_v.birthdate),'YYYY-MM-DD') as "Birth Date"	-- 26
   , guarantor.guarantor as "Guarantor"						-- 27
 --  , udf2.valuename as "Racial or Ethnic Category"				-- 28
-  , udf3.valuename as "Lap Top Check Out"					-- 29
-  , udf4.valuename as "Limitless Library Use"					-- 30
-  , udf1.valuename as "Tech Opt Out"						-- 31
+--  , udf3.valuename as "Lap Top Check Out"					-- 29*
+--  , udf4.valuename as "Limitless Library Use"					-- 30*
+--  , udf1.valuename as "Tech Opt Out"						-- 31*
+  , '' as "Lap Top Check Out"							-- 29
+  , '' as "Limitless Library Use"						-- 30
+  , '' as "Tech Opt Out"							-- 31
   , patron_v.street2 as "Teacher ID"						-- 32
   , patron_v.sponsor as "Teacher Name"						-- 33
   , patron_v.emailnotices as "Email Notices"					-- 34
@@ -50,6 +53,7 @@ left outer join (
   from patronnotetext_v
   where regexp_like(patronnotetext_v.text, 'NPL: MNPS Guarantor effective')
 ) guarantor on patron_v.patronid = guarantor.refid
+/* DISABLED 2019 05 17
 left outer join (
   select distinct
     patronid
@@ -82,6 +86,7 @@ left outer join (
   from udfpatron_v
   where udfpatron_v.fieldid = 4
 ) udf4 on patron_v.patronid = udf4.patronid
+*/
 left outer join (
   select refid
     , listagg(noteid,',') within group (order by timestamp desc) as noteids

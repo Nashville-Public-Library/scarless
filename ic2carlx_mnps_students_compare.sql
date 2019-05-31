@@ -95,9 +95,9 @@ insert into carlx_create select infinitecampus.PatronID,
 	infinitecampus.EmailAddress,
 	infinitecampus.BirthDate,
 	infinitecampus.Guarantor,
-	infinitecampus.LapTopCheckOut,
-	infinitecampus.LimitlessLibraryUse,
-	infinitecampus.TechOptOut,
+--	infinitecampus.LapTopCheckOut,
+--	infinitecampus.LimitlessLibraryUse,
+--	infinitecampus.TechOptOut,
 	infinitecampus.TeacherID,
 	infinitecampus.TeacherName,
 	infinitecampus.EmailNotices,
@@ -231,6 +231,7 @@ order by c.PatronID
 */
 
 -- CreatePatronUserDefinedFields
+/* DISABLED 2019 05 17
 .headers off
 .output ../data/ic2carlx_mnps_students_createUdf.csv
 select 'patronid',
@@ -398,6 +399,7 @@ and i.new_numcode != c.old_numcode
 order by i.new_patronid
 ;
 .output stdout
+*/
 
 -- Delete Expired MNPS Patron Notes when patron re-appears in Infinite Campus
 .headers on

@@ -372,6 +372,7 @@ foreach ($all_rows as $patron) {
 	}
 }
 
+/* DISABLED 2019 05 17
 //////////////////// CREATE USER DEFINED FIELDS ENTRIES ////////////////////
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_createUdf.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_createUdf.csv");
@@ -402,6 +403,8 @@ foreach ($all_rows as $patron) {
 	$request->PatronUserDefinedField->valuename			= $patron['valuename'];
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
+*/
+/* DISABLED 2019 05 17
 //////////////////// UPDATE USER DEFINED FIELDS ENTRIES ////////////////////
 
 $all_rows = array();
@@ -439,6 +442,7 @@ foreach ($all_rows as $patron) {
 	$request->NewPatronUserDefinedField->valuename			= $patron['new_valuename'];
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
+*/
 
 //////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
