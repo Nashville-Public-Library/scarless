@@ -1,5 +1,7 @@
 <?php
 
+	ini_set('memory_limit', '1024M'); // or you could use 1G
+
 // echo 'SYNTAX: path/to/php ic2carlx.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php ic2carlx.php\n';
 //
 // TO DO: logging
@@ -20,6 +22,44 @@ $patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode     = $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
 $reportPath             = '../data/';
+
+//////////////////// REMOVE CARLX PATRONS : HOMEROOM ////////////////////
+//// FOR AUGUST, REMOVES HOMEROOM FROM STUDENTS WHO WOULD OTHERWISE BE XMNPS ////
+/* DISABLED 2019 10 08 (Finally!)
+
+$all_rows = array();
+$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+//print_r($all_rows);
+foreach ($all_rows as $patron) {
+	// TESTING
+	//if ($patron['PatronID'] > 190999115) { break; }
+	// CREATE REQUEST
+	$requestName							= 'updatePatron';
+	$tag								= $patron['PatronID'] . ' : removePatronHomeroom';
+	$request							= new stdClass();
+	$request->Modifiers						= new stdClass();
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->SearchType						= 'Patron ID';
+	$request->SearchID						= $patron['PatronID'];
+	$request->Patron						= new stdClass();
+	// REMOVE VALUES FOR Sponsor: Homeroom Teacher
+	$request->Patron->Addresses					= new stdClass();
+	$request->Patron->Addresses->Address[0]				= new stdClass();
+	$request->Patron->Addresses->Address[0]->Type			= 'Secondary';
+	$request->Patron->Addresses->Address[0]->Street			= ''; // Patron Homeroom Teacher ID
+	$request->Patron->SponsorName					= ''; // Patron Homeroom Teacher Name
+	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
+	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+}
+// DISABLED 2019 10 08 (Finally!) */
 
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
@@ -449,14 +489,15 @@ foreach ($all_rows as $patron) {
 
 //////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
-$iterator = new DirectoryIterator('../data/images');
-$today = date_create('today')->format('U');
+$iterator = new DirectoryIterator('../data/images/students');
+//$today = date_create('today')->format('U');
+$today = date_create('2019-08-28')->format('U');
 foreach ($iterator as $fileinfo) {
         $file = $fileinfo->getFilename();
         $mtime = $fileinfo->getMTime();
         if ($fileinfo->isFile() && preg_match('/^190\d{6}.jpg$/', $file) === 1 && $mtime >= $today) {
 		$requestName						= 'updateImage';
-		$tag							= $patron['PatronID'] . ' : ' . $requestName;
+		$tag							= substr($file,0,9) . ' : ' . $requestName;
 		$request						= new stdClass();
 		$request->Modifiers					= new stdClass();
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;
@@ -464,7 +505,7 @@ foreach ($iterator as $fileinfo) {
 		$request->SearchType					= 'Patron ID';
 		$request->SearchID					= substr($file,0,9); // Patron ID
 		$request->ImageType					= 'Profile'; // Patron Profile Picture vs. Signature
-		$imageFilePath 						= "../data/images/" . $file;
+		$imageFilePath 						= "../data/images/students/" . $file;
 		if (file_exists($imageFilePath)) {
 			$imageFileHandle 				= fopen($imageFilePath, "rb");
 			$request->ImageData				= fread($imageFileHandle, filesize($imageFilePath));
