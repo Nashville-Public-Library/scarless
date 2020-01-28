@@ -70,7 +70,7 @@ send "stat -c %Y $localPath/CARLX_INFINITECAMPUS_STUDENT.txt\r"
 expect -re "(\[0-9]{10})"
 set studentModified $expect_out(1,string)
 if {$nowEpoch - $staffModified > 86400 || $nowEpoch - $studentModified > 86400} then {
-	exec echo "EOM" | mail -s "Infinite Campus error: file too old" james.staub@nashville.gov michelle.bauder@nashville.gov jesse.morros@nashville.gov
+	exec echo "EOM" | mail -s "Infinite Campus error: file too old" james.staub@nashville.gov jesse.morros@nashville.gov
 	logWrite $logFile "ABORTED: Infinite Campus error: file too old"
 	exit
 }
