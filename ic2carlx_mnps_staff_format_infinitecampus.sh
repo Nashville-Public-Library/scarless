@@ -47,6 +47,8 @@ perl -F'\|' -lane '
 	if ($F[6] == "1.00E+240") { $F[6] = "1E240"; }
 # FIX DAVIS ELC DEFAULTBRANCH CODE
         if ($F[6] == "02152") { $F[6] = "00152"; }
+# 2020 TORNADO: CHANGE GRA-MAR TO JERE BAXTER
+        if ($F[6] =~ m/^4C365$/) { $F[6] = "43120"; }
 # CHANGE DATE VALUE FOR EXPIRATION TO 2020-09-01
 	$F[7] = "2020-09-01";
 # REMOVE STAFF RECORDS ASSOCIATED WITH usd475.org EMAIL

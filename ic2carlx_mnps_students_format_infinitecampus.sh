@@ -32,6 +32,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	if ($F[18] == "02152") { $F[18] = "00152"; }
 # FIX CUMBERLAND ELEMENTARY DEFAULTBRANCH CODE
         if ($F[18] == "1.00E+240") { $F[18] = "1E240"; }
+# 2020 TORNADO: CHANGE GRA-MAR TO JERE BAXTER
+	if ($F[18] =~ m/^4C365$/) { $F[18] = "43120"; }
 # SET STUDENTS AT NON-ELIGIBLE SCHOOLS TO THE NO-DELIVERY "SCHOOL" 7Z999
 	# NASHVILLE BIG PICTURE SCHOOL
 	if ($F[18] =~ m/^(70142)$/) { $F[18] = "7Z999"; }
