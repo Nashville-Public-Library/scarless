@@ -53,5 +53,8 @@ left outer join branch_v editbranch on patron_v.editbranch = editbranch.branchnu
 where
   patron_v.bty in (13,40)
   or regexp_like(patron_v.patronid,'^[0-9]{6}$')
+  or regexp_like(patron_v.patronid,'^4[0-9]{6}$') -- if staff with employee ids 7-digits starting 658 are at eligible schools, use the next line:
+--  or regexp_like(patron_v.patronid,'^[46][0-9]{6}$') and patron_v.patronid != '6150737' -- excluded patronid is NPL staff shared id for discovery layer lists, etc.
+  or patronid = '9999681' -- ROSS EARLY LEARNING CENTER librarian card to accommodate shared staffing at another site
   or regexp_like(patron_v.patronid,'^999[0-9]{3}$') -- TEST MNPS STAFF PATRONS
 order by patron_v.patronid
