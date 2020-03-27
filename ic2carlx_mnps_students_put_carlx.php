@@ -64,6 +64,8 @@ foreach ($all_rows as $patron) {
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
+/* DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE
+
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
 if ($fhnd){
@@ -139,6 +141,8 @@ foreach ($all_rows as $patron) {
 	$request->Note->NoteText					= 'MNPS patron expired ' . $PatronExpirationDate . '. Previous branchcode: ' . $patron['DefaultBranch'] . '. Previous bty: ' . $patron['Borrowertypecode'] . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, branch, and guarantor.'; 
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
+
+// DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE */
 
 //////////////////// CREATE CARLX PATRONS ////////////////////
 $all_rows = array();
