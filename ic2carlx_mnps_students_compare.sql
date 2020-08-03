@@ -45,6 +45,7 @@ left join patron_seen p on i.patronid = p.patronid
 where p.patronid is null;
 
 -- "REMOVE" CARLX PATRON
+create table if not exists carlx_remove (patronid,patron_seen,emailaddress,collectionstatus,defaultbranch,borrowertypecode,primaryphonenumber,secondaryphonenumber);
 delete 
 from carlx_remove
 ;
@@ -75,7 +76,7 @@ or patron_seen is null
 
 -- CREATE CARLX PATRON
 -- drop table if exists carlx_create;
-create table if not exists carlx_create (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName,EmailNotices,ExpiredNoteIDs,DeleteGuarantorNoteIDs,CollectionStatus,EditBranch);
+create table if not exists carlx_create (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName,EmailNotices,ExpiredNoteIDs,DeleteGuarantorNoteIDs,CollectionStatus,EditBranch,PrimaryPhoneNumber);
 delete 
 from carlx_create
 ;
@@ -117,6 +118,7 @@ select * from carlx_create;
 .output stdout
 
 -- UPDATE CARLX PATRON (IGNORE EMAIL; IGNORE GUARANTOR; IGNORE UDF VALUES)
+create table if not exists carlx_update (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,BirthDate,TeacherID,TeacherName,CollectionStatus);
 delete 
 from carlx_update
 ;
@@ -425,6 +427,7 @@ order by c.PatronID
 .output stdout
 
 -- REPORT x BRANCH
+create table if not exists report_defaultbranch (date,defaultbranch,carlx,infinitecampus,created,updated,removed,cx_ll_yes,ic_ll_yes,cx_ll_no,ic_ll_no);
 delete from report_defaultbranch
 where date = CURRENT_DATE;
 insert into report_defaultbranch 
@@ -541,6 +544,7 @@ and (infinitecampus <= carlx*.9
 .output stdout
 
 -- REPORT x BORROWER TYPE
+create table if not exists report_borrowertypecode (date,borrowertypecode,carlx,infinitecampus,created,updated,removed,cx_ll_yes,ic_ll_yes,cx_ll_no,ic_ll_no);
 delete from report_borrowertypecode
 where date = CURRENT_DATE;
 insert into report_borrowertypecode
