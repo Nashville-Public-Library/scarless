@@ -24,7 +24,7 @@ $reportPath		= '../data/';
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
-/* DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE
+/* DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE. CONTINUED DISABLED 2020 08 04 UNTIL ... LATER
 
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_staff_remove.csv", "r");
@@ -91,7 +91,7 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-// DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE */
+// DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE. CONTINUED DISABLED 2020 08 04 UNTIL ... LATER */
 
 //////////////////// CREATE CARLX PATRONS ////////////////////
 
@@ -155,7 +155,7 @@ foreach ($all_rows as $patron) {
 	if (stripos($patron['patronid'],'999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
 	} else {
-		$request->Patron->PatronPIN				= '2019';
+		$request->Patron->PatronPIN				= '2021';
 	}
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
@@ -203,7 +203,7 @@ foreach ($all_rows as $patron) {
 	} 
 // PIN RESET ENDS 2019 09 01. RESTORE ON 2020 08 01
 	else {
-		$request->Patron->PatronPIN				= '2019';
+		$request->Patron->PatronPIN				= '2021';
 	}
 	
 	// NON-CSV STUFF
@@ -250,7 +250,7 @@ $today = date_create('2019-08-28')->format('U');
 foreach ($iterator as $fileinfo) {
         $file = $fileinfo->getFilename();
         $mtime = $fileinfo->getMTime();
-        if ($fileinfo->isFile() && preg_match('/^\d{6}.jpg$/', $file) === 1 && $mtime >= $today) {
+        if ($fileinfo->isFile() && preg_match('/^\d{6,7}.jpg$/', $file) === 1 && $mtime >= $today) {
 		$requestName						= 'updateImage';
 		$tag							= substr($file,0,6) . ' : ' . $requestName;
 		$request						= new stdClass();
@@ -258,7 +258,7 @@ foreach ($iterator as $fileinfo) {
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;
 		$request->Modifiers->ReportMode				= $patronApiReportMode;
 		$request->SearchType					= 'Patron ID';
-		$request->SearchID					= substr($file,0,6); // Patron ID
+		$request->SearchID					= substr($file,0,7); // Patron ID
 		$request->ImageType					= 'Profile'; // Patron Profile Picture vs. Signature
 		$imageFilePath 						= "../data/images/staff/" . $file;
 		if (file_exists($imageFilePath)) {

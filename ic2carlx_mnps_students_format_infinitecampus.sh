@@ -100,8 +100,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	if ($F[31] eq "Y") { $F[31] = "Yes"; }
 # STATUS EMPTY; SHOULD NOT OVERWRITE CARL.X STATUS
 	$F[20] = "";
-# CHANGE DATE VALUE FOR EXPIRATION TO 2020-09-01
-	$F[23] = "2020-09-01";
+# CHANGE DATE VALUE FOR EXPIRATION TO 2021-09-01
+	$F[23] = "2021-09-01";
 # GUARANTOR EFFECTIVE STOP DATE (GESD)
 	if ($F[27] ne "" && $F[26] =~ m/^\d{4}-\d{2}-\d{2}$/) {
 		$todaydt	= DateTime->today();

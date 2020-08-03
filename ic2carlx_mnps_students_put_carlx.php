@@ -25,7 +25,6 @@ $reportPath             = '../data/';
 
 //////////////////// REMOVE CARLX PATRONS : HOMEROOM ////////////////////
 //// FOR AUGUST, REMOVES HOMEROOM FROM STUDENTS WHO WOULD OTHERWISE BE XMNPS ////
-/* DISABLED 2019 10 08 (Finally!)
 
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
@@ -59,12 +58,11 @@ foreach ($all_rows as $patron) {
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
-// DISABLED 2019 10 08 (Finally!) */
 
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
-/* DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE
+/* DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE. CONTINUED DISABLED 2020 08 04 UNTIL ... LATER
 
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
@@ -142,7 +140,7 @@ foreach ($all_rows as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-// DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE */
+// DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE. CONTINUED DISABLED 2020 08 04 UNTIL ... LATER */
 
 //////////////////// CREATE CARLX PATRONS ////////////////////
 $all_rows = array();
