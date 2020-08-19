@@ -201,8 +201,8 @@ foreach ($all_rows as $patron) {
 	if (stripos($patron['patronid'],'999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
 	} 
-// PIN RESET ENDS 2019 09 01. RESTORE ON 2020 08 01
-	else {
+// PIN RESET ENDS 2020 09 01. RESTORE ON 2021 08 01
+	elseif (stripos($patron['borrowertypecode'],'7') !== 0) {
 		$request->Patron->PatronPIN				= '2021';
 	}
 	
@@ -252,7 +252,7 @@ foreach ($iterator as $fileinfo) {
         $mtime = $fileinfo->getMTime();
         if ($fileinfo->isFile() && preg_match('/^\d{6,7}.jpg$/', $file) === 1 && $mtime >= $today) {
 		$requestName						= 'updateImage';
-		$tag							= substr($file,0,6) . ' : ' . $requestName;
+		$tag							= substr($file,0,7) . ' : ' . $requestName;
 		$request						= new stdClass();
 		$request->Modifiers					= new stdClass();
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;
