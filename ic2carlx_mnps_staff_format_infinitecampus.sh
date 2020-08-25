@@ -18,6 +18,8 @@ perl -F'\|' -lane '
 	if ($F[0] =~ m/^658\d{4}$/) { next; }
 # 2020 TORNADO: CHANGE GRA-MAR TO JERE BAXTER
         if ($F[6] =~ m/^4C365$/) { $F[6] = "43120"; }
+# LEAD NEELYS BEND: UPDATE BRANCHCODE
+	if ($F[6] =~ m/^4R601$/) { $F[6] = "7E601"; }
 # CHANGE DATE VALUE FOR EXPIRATION TO 2021-09-01
 	$F[7] = "2021-09-01";
 # ADD EMAIL NOTICES VALUE 1 = SEND EMAIL NOTICES
