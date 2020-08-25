@@ -16,43 +16,10 @@ perl -F'\|' -lane '
 	splice @F, 7, 0, @filler;
 # REMOVE SPECTRUM EMPLOYEES - I.E., REMOVE ALL 7-DIGIT EMPLOYEE IDS STARTING 658
 	if ($F[0] =~ m/^658\d{4}$/) { next; }
-# SCHOOL LIBRARIANS
-# Most Librarians/Library Clerks should be set to BTY 40 in the Infinite Campus extract. 
-# The list below is for stragglers.
-# TO DO : make ad hoc report!
-# select patronid from patron_v where bty = 40 and length(patronid) = 6 order by patronid;
-	@schoolLibrarians = (183231,
-		271653,
-		373248,
-		406230,
-		433782,
-		498344,
-		647724,
-		719546,
-		866487);
-	if (grep(/^$F[0]$/,@schoolLibrarians)) {$F[1]=40;}
-# STAFF HARDCODED STUFF
-	# 20180125 259150 Taylor Brophy should be at Eakin ES
-	if ($F[0]==259150) {$F[6]="1H280";}
-	# 20171024 501277 Ann Martin should be at Bellevue MS
-	if ($F[0]==501277) {$F[6]="44130";} 
-	# 20180306 505725 Kathleen McGee should be at Norman Binkley ES
-	if ($F[0]==505725) {$F[6]="13145";}
-	# 20171025 643626 Rachael Black should be at Glenview ES
-	if ($F[0]==643626) {$F[6]="1P345";}
-# LEFT PAD WITH ZEROES EARLY LEARNING CENTERS
-	if (length($F[6]) == 3) { $F[6] = "00" . $F[6]; }
-	if (length($F[6]) == 4) { $F[6] = "0" . $F[6]; }
-# FIX CUMBERLAND ELEMENTARY DEFAULTBRANCH CODE
-	if ($F[6] == "1.00E+240") { $F[6] = "1E240"; }
-# FIX DAVIS ELC DEFAULTBRANCH CODE
-        if ($F[6] == "02152") { $F[6] = "00152"; }
 # 2020 TORNADO: CHANGE GRA-MAR TO JERE BAXTER
         if ($F[6] =~ m/^4C365$/) { $F[6] = "43120"; }
 # CHANGE DATE VALUE FOR EXPIRATION TO 2021-09-01
 	$F[7] = "2021-09-01";
-# REMOVE STAFF RECORDS ASSOCIATED WITH usd475.org EMAIL
-	if ($F[8] =~ m/usd475\.org/) { next; }
 # ADD EMAIL NOTICES VALUE 1 = SEND EMAIL NOTICES
 	$F[9] = "1";
 # ADD EMPTY FOR EXPIRED MNPS NOTE IDS
