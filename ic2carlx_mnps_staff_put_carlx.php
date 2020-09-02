@@ -254,15 +254,16 @@ $today = date_create('today')->format('U');
 foreach ($iterator as $fileinfo) {
         $file = $fileinfo->getFilename();
         $mtime = $fileinfo->getMTime();
-        if ($fileinfo->isFile() && preg_match('/^\d{6,7}.jpg$/', $file) === 1 && $mtime >= $today) {
+	$matches = [];
+        if ($fileinfo->isFile() && preg_match('/^(\d{6,7}).jpg$/', $file, $matches) === 1 && $mtime >= $today) {
 		$requestName						= 'updateImage';
-		$tag							= substr($file,0,7) . ' : ' . $requestName;
+		$tag							= $matches[1] . ' : ' . $requestName;
 		$request						= new stdClass();
 		$request->Modifiers					= new stdClass();
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;
 		$request->Modifiers->ReportMode				= $patronApiReportMode;
 		$request->SearchType					= 'Patron ID';
-		$request->SearchID					= substr($file,0,7); // Patron ID
+		$request->SearchID					= $matches[1]; // Patron ID
 		$request->ImageType					= 'Profile'; // Patron Profile Picture vs. Signature
 		$imageFilePath 						= "../data/images/staff/" . $file;
 		if (file_exists($imageFilePath)) {
