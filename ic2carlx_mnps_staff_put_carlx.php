@@ -154,6 +154,8 @@ foreach ($all_rows as $patron) {
 	$request->Patron						= new stdClass();
 	if (stripos($patron['patronid'],'999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
+	} elseif ($patron['defaultbranch'] == '7E601') {
+		$request->Patron->PatronPIN				= '1251';
 	} else {
 		$request->Patron->PatronPIN				= '2021';
 	}
@@ -200,11 +202,13 @@ foreach ($all_rows as $patron) {
 	$request->Patron->Email						= $patron['emailaddress']; // Patron Email
 	if (stripos($patron['patronid'],'999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
-	} 
-// PIN RESET ENDS 2020 09 01. RESTORE ON 2021 08 01
-	elseif (stripos($patron['borrowertypecode'],'7') !== 0) {
-		$request->Patron->PatronPIN				= '2021';
+	} elseif ($patron['defaultbranch'] == '7E601') {
+		$request->Patron->PatronPIN				= '1251';
 	}
+// PIN RESET ENDS 2020 09 01. RESTORE ON 2021 08 01
+//	elseif (stripos($patron['borrowertypecode'],'7') !== 0) {
+//		$request->Patron->PatronPIN				= '2021';
+//	}
 	
 	// NON-CSV STUFF
 	$request->Patron->EmailNotices					= 'send email'; // Patron Email Notices
@@ -245,8 +249,8 @@ foreach ($all_rows as $patron) {
 //////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
 $iterator = new DirectoryIterator('../data/images/staff/');
-//$today = date_create('today')->format('U');
-$today = date_create('2019-08-28')->format('U');
+$today = date_create('today')->format('U');
+//$today = date_create('2019-08-28')->format('U');
 foreach ($iterator as $fileinfo) {
         $file = $fileinfo->getFilename();
         $mtime = $fileinfo->getMTime();
