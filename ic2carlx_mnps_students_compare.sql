@@ -45,7 +45,8 @@ left join patron_seen p on i.patronid = p.patronid
 where p.patronid is null;
 
 -- "REMOVE" CARLX PATRON
-create table if not exists carlx_remove (patronid,patron_seen,emailaddress,collectionstatus,defaultbranch,borrowertypecode,primaryphonenumber,secondaryphonenumber);
+drop table if exists carlx_remove;
+create table if not exists carlx_remove (patronid,patron_seen,emailaddress,collectionstatus,defaultbranch,borrowertypecode,primaryphonenumber,secondaryphonenumber,teacherid,teachername);
 delete 
 from carlx_remove
 ;
@@ -56,7 +57,9 @@ insert into carlx_remove select distinct p.patronid,
 	c.defaultbranch,
 	c.borrowertypecode,
 	c.primaryphonenumber,
-	c.secondaryphonenumber
+	c.secondaryphonenumber,
+    c.teacherid,
+    c.teachername
 from patron_seen p
 left join carlx c on p.patronid = c.PatronID
 where c.editbranch != 'XMNPS'
