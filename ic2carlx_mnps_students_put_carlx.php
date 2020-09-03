@@ -38,25 +38,27 @@ if ($fhnd){
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
-	// CREATE REQUEST
-	$requestName							= 'updatePatron';
-	$tag								= $patron['PatronID'] . ' : removePatronHomeroom';
-	$request							= new stdClass();
-	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= $patronApiDebugMode;
-	$request->Modifiers->ReportMode					= $patronApiReportMode;
-	$request->SearchType						= 'Patron ID';
-	$request->SearchID						= $patron['PatronID'];
-	$request->Patron						= new stdClass();
-	// REMOVE VALUES FOR Sponsor: Homeroom Teacher
-	$request->Patron->Addresses					= new stdClass();
-	$request->Patron->Addresses->Address[0]				= new stdClass();
-	$request->Patron->Addresses->Address[0]->Type			= 'Secondary';
-	$request->Patron->Addresses->Address[0]->Street			= ''; // Patron Homeroom Teacher ID
-	$request->Patron->SponsorName					= ''; // Patron Homeroom Teacher Name
-	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
-	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	if (!empty($patron['teacherid'] || !empty($patron['teachername']))) {
+		// CREATE REQUEST
+		$requestName = 'updatePatron';
+		$tag = $patron['PatronID'] . ' : removePatronHomeroom';
+		$request = new stdClass();
+		$request->Modifiers = new stdClass();
+		$request->Modifiers->DebugMode = $patronApiDebugMode;
+		$request->Modifiers->ReportMode = $patronApiReportMode;
+		$request->SearchType = 'Patron ID';
+		$request->SearchID = $patron['PatronID'];
+		$request->Patron = new stdClass();
+		// REMOVE VALUES FOR Sponsor: Homeroom Teacher
+		$request->Patron->Addresses = new stdClass();
+		$request->Patron->Addresses->Address[0] = new stdClass();
+		$request->Patron->Addresses->Address[0]->Type = 'Secondary';
+		$request->Patron->Addresses->Address[0]->Street = ''; // Patron Homeroom Teacher ID
+		$request->Patron->SponsorName = ''; // Patron Homeroom Teacher Name
+		$request->Patron->LastEditDate = date('c'); // Patron Last Edit Date, format ISO 8601
+		$request->Patron->LastEditedBy = 'PIK'; // Pika Patron Loader
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	}
 }
 
 //////////////////// REMOVE CARLX PATRONS ////////////////////
