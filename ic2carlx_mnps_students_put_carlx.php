@@ -41,13 +41,13 @@ foreach ($all_rows as $patron) {
 	if (!empty($patron['teacherid'] || !empty($patron['teachername']))) {
 		// CREATE REQUEST
 		$requestName = 'updatePatron';
-		$tag = $patron['PatronID'] . ' : removePatronHomeroom';
+		$tag = $patron['patronid'] . ' : removePatronHomeroom';
 		$request = new stdClass();
 		$request->Modifiers = new stdClass();
 		$request->Modifiers->DebugMode = $patronApiDebugMode;
 		$request->Modifiers->ReportMode = $patronApiReportMode;
 		$request->SearchType = 'Patron ID';
-		$request->SearchID = $patron['PatronID'];
+		$request->SearchID = $patron['patronid'];
 		$request->Patron = new stdClass();
 		// REMOVE VALUES FOR Sponsor: Homeroom Teacher
 		$request->Patron->Addresses = new stdClass();
@@ -494,8 +494,8 @@ foreach ($all_rows as $patron) {
 //////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
 $iterator = new DirectoryIterator('../data/images/students');
-//$today = date_create('today')->format('U');
-$today = date_create('2019-08-28')->format('U');
+$today = date_create('today')->format('U');
+//$today = date_create('2020-08-10')->format('U');
 foreach ($iterator as $fileinfo) {
         $file = $fileinfo->getFilename();
         $mtime = $fileinfo->getMTime();
