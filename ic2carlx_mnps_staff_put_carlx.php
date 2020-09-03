@@ -250,7 +250,7 @@ foreach ($all_rows as $patron) {
 // if they were modified today
 $iterator = new DirectoryIterator('../data/images/staff/');
 $today = date_create('today')->format('U');
-$today = date_create('2020-07-17')->format('U');
+//$today = date_create('2020-07-17')->format('U');
 foreach ($iterator as $fileinfo) {
         $file = $fileinfo->getFilename();
         $mtime = $fileinfo->getMTime();
