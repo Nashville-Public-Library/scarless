@@ -24,6 +24,7 @@ set prompt {\$ $}
 spawn bash
 
 # RETRIEVE INFINITECAMPUS PACKAGE AND IMAGES
+set timeout -1
 expect -re $prompt
 send "rsync -a "
 send $icUser
@@ -47,6 +48,7 @@ send $icPassword
 send "\r"
 
 # UNZIP INFINITE CAMPUS PACKAGE
+set timeout 10
 expect -re $prompt
 send "7za x -o"
 send $localPath
