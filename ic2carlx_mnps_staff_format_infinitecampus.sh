@@ -16,6 +16,12 @@ perl -F'\|' -lane '
 	splice @F, 7, 0, @filler;
 # REMOVE SPECTRUM EMPLOYEES - I.E., REMOVE ALL 7-DIGIT EMPLOYEE IDS STARTING 658
 	if ($F[0] =~ m/^658\d{4}$/) { next; }
+# 2020-21 CLOSED SCHOOLS: STAFF MAY LINGER AND SHOULD BE DELETED
+	if ($F[6] =~ m/^14165$/) { next; }
+	if ($F[6] =~ m/^4C365$/) { next; }
+	if ($F[6] =~ m/^4G470$/) { next; }
+	if ($F[6] =~ m/^26500$/) { next; }
+	if ($F[6] =~ m/^7R589$/) { next; }
 # 2020 TORNADO: CHANGE GRA-MAR TO JERE BAXTER
         if ($F[6] =~ m/^4C365$/) { $F[6] = "43120"; }
 # LEAD NEELYS BEND: UPDATE BRANCHCODE
