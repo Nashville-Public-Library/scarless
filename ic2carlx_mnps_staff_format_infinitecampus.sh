@@ -26,6 +26,9 @@ perl -F'\|' -lane '
         if ($F[6] =~ m/^4C365$/) { $F[6] = "43120"; }
 # LEAD NEELYS BEND: UPDATE BRANCHCODE
 	if ($F[6] =~ m/^4R601$/) { $F[6] = "7E601"; }
+# ASD Schools should be BTY out of county educator
+	if ($F[6] =~ m/^79118$/) { $F[1] = "12"; }
+	if ($F[6] =~ m/^7E601$/) { $F[1] = "12"; }
 # CHANGE DATE VALUE FOR EXPIRATION TO 2021-09-01
 	$F[7] = "2021-09-01";
 # ADD EMAIL NOTICES VALUE 1 = SEND EMAIL NOTICES
