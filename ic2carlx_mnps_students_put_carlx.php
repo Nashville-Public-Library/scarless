@@ -25,7 +25,7 @@ $reportPath             = '../data/';
 
 //////////////////// REMOVE CARLX PATRONS : HOMEROOM ////////////////////
 //// FOR AUGUST, REMOVES HOMEROOM FROM STUDENTS WHO WOULD OTHERWISE BE XMNPS ////
-
+/*
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
 if ($fhnd){
@@ -60,11 +60,9 @@ foreach ($all_rows as $patron) {
 		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	}
 }
-
+*/
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
-
-/* DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE. CONTINUED DISABLED 2020 08 04 UNTIL ... LATER
 
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
@@ -141,8 +139,6 @@ foreach ($all_rows as $patron) {
 	$request->Note->NoteText					= 'MNPS patron expired ' . $PatronExpirationDate . '. Previous branchcode: ' . $patron['DefaultBranch'] . '. Previous bty: ' . $patron['Borrowertypecode'] . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, branch, and guarantor.'; 
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
-
-// DISABLED 2020 03 27 for MNPS COVID-19 CLOSURE. CONTINUED DISABLED 2020 08 04 UNTIL ... LATER */
 
 //////////////////// CREATE CARLX PATRONS ////////////////////
 $all_rows = array();
