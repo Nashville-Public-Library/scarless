@@ -24,8 +24,6 @@ perl -F'\|' -lane '
 	if ($F[6] =~ m/^7R589$/) { next; }
 # 2020 TORNADO: CHANGE GRA-MAR TO JERE BAXTER
         if ($F[6] =~ m/^4C365$/) { $F[6] = "43120"; }
-# LEAD NEELYS BEND: UPDATE BRANCHCODE
-	if ($F[6] =~ m/^4R601$/) { $F[6] = "7E601"; }
 # ASD Schools should be BTY out of county educator
 	if ($F[6] =~ m/^79118$/) { $F[1] = "12"; }
 	if ($F[6] =~ m/^7E601$/) { $F[1] = "12"; }

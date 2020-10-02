@@ -34,8 +34,6 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
         if ($F[18] == "1.00E+240") { $F[18] = "1E240"; }
 # 2020 TORNADO: CHANGE GRA-MAR TO JERE BAXTER
 	if ($F[18] =~ m/^4C365$/) { $F[18] = "43120"; }
-# NEELYS BEND COLLEGE PREP BRANCH CODE FOR STUDENTS FROM 4R601 TO 7E601
-	elsif ($F[18] =~ m/^(4R601)$/) { $F[18] = "7E601"; }
 # SET STUDENTS AT NON-ELIGIBLE SCHOOLS TO THE NO-DELIVERY "SCHOOL" 7Z999
 	# NASHVILLE BIG PICTURE SCHOOL
 	if ($F[18] =~ m/^(70142)$/) { $F[18] = "7Z999"; }
@@ -51,7 +49,6 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	elsif ($F[18] =~ m/^7F748$/) { $F[18] = "7Z999"; }
 # THE FOLLOWING LOCATIONS ARE NOW SET IN PIKA AS NOT VALID HOLD PICKUP BRANCHES
 # TO FACILITATE THESE STUDENTS PLACING HOLDS FOR PICKUP AT AN NPL BRANCH
-#	elsif ($F[18] =~ m/^(4R601)$/) { $F[1] = 36; $F[18] = "7E601"; }
 	# BRICK CHURCH COLLEGE PREP
 #	elsif ($F[18] =~ m/^(79118)$/) { $F[1] = 36; }
 	# KIPP NASHVILLE COLLEGIATE HIGH
