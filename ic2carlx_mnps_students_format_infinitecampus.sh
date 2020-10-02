@@ -34,6 +34,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
         if ($F[18] == "1.00E+240") { $F[18] = "1E240"; }
 # 2020 TORNADO: CHANGE GRA-MAR TO JERE BAXTER
 	if ($F[18] =~ m/^4C365$/) { $F[18] = "43120"; }
+# NEELYS BEND COLLEGE PREP BRANCH CODE FOR STUDENTS FROM 4R601 TO 7E601
+	elsif ($F[18] =~ m/^(4R601)$/) { $F[18] = "7E601"; }
 # SET STUDENTS AT NON-ELIGIBLE SCHOOLS TO THE NO-DELIVERY "SCHOOL" 7Z999
 	# NASHVILLE BIG PICTURE SCHOOL
 	if ($F[18] =~ m/^(70142)$/) { $F[18] = "7Z999"; }
@@ -47,12 +49,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	elsif ($F[18] =~ m/^76613$/) { $F[18] = "7Z999"; }
 	# MNPS VIRTUAL SCHOOL
 	elsif ($F[18] =~ m/^7F748$/) { $F[18] = "7Z999"; }
-# SKIP STUDENTS AT OPPORTUNITY MIDDLE; KEEP STUDENTS AT SISTER CHARTER INDEPENDENCE ACADEMY
-	elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 21 && $F[1] <= 30) { next; }
 # THE FOLLOWING LOCATIONS ARE NOW SET IN PIKA AS NOT VALID HOLD PICKUP BRANCHES
 # TO FACILITATE THESE STUDENTS PLACING HOLDS FOR PICKUP AT AN NPL BRANCH
-	# NEELYS BEND COLLEGE PREP BRANCH CODE FOR STUDENTS FROM 4R601 TO 7E601
-	elsif ($F[18] =~ m/^(4R601)$/) { $F[18] = "7E601"; }
 #	elsif ($F[18] =~ m/^(4R601)$/) { $F[1] = 36; $F[18] = "7E601"; }
 	# BRICK CHURCH COLLEGE PREP
 #	elsif ($F[18] =~ m/^(79118)$/) { $F[1] = 36; }
@@ -64,6 +62,10 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 #	elsif ($F[18] =~ m/^(7C743)$/) { $F[1] = 37; }
 	# VALOR VOYAGER ACADEMY
 #	elsif ($F[18] =~ m/^(7D744)$/) { $F[1] = 37; }
+  # INTREPID CHARTER: OPPORTUNITY ACADEMY (MIDDLE), INDEPENDENCE ACADEMY (HIGH)
+# elsif ($F[18] =~ m/^7G457$/ && $F[1] < 27 || $F[1] > 37) { next; }
+# elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 27 && $F[1] <= 30) { $F[1] = 36; }
+# elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 31 && $F[1] <= 34) { $F[1] = 37; }
 # SET BORROWER TYPE FOR LIMITLESS LIBRARIES OPT-OUT STUDENTS
 #	elsif ($F[30] =~ m/^N/) {
 # 2018-2019 SCHOOL YEAR INFINITECAMPUS FLIPPED POLARITY ON THIS PERMISSION
