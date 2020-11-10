@@ -13,8 +13,6 @@
 date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);
 
-require_once 'PEAR.php';
-
 $configArray		= parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
 $patronApiWsdl		= $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode	= $configArray['Catalog']['patronApiDebugMode'];
@@ -30,9 +28,9 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 	$numTries = 0;
 	$result = new stdClass();
 	$result->response = "";
-	while (!$connectionPassed && $numTries < 3) {
+	while (!$connectionPassed && $numTries < 2) {
 		try {
-			$client = new SOAPClient($wsdl, array('connection_timeout' => 3, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+			$client = new SOAPClient($wsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 			$result->response = $client->$requestName($request);
 //echo "REQUEST:\n" . $client->__getLastRequest() . "\n";
 			$connectionPassed = true;
