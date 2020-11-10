@@ -27,4 +27,4 @@
 ##############
 
 # RUN IC2CARLX MNPS
-05 22 * * * expect /home/scarless/scarless/ic2carlx_mnps.exp
+30 20 * * * expect /home/scarless/scarless/ic2carlx_mnps.exp
