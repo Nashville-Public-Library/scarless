@@ -11,7 +11,6 @@
 
 date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);
-require_once 'PEAR.php';
 
 //////////////////// ORACLE DB ////////////////////
 
@@ -25,7 +24,7 @@ $carlx_db_php_password	= $configArray['Catalog']['carlx_db_php_password'];
 $reportPath		= '../data/';
 
 // connect to carlx oracle db
-$conn = oci_connect($carlx_db_php_user, $carlx_db_php_password, $carlx_db_php);
+$conn = oci_connect($carlx_db_php_user, $carlx_db_php_password, $carlx_db_php, 'AL32UTF8');
 if (!$conn) {
 	$e = oci_error();
 	trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
