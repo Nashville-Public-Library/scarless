@@ -14,7 +14,6 @@
 date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);
 
-require_once 'PEAR.php';
 require_once 'ic2carlx_put_carlx.php';
 
 $configArray            = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
