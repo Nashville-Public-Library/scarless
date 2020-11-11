@@ -4,9 +4,6 @@
 # James Staub
 # Nashville Public Library
 
-exp_internal 0 ; # 1 = verbose debugging to stdout
-log_user 1 ; # 1 = send screens to stdout
-
 # READ CONFIG.PWD.INI
 source ic2carlx_read_config.exp
 
