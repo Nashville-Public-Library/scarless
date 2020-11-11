@@ -99,7 +99,7 @@ foreach ($all_rows as $patron) {
 	if (stripos($patron['emailaddress'],'@mnps.org') > 0) {
 		$request->Patron->Email					= ''; // Patron Email
 	}
-	if ($request->Patron->Email == '') {
+	if (empty($request->Patron->Email)) {
 		$request->Patron->EmailNotices				= 'do not send email';
 	}
 	// REMOVE VALUES FOR Sponsor: Homeroom Teacher
