@@ -27,5 +27,16 @@
 ##############
 
 # RUN IC2CARLX MNPS
-30 20 * * * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
-
+#30 20 * * * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2020 12 DECEMBER
+30 20 1-15 12 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2021 01 JANUARY
+30 20 07-31 01 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2021 02 FEBRUARY
+30 20 * 02 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2021 03 MARCH
+30 20 01-11,22-31 03 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2021 04 APRIL
+30 20 * 04 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2021 05 MAY
+30 20 1-24 05 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
