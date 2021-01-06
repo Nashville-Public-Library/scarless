@@ -47,6 +47,14 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	elsif ($F[18] =~ m/^76613$/) { $F[18] = "7Z999"; }
 	# MNPS VIRTUAL SCHOOL
 	elsif ($F[18] =~ m/^7F748$/) { $F[18] = "7Z999"; }
+	# Bass Alternative Learning Center
+	elsif ($F[18] =~ m/^83116/) { $F[18] = "7Z999"; }
+	# Transitions at Bass
+	elsif ($F[18] =~ m/^84117/) { $F[18] = "7Z999"; }
+	# Johnson Alternative Learning Center
+	elsif ($F[18] =~ m/^85480/) { $F[18] = "7Z999"; }
+	# Robertson Academy Gifted School
+	elsif ($F[18] =~ m/^86665/) { $F[18] = "7Z999"; }
 # THE FOLLOWING LOCATIONS ARE NOW SET IN PIKA AS NOT VALID HOLD PICKUP BRANCHES
 # TO FACILITATE THESE STUDENTS PLACING HOLDS FOR PICKUP AT AN NPL BRANCH
 	# BRICK CHURCH COLLEGE PREP
