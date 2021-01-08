@@ -33,6 +33,8 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
+
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
@@ -59,6 +61,7 @@ foreach ($all_rows as $patron) {
 		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	}
 }
+
 */
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
@@ -71,6 +74,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
@@ -148,6 +152,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
@@ -233,6 +238,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
@@ -306,6 +312,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
@@ -337,6 +344,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
@@ -368,6 +376,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
@@ -396,6 +405,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
@@ -424,6 +434,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
@@ -457,6 +468,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
