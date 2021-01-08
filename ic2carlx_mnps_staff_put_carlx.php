@@ -31,6 +31,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 
 foreach ($all_rows as $patron) {
@@ -98,6 +99,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 
 foreach ($all_rows as $patron) {
@@ -167,6 +169,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 
 foreach ($all_rows as $patron) {
@@ -223,6 +226,7 @@ if ($fhnd){
 		$all_rows[] = array_combine($header, $row);
 	}
 }
+fclose($fhnd);
 //print_r($all_rows);
 foreach ($all_rows as $patron) {
 	// TESTING
