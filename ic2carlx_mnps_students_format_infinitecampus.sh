@@ -28,6 +28,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 # LEFT PAD WITH ZEROES EARLY LEARNING CENTERS
 	if (length($F[18]) == 3) { $F[18] = "00" . $F[18]; }
 	if (length($F[18]) == 4) { $F[18] = "0" . $F[18]; }
+# REMOVE WHITESPACE FROM SCHOOL CODE
+	$F[18] =~ s/\s//g;
 # FIX DAVIS ELC DEFAULTBRANCH CODE
 	if ($F[18] == "02152") { $F[18] = "00152"; }
 # FIX CUMBERLAND ELEMENTARY DEFAULTBRANCH CODE
