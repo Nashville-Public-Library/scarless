@@ -6,9 +6,10 @@
 
 class nashvilleCarlXMNPSWaiveFees
 {
+	private $reportPath;
 	private $carlx_db_php;
-	private $carlx_db_php_user;
-	private $carlx_db_php_password;
+	private $carlx_db_php_user2;
+	private $carlx_db_php_password2;
 	private $circulationApiLogin;
 	private $circulationApiPassword;
 	private $apiURL;
@@ -16,6 +17,7 @@ class nashvilleCarlXMNPSWaiveFees
 	private $apiReportMode;
 	private $itemApiWsdl;
 	private $circulationApiWsdl;
+	private $alias;
 
 	function getConfig()
 	{
@@ -36,7 +38,19 @@ class nashvilleCarlXMNPSWaiveFees
 		$this->alias = $configArray['Catalog']['staffInitials'];
 	}
 
-	function getItemsToCheckIn()
+	function getItemsToCheckInViaCSV() {
+		$fhnd = fopen($this->reportPath . "CARLX_MNPS_WAIVE_sample.CSV", "r");
+		if ($fhnd){
+			$header = fgetcsv($fhnd);
+			while ($row = fgetcsv($fhnd)) {
+				$all_rows[] = array_combine($header, $row);
+			}
+		}
+		fclose($fhnd);
+		return $all_rows;
+	}
+
+	function getItemsToCheckInViaSQL()
 	{
 		$sql = <<<EOT
 		select t.item
@@ -56,7 +70,7 @@ class nashvilleCarlXMNPSWaiveFees
 		and t.patronid not in (select pp.patronid from patron_v2 pp where pp.bty = 38 and pp.patronid not like '190%')
 EOT;
 		// connect to carlx oracle db
-		$conn = oci_connect($this->carlx_db_php_user, $this->carlx_db_php_password, $this->carlx_db_php, 'AL32UTF8');
+		$conn = oci_connect($this->carlx_db_php_user2, $this->carlx_db_php_password2, $this->carlx_db_php, 'AL32UTF8');
 		if (!$conn) {
 			$e = oci_error();
 			trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
@@ -119,19 +133,17 @@ EOT;
 			$numTries++;
 		}
 		if (isset($result->error)) {
-//		echo '<h1>result->error</h1>';
-//		var_dump($result->error);
-//		echo "\n\n";
+			echo $result->error . "\n";
 		} else {
-//		echo "SUCCESS: " . $tag . "\n";
+			// echo "SUCCESS: " . $tag . "\n";
 		}
 		return $result;
 	}
 
-	function checkinViaAPI($item, $branchcode, $patronid)
+	function checkinViaAPI($item, $branchcode)
 	{
 		$requestName = 'CheckinItem';
-		$tag = $requestName . ' ' . $item . ' from ' . $patronid;
+		$tag = $requestName . ' ' . $item;
 		$requestCheckinItem = new stdClass();
 		$requestCheckinItem->Modifiers = new stdClass();
 		$requestCheckinItem->Modifiers->DebugMode = $this->apiDebugMode;
@@ -156,17 +168,35 @@ EOT;
 		return $this->callAPI($this->itemApiWsdl, $requestName, $requestUpdateItem, $tag);
 	}
 
+	function createItemNote ($item)
+	{
+		$requestName = 'createItemNote';
+		$tag = $item . ': ' . $requestName;
+		$request = new stdClass();
+		$request->Modifiers = new stdClass();
+		$request->Modifiers->DebugMode = $this->apiDebugMode;
+		$request->Modifiers->ReportMode = $this->apiReportMode;
+		$request->Modifiers->EnvBranch = 'VI';
+		$request->Note = new stdClass();
+		$request->Note->Item = $item;
+		$request->Note->NoteType = 'Standard Note';
+		$request->Note->NoteText = 'MNPS 2020-21 pandemic waive';
+		$request->Note->Alias = $this->alias;
+		return $this->callAPI($this->itemApiWsdl, $requestName, $request, $tag);
+	}
 }
 
 $waive = new nashvilleCarlXMNPSWaiveFees();
 $waive->getConfig();
-$items = $waive->getItemsToCheckIn();
+// $items = $waive->getItemsToCheckInViaSQL();
+$items = $waive->getItemsToCheckInViaCSV();
 foreach ($items as $item)
 {
-	var_dump($item);
-	$resultCheckin = $waive->checkinViaAPI($item['ITEM'], $item['BRANCHCODE'], $item['PATRONID']);
+//	var_dump($item);
+	$resultCheckin = $waive->checkinViaAPI($item['ITEM'], $item['BRANCHCODE']);
+//	var_dump($resultCheckin);
 	$resultItemUpdate = $waive->itemUpdateToMissing($item['ITEM']);
-	var_dump($resultCheckin);
-	var_dump($resultItemUpdate);
-	break;
+//	var_dump($resultItemUpdate);
+	$resultItemNote = $waive->createItemNote($item['ITEM']);
+//	var_dump($resultItemNote);
 }
