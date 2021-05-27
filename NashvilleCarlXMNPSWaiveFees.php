@@ -39,7 +39,7 @@ class nashvilleCarlXMNPSWaiveFees
 	}
 
 	function getItemsToCheckInViaCSV() {
-		$fhnd = fopen($this->reportPath . "CARLX_MNPS_WAIVE_sample.CSV", "r");
+		$fhnd = fopen($this->reportPath . "CARLX_MNPS_WAIVE.CSV", "r");
 		if ($fhnd){
 			$header = fgetcsv($fhnd);
 			while ($row = fgetcsv($fhnd)) {
@@ -135,7 +135,7 @@ EOT;
 		if (isset($result->error)) {
 			echo $result->error . "\n";
 		} else {
-			// echo "SUCCESS: " . $tag . "\n";
+			echo "SUCCESS: " . $tag . "\n";
 		}
 		return $result;
 	}
@@ -151,6 +151,7 @@ EOT;
 		$requestCheckinItem->Modifiers->EnvBranch = $branchcode;
 		$requestCheckinItem->ItemID = $item; // Item Barcode
 		$requestCheckinItem->Alias = $this->alias; // Staffer alias
+		$requestCheckinItem->damagedItemNote = 'MNPS 2020-21 pandemic waive';
 		return $this->callAPI($this->circulationApiWsdl, $requestName, $requestCheckinItem, $tag);
 	}
 
