@@ -95,6 +95,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
                 $tnratedrdt     = $birdt + DateTime::Duration->new( years => 18, days => -1 );
                 if (DateTime->compare($tnratedrdt,$todaydt) == -1) { $F[1] = 47; }
         }
+# ELIMINATE EXTRA SPACES FROM ADDRESS FIELD
+  $F[6] =~s/  +/ /g;
 # ELIMINATE NON-NUMERIC CHARACTERS FROM PHONE NUMBERS LONGER THAN 14 CHARACTERS
 	if (length($F[14]) > 14) { $F[14] =~s/\D//g; }
 # SET LIMITLESS PERMISSION TO YES IF BLANK
