@@ -29,8 +29,8 @@ perl -F'\|' -lane '
 # ASD Schools should be BTY out of county educator
 	if ($F[6] =~ m/^79118$/) { $F[1] = "12"; }
 	if ($F[6] =~ m/^7E601$/) { $F[1] = "12"; }
-# CHANGE DATE VALUE FOR EXPIRATION TO 2021-09-01
-	$F[7] = "2021-09-01";
+# CHANGE DATE VALUE FOR EXPIRATION TO 2022-09-01
+	$F[7] = "2022-09-01";
 # ADD EMAIL NOTICES VALUE 1 = SEND EMAIL NOTICES
 	$F[9] = "1";
 # ADD EMPTY FOR EXPIRED MNPS NOTE IDS
