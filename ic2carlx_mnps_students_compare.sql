@@ -484,7 +484,7 @@ left outer join (
 	select defaultbranch, 
 	count(patronid) as cx_ll_yes
 	from carlx
-	where limitlesslibraryuse = 'Yes' 
+	where (borrowertypecode between 21 and 34 or borrowertypecode = 46)
 	group by defaultbranch 
 	order by defaultbranch
 ) x1 on x.defaultbranch = x1.defaultbranch
@@ -500,7 +500,7 @@ left outer join (
 	select defaultbranch, 
 	count(patronid) as cx_ll_no
 	from carlx
-	where limitlesslibraryuse = 'No' 
+	where (borrowertypecode between 35 and 37 or borrowertypecode = 47)
 	group by defaultbranch 
 	order by defaultbranch
 ) x0 on x.defaultbranch = x0.defaultbranch
@@ -601,7 +601,7 @@ left outer join (
 	select borrowertypecode, 
 	count(patronid) as cx_ll_yes
 	from carlx
-	where limitlesslibraryuse = 'Yes' 
+	where (borrowertypecode between 21 and 34 or borrowertypecode = 46)
 	group by borrowertypecode 
 	order by borrowertypecode
 ) x1 on x.borrowertypecode = x1.borrowertypecode
@@ -617,7 +617,7 @@ left outer join (
 	select borrowertypecode, 
 	count(patronid) as cx_ll_no
 	from carlx
-	where limitlesslibraryuse = 'No' 
+	where (borrowertypecode between 35 and 37 or borrowertypecode = 47)
 	group by borrowertypecode 
 	order by borrowertypecode
 ) x0 on x.borrowertypecode = x0.borrowertypecode
