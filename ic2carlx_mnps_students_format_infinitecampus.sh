@@ -46,7 +46,7 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	elsif ($F[18] =~ m/^85480/) { $F[18] = "7Z999"; }
 	# Robertson Academy Gifted School
 	elsif ($F[18] =~ m/^86665/) { $F[18] = "7Z999"; }
-# THE FOLLOWING LOCATIONS ARE NOW SET IN PIKA AS NOT VALID HOLD PICKUP BRANCHES
+# THE FOLLOWING LOCATIONS ARE NOW SET IN ASPEN AS NOT VALID HOLD PICKUP BRANCHES
 # TO FACILITATE THESE STUDENTS PLACING HOLDS FOR PICKUP AT AN NPL BRANCH
 	# BRICK CHURCH COLLEGE PREP
 #	elsif ($F[18] =~ m/^(79118)$/) { $F[1] = 36; }
@@ -63,10 +63,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 # elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 27 && $F[1] <= 30) { $F[1] = 36; }
 # elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 31 && $F[1] <= 34) { $F[1] = 37; }
 # SET BORROWER TYPE FOR LIMITLESS LIBRARIES OPT-OUT STUDENTS
-#	elsif ($F[30] =~ m/^N/) {
-# 2018-2019 SCHOOL YEAR INFINITECAMPUS FLIPPED POLARITY ON THIS PERMISSION
-	elsif ($F[30] =~ m/^Y/) {
-		if ($F[1] =~ m/^(25|26)$/) { $F[1] = 35; }
+	elsif ($F[30] =~ m/^N/) {
+		if ($F[1] =~ m/^(21|22|23|24|25|26)$/) { $F[1] = 35; }
 		elsif ($F[1] =~ m/^(27|28|29|30)$/) { $F[1] = 36; }
 		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
 	} 
@@ -93,9 +91,8 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 # CHANGE USER DEFINED FIELDS laptopCheckout limitlessLibrariesuse techOptout from N to No and Y to Yes
 	if ($F[29] eq "N") { $F[29] = "No"; }
 	if ($F[29] eq "Y") { $F[29] = "Yes"; }
-# 2018-2019 SCHOOL YEAR INFINITECAMPUS FLIPPED POLARITY ON THIS PERMISSION
-	if ($F[30] eq "N") { $F[30] = "Yes"; }
-	if ($F[30] eq "Y") { $F[30] = "No"; }
+	if ($F[30] eq "N") { $F[30] = "No"; }
+	if ($F[30] eq "Y") { $F[30] = "Yes"; }
 	if ($F[31] eq "N") { $F[31] = "No"; }
 	if ($F[31] eq "Y") { $F[31] = "Yes"; }
 # STATUS EMPTY; SHOULD NOT OVERWRITE CARL.X STATUS
