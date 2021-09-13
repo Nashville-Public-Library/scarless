@@ -23,70 +23,72 @@ $reportPath				= '../data/';
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
-$all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_staff_remove.csv", "r");
-if ($fhnd){
-	$header = fgetcsv($fhnd);
-	while ($row = fgetcsv($fhnd)) {
-		$all_rows[] = array_combine($header, $row);
+if (getdate()['mon'] != 8) { // IF IT AIN'T AUGUST, RUN XMNPS
+	$all_rows = array();
+	$fhnd = fopen("../data/ic2carlx_mnps_staff_remove.csv", "r");
+	if ($fhnd) {
+		$header = fgetcsv($fhnd);
+		while ($row = fgetcsv($fhnd)) {
+			$all_rows[] = array_combine($header, $row);
+		}
 	}
-}
-fclose($fhnd);
-//print_r($all_rows);
+	fclose($fhnd);
+	//print_r($all_rows);
 
-foreach ($all_rows as $patron) {
-	// TESTING
-	//if ($patron['patronid'] > 999115) { break; }
-	// CREATE REQUEST
-	$requestName						= 'updatePatron';
-	$tag								= $patron['patronid'] . ' : removePatron';
-	$request							= new stdClass();
-	$request->Modifiers					= new stdClass();
-	$request->Modifiers->DebugMode		= $patronApiDebugMode;
-	$request->Modifiers->ReportMode		= $patronApiReportMode;
-	$request->SearchType				= 'Patron ID';
-	$request->SearchID					= $patron['patronid']; // Patron ID
-	$request->Patron					= new stdClass();
-	$request->Patron->PatronType		= '38'; // Patron Type = Expired MNPS
-	$request->Patron->DefaultBranch		= 'XMNPS'; // Patron Default Branch
-	$request->Patron->LastEditBranch	= 'XMNPS'; // Patron Last Edit Branch
-	$request->Patron->RegBranch			= 'XMNPS'; // Patron Registration Branch
-	if ($patron['collectionstatus']==0 || $patron['collectionstatus']==1 || $patron['collectionstatus']==78) {
-		$request->Patron->CollectionStatus			= 'not sent';
-	}
-//	if (stripos($patron['EmailAddress'],'@mnps.org') > 0) {
-//		$request->Patron->Email					= ''; // Patron Email
-//	}
-	// NON-CSV STUFF
-	if (!empty($patron['patron_seen'])) {
-		$request->Patron->ExpirationDate	= date_create_from_format('Y-m-d',$patron['patron_seen'])->format('c'); // Patron Expiration Date as ISO 8601
-	} else {
-		$request->Patron->ExpirationDate	= date('c', strtotime('yesterday')); // Patron Expiration Date as ISO 8601
-	}
-	$request->Patron->LastEditDate			= date('c'); // Patron Last Edit Date, format ISO 8601
-	$request->Patron->LastEditedBy			= 'PIK'; // Pika Patron Loader
-	$request->Patron->PreferredAddress		= 'Primary';
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	foreach ($all_rows as $patron) {
+		// TESTING
+		//if ($patron['patronid'] > 999115) { break; }
+		// CREATE REQUEST
+		$requestName = 'updatePatron';
+		$tag = $patron['patronid'] . ' : removePatron';
+		$request = new stdClass();
+		$request->Modifiers = new stdClass();
+		$request->Modifiers->DebugMode = $patronApiDebugMode;
+		$request->Modifiers->ReportMode = $patronApiReportMode;
+		$request->SearchType = 'Patron ID';
+		$request->SearchID = $patron['patronid']; // Patron ID
+		$request->Patron = new stdClass();
+		$request->Patron->PatronType = '38'; // Patron Type = Expired MNPS
+		$request->Patron->DefaultBranch = 'XMNPS'; // Patron Default Branch
+		$request->Patron->LastEditBranch = 'XMNPS'; // Patron Last Edit Branch
+		$request->Patron->RegBranch = 'XMNPS'; // Patron Registration Branch
+		if ($patron['collectionstatus'] == 0 || $patron['collectionstatus'] == 1 || $patron['collectionstatus'] == 78) {
+			$request->Patron->CollectionStatus = 'not sent';
+		}
+		//	if (stripos($patron['EmailAddress'],'@mnps.org') > 0) {
+		//		$request->Patron->Email					= ''; // Patron Email
+		//	}
+		// NON-CSV STUFF
+		if (!empty($patron['patron_seen'])) {
+			$request->Patron->ExpirationDate = date_create_from_format('Y-m-d', $patron['patron_seen'])->format('c'); // Patron Expiration Date as ISO 8601
+		} else {
+			$request->Patron->ExpirationDate = date('c', strtotime('yesterday')); // Patron Expiration Date as ISO 8601
+		}
+		$request->Patron->LastEditDate = date('c'); // Patron Last Edit Date, format ISO 8601
+		$request->Patron->LastEditedBy = 'PIK'; // Pika Patron Loader
+		$request->Patron->PreferredAddress = 'Primary';
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 
-// CREATE URGENT 'Former MNPS Patron' NOTE
-	// CREATE REQUEST
-	$requestName					= 'addPatronNote';
-	$tag							= $patron['patronid'] . ' : addPatronRemoveNote';
-	$request						= new stdClass();
-	$request->Modifiers				= new stdClass();
-	$request->Modifiers->DebugMode	= $patronApiDebugMode;
-	$request->Modifiers->ReportMode	= $patronApiReportMode;
-	$request->Modifiers->StaffID	= 'PIK'; // Pika Patron Loader
-	$request->Note					= new stdClass();
-	$request->Note->PatronID		= $patron['patronid']; // Patron ID
-	$request->Note->NoteType		= '800';
-	if (!empty($patron['patron_seen'])) {
-		$PatronExpirationDate		= $patron['patron_seen']; // Patron Expiration Date as ISO 8601
-	} else {
-		$PatronExpirationDate		= date('Y-m-d', strtotime('yesterday')); // Patron Expiration Date
+		// CREATE URGENT 'Former MNPS Patron' NOTE
+		// CREATE REQUEST
+		$requestName = 'addPatronNote';
+		$tag = $patron['patronid'] . ' : addPatronRemoveNote';
+		$request = new stdClass();
+		$request->Modifiers = new stdClass();
+		$request->Modifiers->DebugMode = $patronApiDebugMode;
+		$request->Modifiers->ReportMode = $patronApiReportMode;
+		$request->Modifiers->StaffID = 'PIK'; // Pika Patron Loader
+		$request->Note = new stdClass();
+		$request->Note->PatronID = $patron['patronid']; // Patron ID
+		$request->Note->NoteType = '800';
+		if (!empty($patron['patron_seen'])) {
+			$PatronExpirationDate = $patron['patron_seen']; // Patron Expiration Date as ISO 8601
+		} else {
+			$PatronExpirationDate = date('Y-m-d', strtotime('yesterday')); // Patron Expiration Date
+		}
+		$request->Note->NoteText = 'Former MNPS staffer, patron expired ' . $PatronExpirationDate . '. Previous branchcode: ' . $patron['defaultbranch'] . '. Previous bty: ' . $patron['borrowertypecode'] . '. DO NOT convert this account to NPL; create new account after outstanding transactions are resolved.';
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	}
-	$request->Note->NoteText		= 'Former MNPS staffer, patron expired ' . $PatronExpirationDate . '. Previous branchcode: ' . $patron['defaultbranch'] . '. Previous bty: ' . $patron['borrowertypecode'] . '. DO NOT convert this account to NPL; create new account after outstanding transactions are resolved.';
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
 //////////////////// CREATE CARLX PATRONS ////////////////////
@@ -154,7 +156,7 @@ foreach ($all_rows as $patron) {
 	} elseif ($patron['defaultbranch'] == '7E601') {
 		$request->Patron->PatronPIN		= '1251';
 	} else {
-		$request->Patron->PatronPIN		= '2021';
+		$request->Patron->PatronPIN		= getDate()['year']; // SET PIN TO CURRENT YEAR YYYY
 	}
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
@@ -203,10 +205,9 @@ foreach ($all_rows as $patron) {
 	} elseif ($patron['defaultbranch'] == '7E601') {
 		$request->Patron->PatronPIN		= '1251';
 	}
-// PIN RESET ENDS 2020 09 01. RESTORE ON 2021 08 01
-//	elseif (stripos($patron['borrowertypecode'],'7') !== 0) {
-//		$request->Patron->PatronPIN				= '2021';
-//	}
+	elseif (stripos($patron['borrowertypecode'],'7') !== 0 && getDate()['mon'] == 8) { // IF BTY IS NOT NPL STAFF AND IT IS AUGUST, RESET PIN TO DEFAULT
+		$request->Patron->PatronPIN				= getDate()['year']; // SET PIN TO CURRENT YEAR YYYY
+	}
 	
 	// NON-CSV STUFF
 	$request->Patron->EmailNotices		= 'send email'; // Patron Email Notices
