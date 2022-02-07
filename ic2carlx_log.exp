@@ -7,7 +7,7 @@
 # logWrite $logFileFullPath "My log entry."
 
 #exp_internal 1 ; # 1 = verbose debugging to stdout
-#log_user 1 ; # 1 = send screens to stdout
+log_user 1 ; # 1 = send screens to stdout
 
 proc logWrite {logFile logEntry} {
 	set logFileId [open $logFile "a+"]
