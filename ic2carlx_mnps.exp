@@ -25,10 +25,6 @@ expect_before {
 		logWrite $logFile "ABORTED: Infinite Campus error: TIMEOUT"
 		exit 2
 	}
-	eof     { 
-		puts "eof"
-		exit 1 
-	}
 }
 
 # START BASH
