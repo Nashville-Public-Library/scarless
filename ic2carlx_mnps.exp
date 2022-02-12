@@ -1,4 +1,4 @@
-#!/usr/bin/expect
+#!/bin/expect
 
 # ic2carlx_mnps.exp
 # James Staub
@@ -16,8 +16,13 @@ set logFile "$localPath$name.log"
 # CONFIG
 set nowEpoch [clock seconds]
 
-# FUNCTIONS
-# expect_before to watch for timeouts
+# START BASH
+set timeout 10
+set prompt {\$ $}
+spawn bash
+expect -re $prompt
+
+# expect_before to watch for timeouts; placed after "spawn bash" to avoid an error when run from crontab: Tcl_RegisterChannel: duplicate channel names
 expect_before {
 	timeout { 
 		puts "timeout: aborting"
@@ -26,11 +31,6 @@ expect_before {
 		exit 2
 	}
 }
-
-# START BASH
-set prompt {\$ $}
-spawn bash
-expect -re $prompt
 
 logWrite $logFile "START get infinitecampus"
 
