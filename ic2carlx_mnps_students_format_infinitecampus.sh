@@ -32,8 +32,6 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	elsif ($F[18] =~ m/^72211$/) { $F[18] = "7Z999"; }
 	# Academy at Hickory Hollow
 	elsif ($F[18] =~ m/^73422$/) { $F[18] = "7Z999"; }
-	# Middle College High
-	elsif ($F[18] =~ m/^74562$/) { $F[18] = "7Z999"; }
 	# Academy at Opry Mills
 	elsif ($F[18] =~ m/^76613$/) { $F[18] = "7Z999"; }
 	# MNPS VIRTUAL SCHOOL
