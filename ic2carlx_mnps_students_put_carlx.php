@@ -182,7 +182,7 @@ foreach ($all_rows as $patron) {
 	// $request->Patron->Phone1					= $patron['PrimaryPhoneNumber']; // Patron Primary Phone
 	$request->Patron->Phone2					= $patron['SecondaryPhoneNumber']; // Patron Secondary Phone
 	$request->Patron->DefaultBranch					= $patron['DefaultBranch']; // Patron Default Branch
-	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
+//	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
 	$request->Patron->LastEditBranch				= $patron['DefaultBranch']; // Patron Last Edit Branch
 	$request->Patron->RegBranch					= $patron['DefaultBranch']; // Patron Registration Branch
 	$request->Patron->Email						= $patron['EmailAddress']; // Patron Email
@@ -196,7 +196,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->CollectionStatus				= 'do not send';
 	$request->Patron->EmailNotices					= 'send email';
 	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('c'); // Patron Expiration Date as ISO 8601
-	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
+//	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
 	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	$request->Patron->PatronStatusCode				= 'G'; // Patron Status Code = GOOD
@@ -269,7 +269,7 @@ foreach ($all_rows as $patron) {
 	// $request->Patron->Phone1					= $patron['PrimaryPhoneNumber']; // Patron Primary Phone
 	$request->Patron->Phone2					= $patron['SecondaryPhoneNumber']; // Patron Secondary Phone
 	$request->Patron->DefaultBranch					= $patron['DefaultBranch']; // Patron Default Branch
-	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
+//	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
 	$request->Patron->LastEditBranch				= $patron['DefaultBranch']; // Patron Last Edit Branch
 	$request->Patron->RegBranch					= $patron['DefaultBranch']; // Patron Registration Branch
 	if ($patron['CollectionStatus']==0 || $patron['CollectionStatus']==1 || $patron['CollectionStatus']==78) {
@@ -291,7 +291,7 @@ foreach ($all_rows as $patron) {
 	
 	// NON-CSV STUFF
 	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('c'); // Patron Expiration Date as ISO 8601
-	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
+//	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
 	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
 	if (!empty($patron['TeacherID'])) {
