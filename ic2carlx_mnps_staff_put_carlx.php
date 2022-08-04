@@ -205,9 +205,9 @@ foreach ($all_rows as $patron) {
 	} elseif ($patron['defaultbranch'] == '7E601') {
 		$request->Patron->PatronPIN		= '1251';
 	}
-	elseif (stripos($patron['borrowertypecode'],'7') !== 0 && getDate()['mon'] == 8) { // IF BTY IS NOT NPL STAFF AND IT IS AUGUST, RESET PIN TO DEFAULT
-		$request->Patron->PatronPIN				= getDate()['year']; // SET PIN TO CURRENT YEAR YYYY
-	}
+//	elseif (stripos($patron['borrowertypecode'],'7') !== 0 && getDate()['mon'] == 8) { // IF BTY IS NOT NPL STAFF AND IT IS AUGUST, RESET PIN TO DEFAULT // TURNED OFF 2022 08 03
+//		$request->Patron->PatronPIN				= getDate()['year']; // SET PIN TO CURRENT YEAR YYYY
+//	}
 	
 	// NON-CSV STUFF
 	$request->Patron->EmailNotices		= 'send email'; // Patron Email Notices
