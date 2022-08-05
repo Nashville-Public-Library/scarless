@@ -26,6 +26,8 @@
 ## taken from https://en.wikipedia.org/wiki/Cron
 ##############
 
+# PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/home/scarless/.local/bin:/home/scarless/bin
+
 # RUN IC2CARLX MNPS
 #30 20 * * * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2020 12 DECEMBER
