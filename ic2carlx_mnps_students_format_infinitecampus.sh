@@ -36,22 +36,6 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	elsif ($F[18] =~ m/^85480/) { $F[18] = "7Z999"; }
 	# Robertson Academy Gifted School
 	elsif ($F[18] =~ m/^86665/) { $F[18] = "7Z999"; }
-# THE FOLLOWING LOCATIONS ARE NOW SET IN ASPEN AS NOT VALID HOLD PICKUP BRANCHES
-# TO FACILITATE THESE STUDENTS PLACING HOLDS FOR PICKUP AT AN NPL BRANCH
-	# BRICK CHURCH COLLEGE PREP
-#	elsif ($F[18] =~ m/^(79118)$/) { $F[1] = 36; }
-	# KIPP NASHVILLE COLLEGIATE HIGH
-#	elsif ($F[18] =~ m/^(7A504)$/) { $F[1] = 37; }
-	# LEAD PREP SOUTHEAST
-#	elsif ($F[18] =~ m/^(7B507)$/) { $F[1] = 36; }
-	# VALOR FLAGSHIP ACADEMY
-#	elsif ($F[18] =~ m/^(7C743)$/) { $F[1] = 37; }
-	# VALOR VOYAGER ACADEMY
-#	elsif ($F[18] =~ m/^(7D744)$/) { $F[1] = 37; }
-  # INTREPID CHARTER: OPPORTUNITY ACADEMY (MIDDLE), INDEPENDENCE ACADEMY (HIGH)
-# elsif ($F[18] =~ m/^7G457$/ && $F[1] < 27 || $F[1] > 37) { next; }
-# elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 27 && $F[1] <= 30) { $F[1] = 36; }
-# elsif ($F[18] =~ m/^7G457$/ && $F[1] >= 31 && $F[1] <= 34) { $F[1] = 37; }
 # SET BORROWER TYPE FOR LIMITLESS LIBRARIES OPT-OUT STUDENTS
 	elsif ($F[30] =~ m/^N/) {
 		if ($F[1] =~ m/^(21|22|23|24|25|26)$/) { $F[1] = 35; }
