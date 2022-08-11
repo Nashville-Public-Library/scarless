@@ -27,7 +27,7 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	$F[18] =~ s/\s//g;
 # SET STUDENTS AT NON-ELIGIBLE SCHOOLS TO THE NO-DELIVERY "SCHOOL" 7Z999
 	# MNPS VIRTUAL SCHOOL
-	elsif ($F[18] =~ m/^7F748$/) { $F[18] = "7Z999"; }
+	if ($F[18] =~ m/^7F748$/) { $F[18] = "7Z999"; }
 	# Bass Alternative Learning Center
 	elsif ($F[18] =~ m/^83116/) { $F[18] = "7Z999"; }
 	# Transitions at Bass
@@ -37,7 +37,7 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 	# Robertson Academy Gifted School
 	elsif ($F[18] =~ m/^86665/) { $F[18] = "7Z999"; }
 # SET BORROWER TYPE FOR LIMITLESS LIBRARIES OPT-OUT STUDENTS
-	elsif ($F[30] =~ m/^N/) {
+	if ($F[30] =~ m/^N/) {
 		if ($F[1] =~ m/^(21|22|23|24|25|26)$/) { $F[1] = 35; }
 		elsif ($F[1] =~ m/^(27|28|29|30)$/) { $F[1] = 36; }
 		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
