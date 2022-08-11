@@ -14,6 +14,8 @@ perl -F'\|' -lane '
 # ADD EMPTY VALUE[S] TO MATCH PATRON LOADER FORMAT
 	@filler = ("");
 	splice @F, 7, 0, @filler;
+# REMOVE ENTRIES WITHOUT PATRON ID
+	if ($F[0] == "") { next; }
 # REMOVE SPECTRUM EMPLOYEES - I.E., REMOVE ALL 7-DIGIT EMPLOYEE IDS STARTING 658
 	if ($F[0] =~ m/^658\d{4}$/) { next; }
 # REMOVE WHITESPACE FROM SCHOOL CODE
