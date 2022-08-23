@@ -49,13 +49,14 @@ if (!$conn) {
 }
 
 $sql = <<<EOT
--- DELETING withdrawn items more than 6 months old -JBL 
+-- DELETING school items for IM330 -JBL 
 select item
 from item_v
-where status = 'SW'
-and jts.todate(statusdate) < (sysdate -180)
-and (branch between 1 and 29
-  or branch in (179))
+where location  = 88
+--where status = 'SW'
+--and jts.todate(statusdate) < (sysdate -180)
+--and (branch between 1 and 29
+  --or branch in (179))
 
 EOT;
 
