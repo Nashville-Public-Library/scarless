@@ -42,7 +42,13 @@ foreach ($records as $patron) {
 //	$request->Patron->PatronID					= preg_replace('/^300/','3000',$patron[0]); // ILL patronid fix 20190425
 //	$request->Patron->PatronType					= '9'; // ILL Customer
 //	$request->Patron->DefaultBranch					= 'IL'; // ILL Office
-	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2021-04-17')->format('c'); // Patron Expiration Date as ISO 8601
+//	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2021-04-17')->format('c'); // Patron Expiration Date as ISO 8601
+	$request->Patron->SponsorName					= 'Woot';
+	$request->Patron->Addresses					= new stdClass();
+	$request->Patron->Addresses->Address[0]				= new stdClass();
+	$request->Patron->Addresses->Address[0]->Type			= 'Secondary'; // Address type "secondary" = Sponsor
+	$request->Patron->Addresses->Address[0]->Street			= '3007111'; // Address type "secondary", street = teacher id
+
 	var_dump($request);
 
 	try {

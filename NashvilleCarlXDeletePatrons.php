@@ -55,13 +55,16 @@ $sql = <<<EOT
 -- LANE IS CLEANING HOUSE
 select patronid
 from patron_v
-where bty in (22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37)
-and defaultbranch < 30
-and (jts.todate(expdate) > '04-AUG-18' 
-or jts.todate(expdate) < '04-AUG-18')
-and regexp_like(patronid, '^(190)?[0-9]{6}$')
-and regby != 'JES'
-order by patronid
+where bty = 38
+--where bty in (22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37)
+--and defaultbranch < 30
+--and regexp_like(patronid, '^(190)?[0-9]{6}$')
+and jts.todate(editdate) < (sysdate -90)
+and jts.todate(actdate) < (sysdate -30)
+and name not like '%TEST%'
+and name not like '%Test%'
+and patronid not in (select tr.patronid from transitem_v tr)
+
 EOT;
 
 $stid = oci_parse($conn, $sql);
