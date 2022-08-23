@@ -2,7 +2,7 @@
 
 // TO DO: set up github repository
 
-// echo 'SYNTAX: path/to/php NashvilleCarlXDeletePatronNotes.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXDeletePatronNotes.php\n';
+// echo 'SYNTAX: $sudo php NashvilleCarlXDeletePatronNotes.php\n';
 
 date_default_timezone_set('America/Chicago');
 
