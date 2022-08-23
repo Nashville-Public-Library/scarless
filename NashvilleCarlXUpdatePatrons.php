@@ -3,7 +3,7 @@
 // TO DO: set up github repository
 
 // 20180221 built to update a list of defunct MNPS patrons BTY Patron Type to 37 
-// echo 'SYNTAX: path/to/php NashvilleCarlXUpdatePatrons.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXUpdatePatrons.php\n';
+// echo 'SYNTAX: $ sudo php NashvilleCarlXUpdatePatrons.php\n';
 
 date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);

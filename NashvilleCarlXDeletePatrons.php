@@ -5,7 +5,7 @@
 // deletePatronNote is handled by Carl!
 // deletePatronUserDefinedFields is handled by Carl! NB standard and urgent notes will be deleted
 
-// echo 'SYNTAX: path/to/php NashvilleCarlXDeletePatrons.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXDeletePatrons.php\n';
+// echo 'SYNTAX: $ sudo php NashvilleCarlXDeletePatrons.php\n';
 
 date_default_timezone_set('America/Chicago');
 

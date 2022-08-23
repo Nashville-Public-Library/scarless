@@ -2,7 +2,7 @@
 // Waive Duplicate Collection Agency Fees (and delete duplicate collection agency patron notes)
 // TO DO: set up github repository
 
-// echo 'SYNTAX: path/to/php NashvilleCarlXWaiveDuplicateCollectionAgencyFees.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php NashvilleCarlXWaiveDuplicateCollectionAgencyFees.php\n';
+// echo 'SYNTAX: $ sudo php NashvilleCarlXWaiveDuplicateCollectionAgencyFees.php\n';
 
 date_default_timezone_set('America/Chicago');
 
