@@ -48,7 +48,7 @@ send "\r"
 expect -re $prompt
 
 # RETRIEVE IMAGES
-set timeout 300
+set timeout 1800
 send "rsync -a "
 send $icUser
 send ":"
