@@ -25,9 +25,9 @@ expect -re $prompt
 # expect_before to watch for timeouts; placed after "spawn bash" to avoid an error when run from crontab: Tcl_RegisterChannel: duplicate channel names
 expect_before {
 	timeout { 
-		puts "timeout: aborting: [lindex [info level −1] 0]"
-		exec echo "[lindex [info level −1] 0]" | mail -s "Infinite Campus error: TIMEOUT" james.staub@nashville.gov kate.wingate@nashville.gov
-		logWrite $logFile "ABORTED: Infinite Campus error: TIMEOUT: [lindex [info level −1] 0]"
+		puts "timeout: aborting: [lindex [info level -1] 0]"
+		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: TIMEOUT" james.staub@nashville.gov kate.wingate@nashville.gov
+		logWrite $logFile "ABORTED: Infinite Campus error: TIMEOUT: [lindex [info level -1] 0]"
 		exit 2
 	}
 }
@@ -149,10 +149,10 @@ set timeout 3600
 logWrite $logFile "START mnps staff put carlx"
 send "$phpPath ic2carlx_mnps_staff_put_carlx.php\r"
 expect -re $prompt
-logWrite $logFile "STOP mnps staff put carlx"
+logWrite $logFile "COMPLETE mnps staff put carlx"
 logWrite $logFile "START mnps students put carlx"
 send "$phpPath ic2carlx_mnps_students_put_carlx.php\r"
 expect -re $prompt
-logWrite $logFile "STOP mnps students put carlx"
+logWrite $logFile "COMPLETE mnps students put carlx"
 
 exit
