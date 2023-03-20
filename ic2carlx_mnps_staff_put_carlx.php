@@ -52,7 +52,7 @@ if (getdate()['mon'] != 8) { // IF IT AIN'T AUGUST, RUN XMNPS
 		$request->Patron->DefaultBranch = 'XMNPS'; // Patron Default Branch
 		$request->Patron->LastEditBranch = 'XMNPS'; // Patron Last Edit Branch
 		$request->Patron->RegBranch = 'XMNPS'; // Patron Registration Branch
-		if ($patron['collectionstatus'] == 0 || $patron['collectionstatus'] == 1 || $patron['collectionstatus'] == 78) {
+		if (($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40) && ($patron['collectionstatus'] == 0 || $patron['collectionstatus'] == 1 || $patron['collectionstatus'] == 78)) {
 			$request->Patron->CollectionStatus = 'not sent';
 		}
 		//	if (stripos($patron['EmailAddress'],'@mnps.org') > 0) {
@@ -127,7 +127,11 @@ foreach ($all_rows as $patron) {
 	$request->Patron->RegBranch			= $patron['defaultbranch']; // Patron Registration Branch
 	$request->Patron->Email				= $patron['emailaddress']; // Patron Email
 	// NON-CSV STUFF
-	$request->Patron->CollectionStatus	= 'do not send';
+	if ($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40) {
+		$request->Patron->CollectionStatus	= 'do not send';
+	} else {
+		$request->Patron->CollectionStatus	= 'not sent';
+	}
 	$request->Patron->EmailNotices		= 'send email';
 	$request->Patron->ExpirationDate	= date_create_from_format('Y-m-d',$patron['expirationdate'])->format('c'); // Patron Expiration Date as ISO 8601
 //	$request->Patron->LastActionDate	= date('c'); // Last Action Date, format ISO 8601
@@ -196,8 +200,12 @@ foreach ($all_rows as $patron) {
 //	$request->Patron->LastActionBranch	= $patron['defaultbranch']; // Patron Last Action Branch
 	$request->Patron->LastEditBranch	= $patron['defaultbranch']; // Patron Last Edit Branch
 	$request->Patron->RegBranch			= $patron['defaultbranch']; // Patron Registration Branch
-	if ($patron['collectionstatus']==0 || $patron['collectionstatus']==1 || $patron['collectionstatus']==78) {
+	if (($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40) && ($patron['collectionstatus'] == 1 || $patron['collectionstatus'] == 2 || $patron['collectionstatus'] == 78)) {
 		$request->Patron->CollectionStatus	= 'do not send';
+	} elseif ($patron['collectionstatus'] == 1) {
+		$request->Patron->CollectionStatus	= 'not sent';
+	} elseif ($patron['collectionstatus'] == 2) {
+		$request->Patron->CollectionStatus	= 'sent';
 	}
 	$request->Patron->Email				= $patron['emailaddress']; // Patron Email
 	if (stripos($patron['patronid'],'999') === 0) {
