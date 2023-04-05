@@ -158,6 +158,21 @@ fclose($fhnd);
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
+
+	// SENIOR SLIDE
+	// IF 1. date is April 17 2023 to May 26 2023 AND 2. patron school is Hume-Fogg or Nashville School for the Arts AND 3. patron type is 12th grade, High school no-delivery, MNPS 18+, MNPS 18+ no delivery
+	// THEN SKIP. See https://trello.com/c/AXK9CIfj
+	$seniorSlideStart = date_create_from_format('Y-m-d','2023-04-17')->format('U'));
+	$seniorSlideStop = date_create_from_format('Y-m-d','2023-05-26')->format('U'));
+	$today = date_create('today')->format('U');
+	if ($today >= $seniorSlideStart && $today <= $seniorSlideStop) {
+		if ($patron['DefaultBranch'] == '69450' || $patron['DefaultBranch'] == '62242') { // Hume-Fogg or Nashville School for the Arts
+			if ($patron['Borrowertypecode'] == '34' || $patron['Borrowertypecode'] == '37' || $patron['Borrowertypecode'] == '46' || $patron['Borrowertypecode'] == '47') { // 12th grade, High school no-delivery, MNPS 18+, MNPS 18+ no delivery
+				break;
+			}
+		}
+	}
+
 	// CREATE REQUEST
 	$requestName							= 'createPatron';
 	$tag								= $patron['PatronID'] . ' : ' . $requestName;
