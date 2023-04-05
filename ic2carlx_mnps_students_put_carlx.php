@@ -168,7 +168,7 @@ foreach ($all_rows as $patron) {
 	if ($today > $seniorSlideStart && $today < $seniorSlideStop) {
 		if ($patron['DefaultBranch'] == '69450' || $patron['DefaultBranch'] == '62242') { // Hume-Fogg or Nashville School for the Arts
 			if ($patron['Borrowertypecode'] == '34' || $patron['Borrowertypecode'] == '37' || $patron['Borrowertypecode'] == '46' || $patron['Borrowertypecode'] == '47') { // 12th grade, High school no-delivery, MNPS 18+, MNPS 18+ no delivery
-				break;
+				continue;
 			}
 		}
 	}
