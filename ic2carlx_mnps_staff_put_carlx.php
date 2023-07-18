@@ -19,11 +19,15 @@ $patronApiWsdl			= $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode		= $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode	= $configArray['Catalog']['patronApiReportMode'];
 $reportPath				= '../data/';
+$startDate				= date('Y-m-d', $configArray['Calendar']['startDate']);
+$twentyDay				= date('Y-m-d', $configArray['Calendar']['twentyDay']);
+$stopDate				= date('Y-m-d', $configArray['Calendar']['stopDate']);
+$today					= date('Y-m-d');
 
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
-if (getdate()['mon'] != 8) { // IF IT AIN'T AUGUST, RUN XMNPS
+if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDATE, RUN XMNPS
 	$all_rows = array();
 	$fhnd = fopen("../data/ic2carlx_mnps_staff_remove.csv", "r");
 	if ($fhnd) {
@@ -157,10 +161,8 @@ foreach ($all_rows as $patron) {
 	$request->Patron					= new stdClass();
 	if (stripos($patron['patronid'],'999') === 0) {
 		$request->Patron->PatronPIN		= '7357';
-	} elseif ($patron['defaultbranch'] == '7E601') {
-		$request->Patron->PatronPIN		= '1251';
 	} else {
-		$request->Patron->PatronPIN		= getDate()['year']; // SET PIN TO CURRENT YEAR YYYY
+		$request->Patron->PatronPIN		= createRandomPIN();
 	}
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
@@ -210,13 +212,10 @@ foreach ($all_rows as $patron) {
 	$request->Patron->Email				= $patron['emailaddress']; // Patron Email
 	if (stripos($patron['patronid'],'999') === 0) {
 		$request->Patron->PatronPIN		= '7357';
-	} elseif ($patron['defaultbranch'] == '7E601') {
-		$request->Patron->PatronPIN		= '1251';
+	} elseif ($today == $startDate) { // IF TODAY IS THE START DATE, RESET PIN TO DEFAULT
+		$request->Patron->PatronPIN		= createRandomPIN();
 	}
-//	elseif (stripos($patron['borrowertypecode'],'7') !== 0 && getDate()['mon'] == 8) { // IF BTY IS NOT NPL STAFF AND IT IS AUGUST, RESET PIN TO DEFAULT // TURNED OFF 2022 08 03
-//		$request->Patron->PatronPIN				= getDate()['year']; // SET PIN TO CURRENT YEAR YYYY
-//	}
-	
+
 	// NON-CSV STUFF
 	$request->Patron->EmailNotices		= 'send email'; // Patron Email Notices
 	$request->Patron->ExpirationDate	= date_create_from_format('Y-m-d',$patron['expirationdate'])->format('c'); // Patron Expiration Date as ISO 8601

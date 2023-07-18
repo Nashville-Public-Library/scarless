@@ -63,3 +63,8 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 	}
 	return $result;
 }
+
+// create cryptographically secure random password for new patron that is 6 characters long and is composed of hexadecimal characters 0-9 and a-f
+function createRandomPIN(): string {
+	return bin2hex(random_bytes(3));
+}
