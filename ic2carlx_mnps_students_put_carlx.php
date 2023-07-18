@@ -21,10 +21,14 @@ $patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode     = $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
 $reportPath             = '../data/';
+$startDate				= date('Y-m-d', $configArray['Calendar']['startDate']);
+$twentyDay				= date('Y-m-d', $configArray['Calendar']['twentyDay']);
+$stopDate				= date('Y-m-d', $configArray['Calendar']['stopDate']);
+$today					= date('Y-m-d');
 
 //////////////////// REMOVE CARLX PATRONS : HOMEROOM ////////////////////
-//// FOR AUGUST, REMOVES HOMEROOM FROM STUDENTS WHO WOULD OTHERWISE BE XMNPS ////
-if (getdate()['mon'] == 8) {
+//// FROM STARTDATE UNTIL TWENTYDAY, REMOVES HOMEROOM FROM STUDENTS WHO WOULD OTHERWISE BE XMNPS ////
+if ($today >= $startDate && $today < $twentyDay) {
 	$all_rows = array();
 	$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
 	if ($fhnd){
@@ -65,7 +69,7 @@ if (getdate()['mon'] == 8) {
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
-if (getdate()['mon'] != 8) { // IF IT AIN'T AUGUST, RUN XMNPS
+if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDATE, RUN XMNPS
 	$all_rows = array();
 	$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
 	if ($fhnd){
@@ -168,7 +172,7 @@ foreach ($all_rows as $patron) {
 	if ($today > $seniorSlideStart && $today < $seniorSlideStop) {
 		if ($patron['DefaultBranch'] == '69450' || $patron['DefaultBranch'] == '62242') { // Hume-Fogg or Nashville School for the Arts
 			if ($patron['Borrowertypecode'] == '34' || $patron['Borrowertypecode'] == '37' || $patron['Borrowertypecode'] == '46' || $patron['Borrowertypecode'] == '47') { // 12th grade, High school no-delivery, MNPS 18+, MNPS 18+ no delivery
-				continue;
+				continue; // skip
 			}
 		}
 	}
@@ -300,7 +304,7 @@ foreach ($all_rows as $patron) {
 	if (stripos($patron['PatronID'],'190999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
 	} 
-	elseif (getDate()['mon'] == 8) { // IF IT IS AUGUST, RESET PIN TO DEFAULT
+	elseif ($today >= $startDate && $today <= $twentyDay) { // From startDate until twentyDay, reset PIN to default
 		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
 	}
 	
@@ -438,80 +442,6 @@ foreach ($all_rows as $patron) {
 		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 	}
 }
-
-/* DISABLED 2019 05 17
-//////////////////// CREATE USER DEFINED FIELDS ENTRIES ////////////////////
-$all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_students_createUdf.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_createUdf.csv");
-if ($fhnd){
-	$header = fgetcsv($fhnd);
-	while ($row = fgetcsv($fhnd)) {
-		$all_rows[] = array_combine($header, $row);
-	}
-}
-fclose($fhnd);
-//print_r($all_rows);
-foreach ($all_rows as $patron) {
-	// TESTING
-	//if ($patron['patronid'] > 190999115) { continue; }
-	//if ($patron['patronid'] > 190999115 && $patron['fieldid'] == 4) { break; }
-	// CREATE REQUEST
-	$requestName							= 'createPatronUserDefinedFields';
-	$tag								= $patron['patronid'] . ' : ' . $requestName . $patron['fieldid'];
-	$request							= new stdClass();
-	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= $patronApiDebugMode;
-	$request->Modifiers->ReportMode					= $patronApiReportMode;
-	$request->PatronUserDefinedField				= new stdClass();
-	$request->PatronUserDefinedField->patronid			= $patron['patronid'];
-	$request->PatronUserDefinedField->occur				= $patron['occur'];
-	$request->PatronUserDefinedField->fieldid			= $patron['fieldid'];
-	$request->PatronUserDefinedField->numcode			= $patron['numcode'];
-	$request->PatronUserDefinedField->type				= $patron['type'];
-	$request->PatronUserDefinedField->valuename			= $patron['valuename'];
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-}
-*/
-/* DISABLED 2019 05 17
-//////////////////// UPDATE USER DEFINED FIELDS ENTRIES ////////////////////
-
-$all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_students_updateUdf.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_updateUdf.csv");
-if ($fhnd){
-	$header = fgetcsv($fhnd);
-	while ($row = fgetcsv($fhnd)) {
-		$all_rows[] = array_combine($header, $row);
-	}
-}
-fclose($fhnd);
-//print_r($all_rows);
-foreach ($all_rows as $patron) {
-	// TESTING
-	//if ($patron['new_patronid'] > 190999115) { break; }
-	// CREATE REQUEST
-	$requestName							= 'updatePatronUserDefinedFields';
-	$tag								= $patron['old_patronid'] . ' : ' . $requestName . $patron['old_fieldid'];
-	$request							= new stdClass();
-	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= $patronApiDebugMode;
-	$request->Modifiers->ReportMode					= $patronApiReportMode;
-	$request->OldPatronUserDefinedField				= new stdClass();
-	$request->OldPatronUserDefinedField->patronid			= $patron['old_patronid'];
-	$request->OldPatronUserDefinedField->occur			= $patron['old_occur'];
-	$request->OldPatronUserDefinedField->fieldid			= $patron['old_fieldid'];
-	$request->OldPatronUserDefinedField->numcode			= $patron['old_numcode'];
-	$request->OldPatronUserDefinedField->type			= $patron['old_type'];
-	$request->OldPatronUserDefinedField->valuename			= $patron['old_valuename'];
-	$request->NewPatronUserDefinedField				= new stdClass();
-	$request->NewPatronUserDefinedField->patronid			= $patron['new_patronid'];
-	$request->NewPatronUserDefinedField->occur			= $patron['new_occur'];
-	$request->NewPatronUserDefinedField->fieldid			= $patron['new_fieldid'];
-	$request->NewPatronUserDefinedField->numcode			= $patron['new_numcode'];
-	$request->NewPatronUserDefinedField->type			= $patron['new_type'];
-	$request->NewPatronUserDefinedField->valuename			= $patron['new_valuename'];
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-}
-*/
 
 //////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
