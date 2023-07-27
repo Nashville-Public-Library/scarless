@@ -212,8 +212,6 @@ foreach ($all_rows as $patron) {
 	$request->Patron->Email				= $patron['emailaddress']; // Patron Email
 	if (stripos($patron['patronid'],'999') === 0) {
 		$request->Patron->PatronPIN		= '7357';
-	} elseif ($today == $startDate) { // IF TODAY IS THE START DATE, RESET PIN TO DEFAULT
-		$request->Patron->PatronPIN		= createRandomPIN();
 	}
 
 	// NON-CSV STUFF
