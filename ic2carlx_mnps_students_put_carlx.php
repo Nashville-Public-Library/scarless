@@ -21,9 +21,9 @@ $patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode     = $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
 $reportPath             = '../data/';
-$startDate				= date('Y-m-d', $configArray['Calendar']['startDate']);
-$twentyDay				= date('Y-m-d', $configArray['Calendar']['twentyDay']);
-$stopDate				= date('Y-m-d', $configArray['Calendar']['stopDate']);
+$startDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['startDate']);
+$twentyDay				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['twentyDay']);
+$stopDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['stopDate']);
 $today					= date('Y-m-d');
 
 //////////////////// REMOVE CARLX PATRONS : HOMEROOM ////////////////////
