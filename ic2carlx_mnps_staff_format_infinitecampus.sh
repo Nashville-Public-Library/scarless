@@ -42,5 +42,7 @@ perl -F'\|' -lane '
 	print join q/,/, @F' ../data/ic2carlx_mnps_staff_infinitecampus.txt > ../data/ic2carlx_mnps_staff_infinitecampus.csv;
 # REMOVE HEADERS
 #perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^patronid/i)' ../data/ic2carlx_mnps_staff_infinitecampus.csv
+# SORT REVERSE BY ID+...+SCHOOL CODE TO GET BRANSFORD ON TOP
+sort -t',' -r -k1,7 -o ../data/ic2carlx_mnps_staff_infinitecampus.csv ../data/ic2carlx_mnps_staff_infinitecampus.csv
 # SORT UNIQ BY ID
 sort -t',' -k1,1 -u -o ../data/ic2carlx_mnps_staff_infinitecampus.csv ../data/ic2carlx_mnps_staff_infinitecampus.csv
