@@ -22,7 +22,12 @@ $reportPath				= '../data/';
 $startDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['startDate']);
 $twentyDay				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['twentyDay']);
 $stopDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['stopDate']);
-$today					= date('Y-m-d');
+$today					= DateTime::createFromFormat('Y-m-d', date('Y-m-d'));
+
+//echo "Today is " . $today->format('Y-m-d') . "\n";
+//echo "Start Date is " . $startDate->format('Y-m-d') . "\n";
+//echo "Twenty Day is " . $twentyDay->format('Y-m-d') . "\n";
+//echo "Stop Date is " . $stopDate->format('Y-m-d') . "\n";
 
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
