@@ -24,7 +24,12 @@ $reportPath             = '../data/';
 $startDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['startDate']);
 $twentyDay				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['twentyDay']);
 $stopDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['stopDate']);
-$today					= date('Y-m-d');
+$today					= DateTime::createFromFormat('Y-m-d', date('Y-m-d'));
+
+//echo "Today is " . $today->format('Y-m-d') . "\n";
+//echo "Start Date is " . $startDate->format('Y-m-d') . "\n";
+//echo "Twenty Day is " . $twentyDay->format('Y-m-d') . "\n";
+//echo "Stop Date is " . $stopDate->format('Y-m-d') . "\n";
 
 //////////////////// REMOVE CARLX PATRONS : HOMEROOM ////////////////////
 //// FROM STARTDATE UNTIL TWENTYDAY, REMOVES HOMEROOM FROM STUDENTS WHO WOULD OTHERWISE BE XMNPS ////
