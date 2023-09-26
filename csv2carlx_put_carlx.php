@@ -112,7 +112,7 @@ foreach ($all_rows as $patron) {
 //	$request->Patron->BirthDate					= $patron['BirthDate']; // Patron Birth Date as Y-m-d
 
 //	NON-CSV STUFF
-	$request->Patron->CollectionStatus				= 'do not send';
+	$request->Patron->CollectionStatus				= 'not sent';
 	$request->Patron->EmailNotices					= 'send email';
 	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2024-10-01')->format('c'); // Patron Expiration Date as ISO 8601
 //	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
