@@ -35,14 +35,14 @@ expect_before {
 logWrite $logFile "START get csv"
 
 # RETRIEVE CSV FILE
-set timeout 10
-send "rsync -a "
-send $User
-send ":"
-send $csvPath
-send "/home/belmont.edu/data/Belmont.csv $localPath/belmont.csv"
-send "\r"
-expect -re $prompt
+#set timeout 10
+#send "rsync -a "
+#send $User
+#send ":"
+#send $csvPath
+#send "/home/belmont.edu/data/Belmont.csv $localPath/belmont.csv"
+#send "\r"
+#expect -re $prompt
 
 # SET FILE PERMISSIONS
 set timeout 300
@@ -81,10 +81,10 @@ logWrite $logFile "COMPLETE get belmont"
 # expect -re $prompt
 
 # SET FILE PERMISSIONS AGAIN
-set timeout 300
-send "chmod -R 700 ../data/*\r"
-expect -re $prompt
-logWrite $logFile "COMPLETE compare carlx vs csv"
+#set timeout 300
+#send "chmod -R 700 ../data/*\r"
+#expect -re $prompt
+#logWrite $logFile "COMPLETE compare carlx vs csv"
 
 # ADD/UPDATE/REMOVE FROM CARLX
 # This is where I need to clobber the CarlX API service with multiple threads
