@@ -49,10 +49,12 @@ if (!$conn) {
 }
 
 $sql = <<<EOT
--- DELETING school items for IM330 -JBL 
+-- DELETING remaining OCLC withdrawn, etc. items -JBL 
 select item
 from item_v
-where location  = 88
+where status in ('SW', 'SO', 'SG')
+and jts.todate(statusdate) < '28-JUN-22'
+--where location  = 88
 --where status = 'SW'
 --and jts.todate(statusdate) < (sysdate -180)
 --and (branch between 1 and 29
