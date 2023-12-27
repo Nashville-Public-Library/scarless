@@ -54,7 +54,7 @@ if (!$conn) {
 $sql = <<<EOT
 -- LANE IS CLEANING HOUSE
 select patronid
-from patron_v
+from patron_v2
 --where bty in (49, 50)
 --and regdate < (sysdate -90)
 --and email not like 'james.staub%'
@@ -76,7 +76,7 @@ and editdate < (sysdate -14)
 --and (sactdate < (sysdate -30) or sactdate is null)
 and name not like '%TEST%'
 and name not like '%Test%'
-and patronid not in (select tr.patronid from transitem_v tr)
+and patronid not in (select tr.patronid from transitem_v2 tr)
 
 EOT;
 
