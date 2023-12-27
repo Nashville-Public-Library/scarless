@@ -49,7 +49,7 @@ left outer join branch_v2 patronbranch on patron_v2.defaultbranch = patronbranch
 left outer join (
   select distinct
     refid
-    , upper(trim(regexp_substr(first_v2alue(text) over (partition by refid order by timestamp desc),'[-/0-9]+:.+$'))) as guarantor
+    , upper(trim(regexp_substr(first_value(text) over (partition by refid order by timestamp desc),'[-/0-9]+:.+$'))) as guarantor
   from patronnotetext_v2
   where regexp_like(patronnotetext_v2.text, 'NPL: MNPS Guarantor effective')
 ) guarantor on patron_v2.patronid = guarantor.refid
