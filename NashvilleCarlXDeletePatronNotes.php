@@ -57,8 +57,8 @@ if (!$conn) {
 $sql = <<<EOT
 -- SQL FOR 13K+ NOTEIDs THAT SHOULD BE DELETED 2018 06 28
 select n.noteid
-from patronnotetext_v n
-left join patron_v p on n.refid = p.patronid
+from patronnotetext_v2 n
+left join patron_v2 p on n.refid = p.patronid
 where p.bty >= 21 and p.bty <= 37
 and n.text like 'NPL: MNPS Guarantor effective%'
 -- and n.text not like '%TESTY MCTESTERSON'

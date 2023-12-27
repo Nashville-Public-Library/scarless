@@ -54,7 +54,7 @@ if (!$conn) {
 $sql = <<<EOT
 -- LANE IS CLEANING HOUSE
 select patronid
-from patron_v
+from patron_v2
 where bty = 38
 --where bty in (22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37)
 --and defaultbranch < 30
@@ -63,7 +63,7 @@ and jts.todate(editdate) < (sysdate -90)
 and jts.todate(actdate) < (sysdate -30)
 and name not like '%TEST%'
 and name not like '%Test%'
-and patronid not in (select tr.patronid from transitem_v tr)
+and patronid not in (select tr.patronid from transitem_v2 tr)
 
 EOT;
 
