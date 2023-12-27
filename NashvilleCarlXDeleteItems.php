@@ -49,7 +49,7 @@ if (!$conn) {
 }
 
 $sql = <<<EOT
--- DELETING school items for IM330 -JBL 
+-- DELETING remaining OCLC withdrawn, etc. items -JBL 
 select item
 from item_v2
 where location  = 88
