@@ -51,7 +51,7 @@ if (!$conn) {
 $sql = <<<EOT
 -- DELETING school items for IM330 -JBL 
 select item
-from item_v
+from item_v2
 where location  = 88
 --where status = 'SW'
 --and jts.todate(statusdate) < (sysdate -180)
