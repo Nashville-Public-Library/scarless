@@ -55,20 +55,24 @@ $sql = <<<EOT
 -- LANE IS CLEANING HOUSE
 select patronid
 from patron_v
+--where bty in (49, 50)
+--and regdate < (sysdate -90)
+--and email not like 'james.staub%'
 where bty = 38
+--and defaultbranch in (190, 195,196)
+--and patronid not like '999%'
 --where bty not in (9,13,40,42)
---and regdate < (sysdate -1095)
+--where regdate < (sysdate -1095)
 --and (sactdate < (sysdate -1095) or sactdate is null)
 --and (actdate < (sysdate -1095) or actdate is null)
---and (patronid not like '190%' or bty = 38)
+--and bty not in (9, 42, 13, 40)
+and patronid not like '190%'
 --where bty = 10
---and expdate < (sysdate -2)
+--and expdate < (sysdate -90)
 --and editdate < '01-MAR-23'
---where bty = 38
---and editdate < (sysdate -14)
-and editdate < (sysdate -90)
-and actdate < (sysdate -30)
---and patronid not like '190%'
+and editdate < (sysdate -14)
+--and editdate < (sysdate -90)
+--and actdate < (sysdate -30)
 --and (sactdate < (sysdate -30) or sactdate is null)
 and name not like '%TEST%'
 and name not like '%Test%'
