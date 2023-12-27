@@ -98,16 +98,16 @@ foreach ($all_rows as $patron) {
 	$request->Patron->Addresses					= new stdClass();
 	$request->Patron->Addresses->Address[0]				= new stdClass();
 	$request->Patron->Addresses->Address[0]->Type			= 'Primary';
-	$request->Patron->Addresses->Address[0]->Street			= $patron['Address']; // Patron Address Street
-	$request->Patron->Addresses->Address[0]->City			= $patron['Nashville']; // Patron Address City
-	$request->Patron->Addresses->Address[0]->State			= $patron['TN']; // Patron Address State
+	$request->Patron->Addresses->Address[0]->Street			= 'Belmont University, ' . $patron['Hall'] . ' Hall'; // Patron Address Street
+	$request->Patron->Addresses->Address[0]->City			= 'Nashville'; // Patron Address City
+	$request->Patron->Addresses->Address[0]->State			= 'TN'; // Patron Address State
 	$request->Patron->Addresses->Address[0]->PostalCode		= '37212'; // Patron Address ZIP Code
 //	$request->Patron->Phone1					= $patron['PrimaryPhoneNumber']; // Patron Primary Phone
 //	$request->Patron->Phone2					= $patron['SecondaryPhoneNumber']; // Patron Secondary Phone
 	$request->Patron->DefaultBranch					= 'EH'; // Patron Default Branch
 //	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
-	$request->Patron->LastEditBranch				= 'EH'; // Patron Last Edit Branch
-	$request->Patron->RegBranch					= 'EH'; // Patron Registration Branch
+//	$request->Patron->LastEditBranch				= 'VI'; // Patron Last Edit Branch
+	$request->Patron->RegBranch					= 'VI'; // Patron Registration Branch
 	$request->Patron->Email						= $patron['Email']; // Patron Email
 //	$request->Patron->BirthDate					= $patron['BirthDate']; // Patron Birth Date as Y-m-d
 
@@ -128,15 +128,15 @@ foreach ($all_rows as $patron) {
 // Therefore we use updatePatron to set PIN
 	// CREATE REQUEST
 	$requestName							= 'updatePatron';
-	$tag								= $patron['PatronID'] . ' : updatePatronPIN';
+	$tag								= $patron['BUID'] . ' : updatePatronPIN';
 	$request							= new stdClass();
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
 	$request->Modifiers->ReportMode					= $patronApiReportMode;
 	$request->SearchType						= 'Patron ID';
-	$request->SearchID						= $patron['PatronID']; // Patron ID
+	$request->SearchID						= $patron['BUID']; // Patron ID
 	$request->Patron						= new stdClass();
-	if (stripos($patron['PatronID'],'B99999999') === 0) {
+	if (stripos($patron['BUID'],'B99999999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
 	} else {
 		$request->Patron->PatronPIN				= createRandomPIN();

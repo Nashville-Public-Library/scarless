@@ -27,7 +27,7 @@ $errors = array();
 foreach ($records as $patron) {
 	// CREATE PATRON UPDATE REQUEST
 	$requestName = 'updatePatron';
-	$tag = $patron['patronid'] . ' : ' . $requestName;
+	$tag = $patron[0] . ' : ' . $requestName;
 	$request = new stdClass();
 	$request->Modifiers = new stdClass();
 	$request->Modifiers->DebugMode = false;

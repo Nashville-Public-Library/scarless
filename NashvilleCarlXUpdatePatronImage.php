@@ -25,24 +25,24 @@ $i = 0;
 $errors = array();
 foreach ($records as $patron) {
 
-	if (preg_match('/^\d{6,7}$/', $patron) === 1) {
+	if (preg_match('/^\d{6,7}$/', $patron[0]) === 1) {
 		$patronGroup = "staff";
-	} elseif (preg_match('/^190\d{6}$/', $patron) === 1) {
+	} elseif (preg_match('/^190\d{6}$/', $patron[0]) === 1) {
 		$patronGroup = "students";
 	} else {
 		continue;
 	}
 
 	$requestName					= 'updateImage';
-	$tag							= $patron . ' : ' . $requestName;
+	$tag							= $patron[0] . ' : ' . $requestName;
 	$request						= new stdClass();
 	$request->Modifiers				= new stdClass();
 	$request->Modifiers->DebugMode	= $patronApiDebugMode;
 	$request->Modifiers->ReportMode	= $patronApiReportMode;
 	$request->SearchType			= 'Patron ID';
-	$request->SearchID				= $patron; // Patron ID
+	$request->SearchID				= $patron[0]; // Patron ID
 	$request->ImageType				= 'Profile'; // Patron Profile Picture vs. Signature
-	$imageFilePath 					= "../data/images/" . $patronGroup . "/" . $patron . ".jpg";
+	$imageFilePath 					= "../data/images/" . $patronGroup . "/" . $patron[0] . ".jpg";
 	if (file_exists($imageFilePath)) {
 		$imageFileHandle 			= fopen($imageFilePath, "rb");
 		$request->ImageData			= fread($imageFileHandle, filesize($imageFilePath));
