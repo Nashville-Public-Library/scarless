@@ -57,7 +57,7 @@ if (!$conn) {
 $sql = <<<EOT
 -- SQL FOR 144 test database noteids for guarantor notes that have no name 
 select noteid
-from patronnotetext_v n
+from patronnotetext_v2 n
 where regexp_like(text, '^NPL: MNPS Guarantor effective .*?:$')
 EOT;
 
