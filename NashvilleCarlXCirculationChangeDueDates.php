@@ -62,6 +62,7 @@ with ti as (
         ti.*
     from transitem_v2 ti
     where transcode in ('C','O')
+    and duedate < '01-APR-24' -- hardcoded for Bellevue following 2024 01 08 branch closure
 ), tx as (
     select
         *
@@ -73,7 +74,7 @@ with ti as (
         , tx.*
     from tx
     where tx.transactiontype = 'CH'
-    and tx.envbranch = '2'
+    and tx.envbranch = '2' -- hardcoded for Bellevue following 2024 01 08 branch closure
 )    
 select
     ti.item
