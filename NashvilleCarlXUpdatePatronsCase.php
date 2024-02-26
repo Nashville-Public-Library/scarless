@@ -43,13 +43,11 @@ with x as (
 select
 *
 from x sample (.01)
-;
 EOT;
 $stid = oci_parse($conn, $sql);
 oci_set_prefetch($stid, 10000);
 oci_execute($stid);
 // start a new file for the CarlX patron extract
-$df;
 $df = fopen($reportPath . "CARLX_MNPS_UPDATE_PATRONS.CSV", 'w');
 
 while (($row = oci_fetch_array ($stid, OCI_ASSOC+OCI_RETURN_NULLS)) != false) {
