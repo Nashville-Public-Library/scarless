@@ -26,14 +26,24 @@ if (!$conn) {
 	trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 $sql = <<<EOT
+with x as (
+    select
+        patronid
+        , firstname
+        , middlename
+        , lastname
+        , suffixname
+    from patron_v2 
+    where bty != 9
+    and not regexp_like (firstname, '^[A-Z][a-z]+$')
+    or not regexp_like (middlename, '^[A-Z][a-z]+$')
+    or not regexp_like (lastname, '^[A-Z][a-z]+$')
+    or not regexp_like (suffixname, '^[A-Z][a-z]+$')
+)
 select
-    patronid
-    , firstname
-    , middlename
-    , lastname
-    , suffixname
-from patron_v2 sample (.01)
-where bty != 9
+*
+from x sample (.01)
+;
 EOT;
 $stid = oci_parse($conn, $sql);
 oci_set_prefetch($stid, 10000);
