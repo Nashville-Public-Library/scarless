@@ -75,14 +75,23 @@ with ti as (
     from tx
     where tx.transactiontype = 'CH'
     and tx.envbranch = '2' -- hardcoded for Bellevue following 2024 01 08 branch closure
-)    
+), tix as (    
+    select
+        ti.item
+        , ti.patronid
+    from ti
+    left join txx on ti.item = txx.item and ti.patronid = txx.patronid
+    where txx.rank = 1
+    order by ti.item, ti.patronid
+)
 select
-    ti.item
-    , ti.patronid
-from ti
-left join txx on ti.item = txx.item and ti.patronid = txx.patronid
-where txx.rank = 1
-order by ti.item, ti.patronid
+    tix.patronid
+    , tix.item
+    , p.expdate
+from tix
+left join patron_v2 p on tix.patronid = p.patronid
+where SYSDATE < p.expdate
+order by tix.patronid, tix.item
 EOT;
 		// connect to carlx oracle db
 		$conn = oci_connect($this->carlx_db_php_user, $this->carlx_db_php_password, $this->carlx_db_php, 'AL32UTF8');
