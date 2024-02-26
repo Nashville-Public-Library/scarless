@@ -35,10 +35,12 @@ with x as (
         , suffixname
     from patron_v2 
     where bty != 9
-    and not regexp_like (firstname, '^[A-Z][a-z]+$')
-    or not regexp_like (middlename, '^[A-Z][a-z]+$')
-    or not regexp_like (lastname, '^[A-Z][a-z]+$')
-    or not regexp_like (suffixname, '^[A-Z][a-z]+$')
+    and (
+		not regexp_like (firstname, '^[A-Z][a-z]+$')
+		or not regexp_like (middlename, '^[A-Z][a-z]+$')
+		or not regexp_like (lastname, '^[A-Z][a-z]+$')
+		or not regexp_like (suffixname, '^[A-Z][a-z]+$')
+	)
 )
 select
 *
