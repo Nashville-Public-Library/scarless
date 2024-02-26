@@ -3,13 +3,11 @@
 // Change case of patron data (names, street address) to Title Case
 // echo 'SYNTAX: $ php NashvilleCarlXUpdatePatronsCase.php\n';
 
-use Tamtamchik\NameCase\Formatter;
-
 date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);
 
 require_once 'ic2carlx_put_carlx.php';
-require_once 'namecase/src/Formatter.php';
+require_once 'Formatter.php';
 
 $configArray		= parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
 $carlx_db_php		= $configArray['Catalog']['carlx_db_php'];
