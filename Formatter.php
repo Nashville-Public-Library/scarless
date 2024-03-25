@@ -7,35 +7,35 @@ class Formatter
 {
     // Irish exceptions.
     private const EXCEPTIONS = [
-        '\bMacEdo' => 'Macedo',
-        '\bMacEvicius' => 'Macevicius',
-        '\bMacHado' => 'Machado',
-        '\bMacHar' => 'Machar',
-        '\bMacHin' => 'Machin',
-        '\bMacHlin' => 'Machlin',
-        '\bMacIas' => 'Macias',
-        '\bMacIulis' => 'Maciulis',
-        '\bMacKie' => 'Mackie',
-        '\bMacKle' => 'Mackle',
-        '\bMacKlin' => 'Macklin',
-        '\bMacKmin' => 'Mackmin',
-        '\bMacQuarie' => 'Macquarie',
-        '\bMacOmber' => 'Macomber',
-        '\bMacIn' => 'Macin',
-        '\bMacKintosh' => 'Mackintosh',
-        '\bMacKen' => 'Macken',
-        '\bMacHen' => 'Machen',
-        '\bMacisaac' => 'MacIsaac',
-        '\bMacHiel' => 'Machiel',
-        '\bMacIol' => 'Maciol',
-        '\bMacKell' => 'Mackell',
-        '\bMacKlem' => 'Macklem',
-        '\bMacKrell' => 'Mackrell',
-        '\bMacLin' => 'Maclin',
-        '\bMacKey' => 'Mackey',
-        '\bMacKley' => 'Mackley',
-        '\bMacHell' => 'Machell',
-        '\bMacHon' => 'Machon',
+		'\bMacEdo' => 'Macedo',
+		'\bMacEvicius' => 'Macevicius',
+		'\bMacHado' => 'Machado',
+		'\bMacHar' => 'Machar',
+		'\bMacHell' => 'Machell',
+		'\bMacHen' => 'Machen',
+		'\bMacHiel' => 'Machiel',
+		'\bMacHin' => 'Machin',
+		'\bMacHlin' => 'Machlin',
+		'\bMacHon' => 'Machon',
+		'\bMacIas' => 'Macias',
+		'\bMacIn' => 'Macin',
+		'\bMacIol' => 'Maciol',
+		'\bMacisaac' => 'MacIsaac',
+		'\bMacIulis' => 'Maciulis',
+		'\bMacKell' => 'Mackell',
+		'\bMacKen' => 'Macken',
+		'\bMacKey' => 'Mackey',
+		'\bMacKie' => 'Mackie',
+		'\bMacKintosh' => 'Mackintosh',
+		'\bMacKle' => 'Mackle',
+		'\bMacKlem' => 'Macklem',
+		'\bMacKley' => 'Mackley',
+		'\bMacKlin' => 'Macklin',
+		'\bMacKmin' => 'Mackmin',
+		'\bMacKrell' => 'Mackrell',
+		'\bMacLin' => 'Maclin',
+		'\bMacOmber' => 'Macomber',
+		'\bMacQuarie' => 'Macquarie',
     ];
 
     // General replacements.
@@ -129,7 +129,7 @@ class Formatter
 
     // Default options.
     private static $options = [
-        'lazy' => true,
+        'lazy' => false,
         'irish' => true,
         'spanish' => true,
         'roman' => true,
@@ -415,7 +415,7 @@ class Formatter
     private static function fixConjunction(string $name): string
     {
         foreach (self::CONJUNCTIONS as $conjunction) {
-            $name = mb_ereg_replace('\b' . $conjunction . '\b', mb_strtolower($conjunction), $name);
+            $name = mb_ereg_replace('\s' . $conjunction . '\s', mb_strtolower($conjunction), $name);
         }
         return $name;
     }
