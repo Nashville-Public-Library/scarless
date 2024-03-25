@@ -35,7 +35,7 @@ with x as (
         , suffixname
     from patron_v2 
     where bty != 9
-    and (
+    and ( -- Target the names that are not already in Title Case
 		not regexp_like (firstname, '^[A-Z][a-z]+$')
 		or not regexp_like (middlename, '^[A-Z][a-z]+$')
 		or not regexp_like (lastname, '^[A-Z][a-z]+$')
@@ -44,7 +44,7 @@ with x as (
 )
 select
 *
-from x sample (.01)
+from x -- sample (.001)
 EOT;
 $stid = oci_parse($conn, $sql);
 oci_set_prefetch($stid, 10000);
