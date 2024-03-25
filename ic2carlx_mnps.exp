@@ -145,8 +145,6 @@ logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 # see also https://blog.ircmaxell.com/2012/07/what-generators-can-do-for-you.html#Other-Uses
 # but until then, the purely sequential way...
 
-exit
-
 set timeout 3600
 logWrite $logFile "START mnps staff put carlx"
 send "$phpPath ic2carlx_mnps_staff_put_carlx.php\r"
