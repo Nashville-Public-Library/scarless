@@ -28,23 +28,24 @@ if (!$conn) {
 $sql = <<<EOT
 with x as (
     select
+--    count(patronid)
         patronid
         , firstname
         , middlename
         , lastname
         , suffixname
-    from patron_v2 
-    where bty != 9
+    from patron_v2
+    where bty not in (9,13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,40,46,47)
     and ( -- Target the names that are not already in Title Case
-		not regexp_like (firstname, '^[A-Z][a-z]+$')
-		or not regexp_like (middlename, '^[A-Z][a-z]+$')
-		or not regexp_like (lastname, '^[A-Z][a-z]+$')
-		or not regexp_like (suffixname, '^[A-Z][a-z]+$')
-	)
+                not regexp_like (firstname, '^[A-Z][a-z]+$')
+                or not regexp_like (middlename, '^[A-Z]($|[a-z]+)$')
+                or not regexp_like (lastname, '^[A-Z][a-z]+$')
+                or not regexp_like (suffixname, '^[A-Z][a-z]+$')
+    )
 )
 select
 *
-from x -- sample (.001)
+from x -- sample (.01)
 EOT;
 $stid = oci_parse($conn, $sql);
 oci_set_prefetch($stid, 10000);
@@ -105,7 +106,12 @@ foreach ($records as $patron) {
 
 	$request->Patron->FirstName = Formatter::nameCase($patron[1]);
 	$request->Patron->MiddleName = Formatter::nameCase($patron[2]);
-	$request->Patron->LastName = Formatter::nameCase($patron[3]);
+	if (str_starts_with($patron[3], '#')) {
+		$patron[3] = preg_replace("^#+\s*",'##',$patron[3]);
+		$request->Patron->LastName = '##' . Formatter::nameCase($patron[3]);
+	} else {
+		$request->Patron->LastName = Formatter::nameCase($patron[3]);
+	}
 	$request->Patron->SuffixName = Formatter::nameCase($patron[4]);
 	$request->Patron->FullName = $request->Patron->FirstName . ' ' . $request->Patron->MiddleName . ' ' . $request->Patron->LastName . ' ' . $request->Patron->SuffixName;
 
