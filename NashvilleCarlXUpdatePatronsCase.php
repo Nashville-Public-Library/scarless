@@ -26,7 +26,6 @@ if (!$conn) {
 	trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 $sql = <<<EOT
-with x as (
     select
 --    count(patronid)
         patronid
@@ -35,17 +34,14 @@ with x as (
         , lastname
         , suffixname
     from patron_v2
-    where bty not in (9,13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,40,46,47)
+    where bty not in (9,13,19,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,40,46,47) -- exclude MNPS, ILL, NPL Branch
     and ( -- Target the names that are not already in Title Case
                 not regexp_like (firstname, '^[A-Z][a-z]+$')
-                or not regexp_like (middlename, '^[A-Z]($|[a-z]+)$')
+                or not regexp_like (middlename, '(^[A-Z]$|^[A-Z][a-z]+$)')
                 or not regexp_like (lastname, '^[A-Z][a-z]+$')
                 or not regexp_like (suffixname, '^[A-Z][a-z]+$')
     )
-)
-select
-*
-from x -- sample (.01)
+    order by patronid
 EOT;
 $stid = oci_parse($conn, $sql);
 oci_set_prefetch($stid, 10000);
@@ -58,7 +54,7 @@ while (($row = oci_fetch_array ($stid, OCI_ASSOC+OCI_RETURN_NULLS)) != false) {
 	fputcsv($df, $row);
 }
 fclose($df);
-echo "CARLX MNPS patrons to be deleted retrieved and written\n";
+echo "CARLX MNPS patrons to be updated retrieved and written\n";
 oci_free_statement($stid);
 oci_close($conn);
 $records = array();
@@ -71,9 +67,17 @@ if ($fhnd){
 	}
 }
 
-$i = 0;
-$errors = array();
+$count = 0;
+$callcount = 0;
+$round = 0;
 foreach ($records as $patron) {
+	$count++;
+	if ($callcount >= 4091) { // empirically, the 4092nd update and beyond does not actually update
+		sleep(120);
+		$callcount = 0;
+		$round++;
+	}
+
 	// CREATE PATRON UPDATE REQUEST
 	$requestName = 'updatePatron';
 	$tag = $patron[0] . ' : ' . $requestName;
@@ -85,41 +89,30 @@ foreach ($records as $patron) {
 	$request->SearchID = $patron[0]; // Patron ID
 	$request->Patron = new stdClass();
 
-
-
-
-//	$request->Patron->PatronPIN = createRandomPIN();
-//	$request->Patron->DefaultBranch					= '117'; // McMurray
-//	$request->Patron->PatronType					= '42';
-//	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2020-02-15')->format('c'); // Patron Expiration Date as ISO 8601
-//	$request->Patron->PatronStatusCode				= 'G'; // GOOD
-//	$request->Patron->PatronPIN					= 'DENIED';
-//	$request->Patron->PatronID					= preg_replace('/^300/','3000',$patron[0]); // ILL patronid fix 20190425
-//	$request->Patron->PatronType					= '9'; // ILL Customer
-//	$request->Patron->DefaultBranch					= 'IL'; // ILL Office
-//	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2021-04-17')->format('c'); // Patron Expiration Date as ISO 8601
-//	$request->Patron->SponsorName					= 'Woot';
-//	$request->Patron->Addresses					= new stdClass();
-//	$request->Patron->Addresses->Address[0]				= new stdClass();
-//	$request->Patron->Addresses->Address[0]->Type			= 'Secondary'; // Address type "secondary" = Sponsor
-//	$request->Patron->Addresses->Address[0]->Street			= '3007111'; // Address type "secondary", street = teacher id
-
 	$request->Patron->FirstName = Formatter::nameCase($patron[1]);
 	$request->Patron->MiddleName = Formatter::nameCase($patron[2]);
 	if (str_starts_with($patron[3], '#')) {
-		$patron[3] = preg_replace("^#+\s*",'##',$patron[3]);
-		$request->Patron->LastName = '##' . Formatter::nameCase($patron[3]);
+		$patron_last = preg_replace('/^#+\s*/','',$patron[3]);
+		$request->Patron->LastName = '##' . Formatter::nameCase($patron_last);
 	} else {
 		$request->Patron->LastName = Formatter::nameCase($patron[3]);
 	}
 	$request->Patron->SuffixName = Formatter::nameCase($patron[4]);
 	$request->Patron->FullName = $request->Patron->FirstName . ' ' . $request->Patron->MiddleName . ' ' . $request->Patron->LastName . ' ' . $request->Patron->SuffixName;
 
-//	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-	echo 'Patron ID: ' . $request->SearchID . "\n";
-	echo 'Patron First Name: ' . $patron[1] . ' -> ' . $request->Patron->FirstName . "\n";
-	echo 'Patron Middle Name: ' . $patron[2] . ' -> ' . $request->Patron->MiddleName . "\n";
-	echo 'Patron Last Name: ' . $patron[3] . ' -> ' . $request->Patron->LastName . "\n";
-	echo 'Patron Suffix Name: ' . $patron[4] . ' -> ' . $request->Patron->SuffixName . "\n";
+	if($request->Patron->FirstName != $patron[1] || $request->Patron->MiddleName != $patron[2] || $request->Patron->LastName != $patron[3] || $request->Patron->SuffixName != $patron[4]) {
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$callcount++;
+		echo 'COUNT: ' . $count . "\n";
+		echo 'ROUND/CALL COUNT: ' . $round . '/' . $callcount . "\n";
+		echo 'Patron ID: ' . $request->SearchID . "\n";
+		echo 'Patron First Name: ' . $patron[1] . ' -> ' . $request->Patron->FirstName . "\n";
+		echo 'Patron Middle Name: ' . $patron[2] . ' -> ' . $request->Patron->MiddleName . "\n";
+		echo 'Patron Last Name: ' . $patron[3] . ' -> ' . $request->Patron->LastName . "\n";
+		echo 'Patron Suffix Name: ' . $patron[4] . ' -> ' . $request->Patron->SuffixName . "\n";
+	} else {
+		echo 'COUNT: ' . $count . "\n";
+		echo "NO CHANGE\n";
+	}
 }
 ?>
