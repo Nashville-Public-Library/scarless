@@ -72,8 +72,8 @@ $callcount = 0;
 $round = 0;
 foreach ($records as $patron) {
 	$count++;
-	if ($callcount >= 4091) { // empirically, the 4092nd update and beyond does not actually update
-		sleep(120);
+	if ($callcount >= 12600) { // empirically, when run on catalog.library.nashville.org, the 4092nd update and beyond does not actually update. On NLMNJSTAUB, it updates until the 12597th update
+		exit;
 		$callcount = 0;
 		$round++;
 	}
