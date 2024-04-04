@@ -13,7 +13,7 @@ sort -t'|' -k1,1 -u ../data/CARLX_INFINITECAMPUS_STAFF.txt.sorted > ../data/CARL
 # APPEND TEST PATRONS
 cat ../data/ic2carlx_mnps_staff_test.txt ../data/CARLX_INFINITECAMPUS_STAFF.txt.unique > ../data/ic2carlx_mnps_staff_infinitecampus.txt
 
-perl -F'\|' -lane '
+perl -MLingua::EN::NameCase -F'\|' -lane '
 # SCRUB NON-ASCII CHARACTERS
 	@F = map { s/[^\012\015\040-\176]//g; $_ } @F;
 # ADD EMPTY VALUE[S] TO MATCH PATRON LOADER FORMAT
@@ -21,6 +21,13 @@ perl -F'\|' -lane '
 	splice @F, 7, 0, @filler;
 # REMOVE ENTRIES WITHOUT PATRON ID
 	if ($F[0] == "") { next; }
+# CHANGE CASE TO Title Case IF LAST NAME IS ALL CAPS
+	if ($F[2] =~ m/^[- .A-Z\x27]+$/) {
+		$F[2] = nc($F[3]);
+		$F[3] = nc($F[4]);
+		$F[4] = nc($F[5]);
+		$F[5] = nc($F[6]);
+	}
 # REMOVE WHITESPACE FROM SCHOOL CODE
 	$F[6] =~ s/\s//g;
 # ASD Schools should be BTY out of county educator
