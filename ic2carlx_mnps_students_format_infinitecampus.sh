@@ -15,7 +15,7 @@ cat ../data/ic2carlx_mnps_students_test.txt ../data/CARLX_INFINITECAMPUS_STUDENT
 sort -t\| -k1,1 -k7,7r -o ../data/ic2carlx_mnps_students_infinitecampus.txt ../data/ic2carlx_mnps_students_infinitecampus.txt
 sort -t\| -k1,1 -u -o ../data/ic2carlx_mnps_students_infinitecampus.txt ../data/ic2carlx_mnps_students_infinitecampus.txt
 
-perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
+perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 # SCRUB HEADERS AND RECORDS WITH WEIRD STUDENT IDS
 	if ($F[0] !~ m/^190\d{6}$/) { next; }
 # SCRUB NON-ASCII CHARACTERS
@@ -23,6 +23,13 @@ perl -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
 # GRADUATING SENIORS SHOULD BE XMNPS NEAR THE LAST DAY OF SCHOOL - EXCEPT AT HARRIS HILLMAN 65397 AND CORA HOWE 68448
 # COMMENT OUT THIS LINE EXCEPT AT THE END OF THE SCHOOL YEAR
 #	if ($F[1] == 34 && $F[18] != "65397" && $F[18] != "68448") { next; }
+# CHANGE CASE TO Title Case IF LAST NAME IS ALL CAPS
+	if ($F[2] =~ m/^[- .A-Z\x27]+$/) {
+		$F[2] = nc($F[3]);
+		$F[3] = nc($F[4]);
+		$F[4] = nc($F[5]);
+		$F[5] = nc($F[6]);
+	}
 # REMOVE WHITESPACE FROM SCHOOL CODE
 	$F[18] =~ s/\s//g;
 # SET STUDENTS AT NON-ELIGIBLE SCHOOLS TO THE NO-DELIVERY "SCHOOL" 7Z999
