@@ -24,11 +24,11 @@ perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::
 # COMMENT OUT THIS LINE EXCEPT AT THE END OF THE SCHOOL YEAR
 #	if ($F[1] == 34 && $F[18] != "65397" && $F[18] != "68448") { next; }
 # CHANGE CASE TO Title Case IF LAST NAME IS ALL CAPS
-	if ($F[2] =~ m/^[- .A-Z\x27]+$/) {
-		$F[2] = nc($F[3]);
-		$F[3] = nc($F[4]);
-		$F[4] = nc($F[5]);
-		$F[5] = nc($F[6]);
+	if ($F[2] =~ m/^(?!TEST)[- .A-Z\x27]+$/) {
+		$F[2] = nc($F[2]);
+		$F[3] = nc($F[3]);
+		$F[4] = nc($F[4]);
+		$F[5] = nc($F[5]);
 	}
 # REMOVE WHITESPACE FROM SCHOOL CODE
 	$F[18] =~ s/\s//g;
