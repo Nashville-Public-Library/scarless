@@ -57,7 +57,6 @@ fclose($df);
 echo "CARLX MNPS patrons to be updated retrieved and written\n";
 oci_free_statement($stid);
 oci_close($conn);
-$records = array();
 
 $records = array();
 $fhnd = fopen($reportPath . "CARLX_MNPS_UPDATE_PATRONS.CSV", "r");
