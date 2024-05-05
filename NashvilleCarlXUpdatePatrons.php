@@ -30,6 +30,7 @@ $sql = <<<EOT
 	from patron_v2 p
 	where bty in (13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,40,42,46,47)
 	and trunc(expdate) = '01-SEP-24'
+	order by patronid
 EOT;
 $stid = oci_parse($conn, $sql);
 oci_set_prefetch($stid, 10000);
