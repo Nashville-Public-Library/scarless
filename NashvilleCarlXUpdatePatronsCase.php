@@ -33,14 +33,23 @@ $sql = <<<EOT
         , middlename
         , lastname
         , suffixname
-    from patron_v2
-    where bty not in (9,13,19,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,40,46,47) -- exclude MNPS, ILL, NPL Branch
+    	, street1
+    	, city1
+    	, state1
+    	, zip1
+    from patron_v2 sample(.01)
+    where bty not in (9,19) -- exclude ILL, NPL Branch
+    and bty not in (13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,40,46,47) -- exclude MNPS
     and ( -- Target the names that are not already in Title Case
-                not regexp_like (firstname, '^[A-Z][a-z]+$')
-                or not regexp_like (middlename, '(^[A-Z]$|^[A-Z][a-z]+$)')
-                or not regexp_like (lastname, '^[A-Z][a-z]+$')
-                or not regexp_like (suffixname, '^[A-Z][a-z]+$')
-    )
+--                 not regexp_like (firstname, '^[A-Z][a-z]+$')
+--                 or not regexp_like (middlename, '(^[A-Z]$|^[A-Z][a-z]+$)')
+--                 or not regexp_like (lastname, '^[A-Z][a-z]+$')
+--                 or not regexp_like (suffixname, '^[A-Z][a-z]+$')
+		not regexp_like (street1, '^[0-9]*[-A-Z]* ([A-Z][a-z]* )+([A-Z][a-z])$')
+		or not regexp_like (city1, '^([A-Z][a-z] )*[A-Z][a-z]$')
+		or not regexp_like (state1, '^[A-Z]{2}$')
+        or not regexp_like (zip1, '^[0-9]{5}$')
+    )    
     order by patronid
 EOT;
 $stid = oci_parse($conn, $sql);
@@ -83,35 +92,66 @@ foreach ($records as $patron) {
 	$request = new stdClass();
 	$request->Modifiers = new stdClass();
 	$request->Modifiers->DebugMode = false;
-	$request->Modifiers->ReportMode = false;
+	$request->Modifiers->ReportMode = true;
 	$request->SearchType = 'Patron ID';
 	$request->SearchID = $patron[0]; // Patron ID
 	$request->Patron = new stdClass();
-
-	$request->Patron->FirstName = Formatter::nameCase($patron[1]);
-	$request->Patron->MiddleName = Formatter::nameCase($patron[2]);
-	if (str_starts_with($patron[3], '#')) {
-		$patron_last = preg_replace('/^#+\s*/','',$patron[3]);
-		$request->Patron->LastName = '##' . Formatter::nameCase($patron_last);
-	} else {
-		$request->Patron->LastName = Formatter::nameCase($patron[3]);
+	$request->Patron->Addresses = new stdClass();
+	$request->Patron->Addresses->Address = new stdClass();
+	$request->Patron->Addresses->Address->Type = 'Primary';
+	$request->Patron->Addresses->Address->Street = Formatter::nameCase($patron[5], ['spanish' => false, 'postnominal' => false]); // Spanish = false and Postnomial = false to keep 7 E ST from becoming 7est
+	$request->Patron->Addresses->Address->City = Formatter::nameCase($patron[6]);
+	if (strpos($request->Patron->Addresses->Address->City,'.')) {
+		$request->Patron->Addresses->Address->City = str_replace('.','', $request->Patron->Addresses->Address->City);
 	}
-	$request->Patron->SuffixName = Formatter::nameCase($patron[4]);
-	$request->Patron->FullName = $request->Patron->FirstName . ' ' . $request->Patron->MiddleName . ' ' . $request->Patron->LastName . ' ' . $request->Patron->SuffixName;
+	if ($request->Patron->Addresses->Address->City == 'MT Juliet') {
+		$request->Patron->Addresses->Address->City = 'Mt Juliet';
+	}
+	$request->Patron->Addresses->Address->State = strtoupper($patron[7]);
+	if (strpos($request->Patron->Addresses->Address->State,'.')) {
+		$request->Patron->Addresses->Address->State = str_replace('.','', $request->Patron->Addresses->Address->State);
+	}
+	$request->Patron->Addresses->Address->PostalCode = preg_replace('/-([0-9]{4})$/', '', $patron[8]);
 
-	if($request->Patron->FirstName != $patron[1] || $request->Patron->MiddleName != $patron[2] || $request->Patron->LastName != $patron[3] || $request->Patron->SuffixName != $patron[4]) {
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	// TESTING
+// PATRON NAME CASE CORRECTION
+//	$request->Patron->FirstName = Formatter::nameCase($patron[1]);
+//	$request->Patron->MiddleName = Formatter::nameCase($patron[2]);
+//	if (str_starts_with($patron[3], '#')) {
+//		$patron_last = preg_replace('/^#+\s*/','',$patron[3]);
+//		$request->Patron->LastName = '##' . Formatter::nameCase($patron_last);
+//	} else {
+//		$request->Patron->LastName = Formatter::nameCase($patron[3]);
+//	}
+//	$request->Patron->SuffixName = Formatter::nameCase($patron[4]);
+//	$request->Patron->FullName = $request->Patron->FirstName . ' ' . $request->Patron->MiddleName . ' ' . $request->Patron->LastName . ' ' . $request->Patron->SuffixName;
+
+//	if($request->Patron->FirstName != $patron[1] || $request->Patron->MiddleName != $patron[2] || $request->Patron->LastName != $patron[3] || $request->Patron->SuffixName != $patron[4]) {
+//		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+//		$callcount++;
+//		echo 'COUNT: ' . $count . "\n";
+//		echo 'ROUND/CALL COUNT: ' . $round . '/' . $callcount . "\n";
+//		echo 'Patron ID: ' . $request->SearchID . "\n";
+//		echo 'Patron First Name: ' . $patron[1] . ' -> ' . $request->Patron->FirstName . "\n";
+//		echo 'Patron Middle Name: ' . $patron[2] . ' -> ' . $request->Patron->MiddleName . "\n";
+//		echo 'Patron Last Name: ' . $patron[3] . ' -> ' . $request->Patron->LastName . "\n";
+//		echo 'Patron Suffix Name: ' . $patron[4] . ' -> ' . $request->Patron->SuffixName . "\n";
+
+	if($request->Patron->Addresses->Address->Street != $patron[5] || $request->Patron->Addresses->Address->City != $patron[6] || $request->Patron->Addresses->Address->State != $patron[7] || $request->Patron->Addresses->Address->PostalCode != $patron[8]) {
+//	if($request->Patron->Addresses->Address->PostalCode != $patron[8]) {
+//		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 		$callcount++;
 		echo 'COUNT: ' . $count . "\n";
 		echo 'ROUND/CALL COUNT: ' . $round . '/' . $callcount . "\n";
 		echo 'Patron ID: ' . $request->SearchID . "\n";
-		echo 'Patron First Name: ' . $patron[1] . ' -> ' . $request->Patron->FirstName . "\n";
-		echo 'Patron Middle Name: ' . $patron[2] . ' -> ' . $request->Patron->MiddleName . "\n";
-		echo 'Patron Last Name: ' . $patron[3] . ' -> ' . $request->Patron->LastName . "\n";
-		echo 'Patron Suffix Name: ' . $patron[4] . ' -> ' . $request->Patron->SuffixName . "\n";
+		echo 'Patron Primary Address Street: ' . $patron[5] . ' -> ' . $request->Patron->Addresses->Address->Street . "\n";
+		echo 'Patron Primary Address City: ' . $patron[6] . ' -> ' . $request->Patron->Addresses->Address->City . "\n";
+		echo 'Patron Primary Address State: ' . $patron[7] . ' -> ' . $request->Patron->Addresses->Address->State . "\n";
+		echo 'Patron Primary Address ZIP: ' . $patron[8] . ' -> ' . $request->Patron->Addresses->Address->PostalCode . "\n";
 	} else {
 		echo 'COUNT: ' . $count . "\n";
 		echo "NO CHANGE\n";
+		echo 'Patron Primary Address ZIP: ' . $patron[8] . ' -> ' . $request->Patron->Addresses->Address->PostalCode . "\n";
 	}
 }
 ?>
