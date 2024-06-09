@@ -5,13 +5,14 @@
 // JAMES STAUB, NASHVILLE PUBLIC LIBRARY
 
 // 2021 08 18: there is widely divergent code that appears to be what ran on catalog when this process was actually run. That code is included at the end, commented out. Ack! I don't have the time right now to figure out which is best...
+// 2024 06 04: tweaked to handle 2024 fees for unhoused students
 
 class nashvilleCarlXMNPSWaiveFees
 {
 	private $reportPath;
 	private $carlx_db_php;
-	private $carlx_db_php_user2;
-	private $carlx_db_php_password2;
+	private $carlx_db_php_user;
+	private $carlx_db_php_password;
 	private $circulationApiLogin;
 	private $circulationApiPassword;
 	private $apiURL;
@@ -28,13 +29,14 @@ class nashvilleCarlXMNPSWaiveFees
 		$this->reportPath = '../data/';
 		$configArray = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_TYPED);
 		$this->carlx_db_php = $configArray['Catalog']['carlx_db_php'];
-		$this->carlx_db_php_user2 = $configArray['Catalog']['carlx_db_php_user2'];
-		$this->carlx_db_php_password2 = $configArray['Catalog']['carlx_db_php_password2'];
+		$this->carlx_db_php_user = $configArray['Catalog']['carlx_db_php_user'];
+		$this->carlx_db_php_password = $configArray['Catalog']['carlx_db_php_password'];
 		$this->circulationApiLogin = $configArray['Catalog']['circulationApiLogin'];
 		$this->circulationApiPassword = $configArray['Catalog']['circulationApiPassword'];
 		$this->apiURL = $configArray['Catalog']['apiURL'];
 		$this->apiDebugMode = $configArray['Catalog']['apiDebugMode'];
 		$this->apiReportMode = $configArray['Catalog']['apiReportMode'];
+//$this->apiReportMode = true;
 		$this->itemApiWsdl = $this->apiURL . 'ItemAPI.wsdl';
 		$this->circulationApiWsdl = $this->apiURL . 'CirculationAPI.wsdl';
 		$this->alias = $configArray['Catalog']['staffInitials'];
@@ -72,7 +74,7 @@ class nashvilleCarlXMNPSWaiveFees
 		and t.patronid not in (select pp.patronid from patron_v2 pp where pp.bty = 38 and pp.patronid not like '190%')
 EOT;
 		// connect to carlx oracle db
-		$conn = oci_connect($this->carlx_db_php_user2, $this->carlx_db_php_password2, $this->carlx_db_php, 'AL32UTF8');
+		$conn = oci_connect($this->carlx_db_php_user, $this->carlx_db_php_password, $this->carlx_db_php, 'AL32UTF8');
 		if (!$conn) {
 			$e = oci_error();
 			trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
@@ -153,7 +155,8 @@ EOT;
 		$requestCheckinItem->Modifiers->EnvBranch = $branchcode;
 		$requestCheckinItem->ItemID = $item; // Item Barcode
 		$requestCheckinItem->Alias = $this->alias; // Staffer alias
-		$requestCheckinItem->damagedItemNote = 'MNPS 2020-21 pandemic waive';
+//		$requestCheckinItem->damagedItemNote = 'MNPS 2020-21 pandemic waive';
+		$requestCheckinItem->damagedItemNote = 'MNPS 2024 06 HERO waive';
 		return $this->callAPI($this->circulationApiWsdl, $requestName, $requestCheckinItem, $tag);
 	}
 
@@ -178,12 +181,13 @@ EOT;
 		$request = new stdClass();
 		$request->Modifiers = new stdClass();
 		$request->Modifiers->DebugMode = $this->apiDebugMode;
-		$request->Modifiers->ReportMode = $this->apiReportMode;
+		$request->Modifiers->ReportMode = $this->apiReportMode; // 2024 06 09 James Staub: even when ReportMode is set to true, the Item Note is ACTUALLY created
 		$request->Modifiers->EnvBranch = 'VI';
 		$request->Note = new stdClass();
 		$request->Note->Item = $item;
 		$request->Note->NoteType = 'Standard Note';
-		$request->Note->NoteText = 'MNPS 2020-21 pandemic waive';
+//		$request->Note->NoteText = 'MNPS 2020-21 pandemic waive';
+		$request->Note->NoteText = 'MNPS 2024 06 HERO waive';
 		$request->Note->Alias = $this->alias;
 		return $this->callAPI($this->itemApiWsdl, $requestName, $request, $tag);
 	}
@@ -195,13 +199,13 @@ $waive->getConfig();
 $items = $waive->getItemsToCheckInViaCSV();
 foreach ($items as $item)
 {
-//	var_dump($item);
+	var_dump($item);
 	$resultCheckin = $waive->checkinViaAPI($item['ITEM'], $item['BRANCHCODE']);
-//	var_dump($resultCheckin);
+	var_dump($resultCheckin);
 	$resultItemUpdate = $waive->itemUpdateToMissing($item['ITEM']);
-//	var_dump($resultItemUpdate);
+	var_dump($resultItemUpdate);
 	$resultItemNote = $waive->createItemNote($item['ITEM']);
-//	var_dump($resultItemNote);
+	var_dump($resultItemNote);
 }
 
 /*
