@@ -37,7 +37,7 @@ $sql = <<<EOT
     	, city1
     	, state1
     	, zip1
-    from patron_v2 sample(.01)
+    from patron_v2 -- sample(.01)
     where bty not in (9,19) -- exclude ILL, NPL Branch
     and bty not in (13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,40,46,47) -- exclude MNPS
     and ( -- Target the names that are not already in Title Case
@@ -92,7 +92,7 @@ foreach ($records as $patron) {
 	$request = new stdClass();
 	$request->Modifiers = new stdClass();
 	$request->Modifiers->DebugMode = false;
-	$request->Modifiers->ReportMode = true;
+	$request->Modifiers->ReportMode = false;
 	$request->SearchType = 'Patron ID';
 	$request->SearchID = $patron[0]; // Patron ID
 	$request->Patron = new stdClass();
@@ -139,7 +139,7 @@ foreach ($records as $patron) {
 
 	if($request->Patron->Addresses->Address->Street != $patron[5] || $request->Patron->Addresses->Address->City != $patron[6] || $request->Patron->Addresses->Address->State != $patron[7] || $request->Patron->Addresses->Address->PostalCode != $patron[8]) {
 //	if($request->Patron->Addresses->Address->PostalCode != $patron[8]) {
-//		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 		$callcount++;
 		echo 'COUNT: ' . $count . "\n";
 		echo 'ROUND/CALL COUNT: ' . $round . '/' . $callcount . "\n";
@@ -150,8 +150,8 @@ foreach ($records as $patron) {
 		echo 'Patron Primary Address ZIP: ' . $patron[8] . ' -> ' . $request->Patron->Addresses->Address->PostalCode . "\n";
 	} else {
 		echo 'COUNT: ' . $count . "\n";
+		echo 'Patron ID: ' . $request->SearchID . "\n";
 		echo "NO CHANGE\n";
-		echo 'Patron Primary Address ZIP: ' . $patron[8] . ' -> ' . $request->Patron->Addresses->Address->PostalCode . "\n";
 	}
 }
 ?>
