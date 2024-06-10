@@ -45,8 +45,8 @@ perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::
 	elsif ($F[18] =~ m/^86665/) { $F[18] = "7Z999"; }
 # SET BORROWER TYPE FOR LIMITLESS LIBRARIES OPT-OUT STUDENTS
 	if ($F[30] =~ m/^N/) {
-		if ($F[1] =~ m/^(21|22|23|24|25|26)$/) { $F[1] = 35; }
-		elsif ($F[1] =~ m/^(27|28|29|30)$/) { $F[1] = 36; }
+		if ($F[1] =~ m/^(21|22|23|24|25|26|27)$/) { $F[1] = 35; }
+		elsif ($F[1] =~ m/^(28|29|30)$/) { $F[1] = 36; }
 		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
 	} 
 # IF STUDENT IS 18 YEARS OLD AND BTY IS 31-34, THEN BTY SHOULD BE 46
