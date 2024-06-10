@@ -40,17 +40,19 @@ $sql = <<<EOT
     from patron_v2 -- sample(.01)
     where bty not in (9,19) -- exclude ILL, NPL Branch
     and bty not in (13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,40,46,47) -- exclude MNPS
+    and patronid not like 'B%'
     and ( -- Target the names that are not already in Title Case
 --                 not regexp_like (firstname, '^[A-Z][a-z]+$')
 --                 or not regexp_like (middlename, '(^[A-Z]$|^[A-Z][a-z]+$)')
 --                 or not regexp_like (lastname, '^[A-Z][a-z]+$')
 --                 or not regexp_like (suffixname, '^[A-Z][a-z]+$')
-		not regexp_like (street1, '^[0-9]*[-A-Z]* ([A-Z][a-z]* )+([A-Z][a-z])$')
-		or not regexp_like (city1, '^([A-Z][a-z] )*[A-Z][a-z]$')
+		not regexp_like (street1, '^([0-9]+[-A-Z]* )?([A-Z] )?([[0-9]+[DHNRSTdhnrst]{2} )?([A-Z][a-z]+\.? ?)+((, )?((Apt|Lot|No|Unit) )?\#?[A-Z]*[- ]?[0-9]*)?$')
+		or not regexp_like (city1, '^([A-Z][a-z]+ )*[A-Z][a-z]*$')
 		or not regexp_like (state1, '^[A-Z]{2}$')
         or not regexp_like (zip1, '^[0-9]{5}$')
     )    
     order by patronid
+    fetch first 10000 rows only -- php has problems on server and desktop running large update sets, see https://trello.com/c/2eN74bgA/3992-update-mnps-expiration-date#comment-6637a417529f6f83bc704ddd
 EOT;
 $stid = oci_parse($conn, $sql);
 oci_set_prefetch($stid, 10000);
@@ -80,7 +82,7 @@ $callcount = 0;
 $round = 0;
 foreach ($records as $patron) {
 	$count++;
-	if ($callcount >= 12600) { // empirically, when run on catalog.library.nashville.org, the 4092nd update and beyond does not actually update. On NLMNJSTAUB, it updates until the 12597th update
+	if ($callcount >= 10000) { // empirically, when run on catalog.library.nashville.org, the 4092nd update and beyond does not actually update. On NLMNJSTAUB, it updates until the 12597th update
 		exit;
 		$callcount = 0;
 		$round++;
@@ -106,6 +108,9 @@ foreach ($records as $patron) {
 	}
 	if ($request->Patron->Addresses->Address->City == 'MT Juliet') {
 		$request->Patron->Addresses->Address->City = 'Mt Juliet';
+	}
+	if ($request->Patron->Addresses->Address->City == 'la Vergne') {
+		$request->Patron->Addresses->Address->City = 'La Vergne';
 	}
 	$request->Patron->Addresses->Address->State = strtoupper($patron[7]);
 	if (strpos($request->Patron->Addresses->Address->State,'.')) {
