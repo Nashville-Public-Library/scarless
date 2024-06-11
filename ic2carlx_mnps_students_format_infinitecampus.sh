@@ -65,6 +65,33 @@ perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::
         }
 # ELIMINATE EXTRA SPACES FROM ADDRESS FIELD
   $F[6] =~s/  +/ /g;
+# ADDRESS TRANSFORM TO Name Case
+  $F[6] = nc($F[6]);
+# CITY TRANSFORM TO Name Case
+  $F[7] = nc($F[7]);
+# CITY CORRECT SOME COMMON MISSPELLINGS
+  if ($F[7] == "Goodletsville") { $F[7] = "Goodlettsville"; }
+  if ($F[7] == "Goodlettsvlle") { $F[7] = "Goodlettsville"; }
+  if ($F[7] == "Goodlettville") { $F[7] = "Goodlettsville"; }
+  if ($F[7] == "La Vegne") { $F[7] = "La Vergne"; }
+  if ($F[7] == "Lavergne") { $F[7] = "La Vergne"; }
+  if ($F[7] == "Mt Juliet") { $F[7] = "Mount Juliet"; }
+  if ($F[7] == "Mt. Juliet") { $F[7] = "Mount Juliet"; }
+  if ($F[7] == "Mt.Juliet") { $F[7] = "Mount Juliet"; }
+  if ($F[7] == "Nahville") { $F[7] = "Nashville"; }
+  if ($F[7] == "Nashille") { $F[7] = "Nashville"; }
+  if ($F[7] == "Nashviile") { $F[7] = "Nashville"; }
+  if ($F[7] == "Nashviille") { $F[7] = "Nashville"; }
+  if ($F[7] == "Nashvillet") { $F[7] = "Nashville"; }
+  if ($F[7] == "Nashvillle") { $F[7] = "Nashville"; }
+  if ($F[7] == "Nasvhille") { $F[7] = "Nashville"; }
+  if ($F[7] == "Nasville") { $F[7] = "Nashville"; }
+  if ($F[7] == "Whites Crekk") { $F[7] = "Whites Creek"; }
+  if ($F[7] == "Whitescreek") { $F[7] = "Whites Creek"; }
+# STATE UPPERCASE
+  if ($F[8]== "Tn") { $F[8] = "TN"; }
+# REMOVE ZIP+4 FROM ZIP CODE
+  $F[9] =~s/-\d{4}/ /g;
 # ELIMINATE NON-NUMERIC CHARACTERS FROM PHONE NUMBERS LONGER THAN 14 CHARACTERS
 	if (length($F[14]) > 14) { $F[14] =~s/\D//g; }
 # SET LIMITLESS PERMISSION TO YES IF BLANK
