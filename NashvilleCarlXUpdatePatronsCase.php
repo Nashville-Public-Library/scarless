@@ -37,7 +37,7 @@ $sql = <<<EOT
     	, city1
     	, state1
     	, zip1
-    from patron_v2 -- sample(.1)
+    from patron_v2 -- sample(1)
     where bty not in (9,19) -- exclude ILL, NPL Branch
     and bty not in (13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,40,46,47) -- exclude MNPS
     and patronid not like 'B%'
@@ -46,11 +46,10 @@ $sql = <<<EOT
 --                 or not regexp_like (middlename, '(^[A-Z]$|^[A-Z][a-z]+$)')
 --                 or not regexp_like (lastname, '^[A-Z][a-z]+$')
 --                 or not regexp_like (suffixname, '^[A-Z][a-z]+$')
--- 		not regexp_like (street1, '^([0-9]+[-A-Z]* )?([A-Z] )?([[0-9]+[DHNRSTdhnrst]{2} )?([A-Z][a-z]+\.? ?)+((, )?((Apt|Lot|No|Unit) )?\#?[A-Z]*[- ]?[0-9]*)?$')
-        regexp_like(street1, '( [A-Z]{2}[ \.,])')
--- 		or not regexp_like (city1, '^([A-Z][a-z]+ )*(Ma?c)?[A-Z][a-z]*$')
--- 		or not regexp_like (state1, '^[A-Z]{2}$')
---         or not regexp_like (zip1, '^[0-9]{5}$')
+		not regexp_like (street1, '^([0-9]+[-A-Z]* )?([A-Z] )?([[0-9]+[DHNRSTdhnrst]{2} )?([A-Z][a-z]+\.? ?)+((, )?((Apt|Lot|No|Unit) )?\#?[A-Z]*[- ]?[0-9]*)?$')
+		or not regexp_like (city1, '^([A-Z][a-z]+ )*(Ma?c)?[A-Z][a-z]*$')
+		or not regexp_like (state1, '^[A-Z]{2}$')
+        or not regexp_like (zip1, '^[0-9]{5}$')
     )    
     order by patronid
     fetch first 30000 rows only -- php has problems on server and desktop running large update sets, see https://trello.com/c/2eN74bgA/3992-update-mnps-expiration-date#comment-6637a417529f6f83bc704ddd
