@@ -37,7 +37,7 @@ $sql = <<<EOT
     	, city1
     	, state1
     	, zip1
-    from patron_v2 -- sample(.01)
+    from patron_v2 -- sample(.1)
     where bty not in (9,19) -- exclude ILL, NPL Branch
     and bty not in (13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,40,46,47) -- exclude MNPS
     and patronid not like 'B%'
@@ -46,13 +46,14 @@ $sql = <<<EOT
 --                 or not regexp_like (middlename, '(^[A-Z]$|^[A-Z][a-z]+$)')
 --                 or not regexp_like (lastname, '^[A-Z][a-z]+$')
 --                 or not regexp_like (suffixname, '^[A-Z][a-z]+$')
-		not regexp_like (street1, '^([0-9]+[-A-Z]* )?([A-Z] )?([[0-9]+[DHNRSTdhnrst]{2} )?([A-Z][a-z]+\.? ?)+((, )?((Apt|Lot|No|Unit) )?\#?[A-Z]*[- ]?[0-9]*)?$')
-		or not regexp_like (city1, '^([A-Z][a-z]+ )*[A-Z][a-z]*$')
-		or not regexp_like (state1, '^[A-Z]{2}$')
-        or not regexp_like (zip1, '^[0-9]{5}$')
+-- 		not regexp_like (street1, '^([0-9]+[-A-Z]* )?([A-Z] )?([[0-9]+[DHNRSTdhnrst]{2} )?([A-Z][a-z]+\.? ?)+((, )?((Apt|Lot|No|Unit) )?\#?[A-Z]*[- ]?[0-9]*)?$')
+        regexp_like(street1, '( [A-Z]{2}[ \.,])')
+-- 		or not regexp_like (city1, '^([A-Z][a-z]+ )*(Ma?c)?[A-Z][a-z]*$')
+-- 		or not regexp_like (state1, '^[A-Z]{2}$')
+--         or not regexp_like (zip1, '^[0-9]{5}$')
     )    
     order by patronid
-    fetch first 10000 rows only -- php has problems on server and desktop running large update sets, see https://trello.com/c/2eN74bgA/3992-update-mnps-expiration-date#comment-6637a417529f6f83bc704ddd
+    fetch first 30000 rows only -- php has problems on server and desktop running large update sets, see https://trello.com/c/2eN74bgA/3992-update-mnps-expiration-date#comment-6637a417529f6f83bc704ddd
 EOT;
 $stid = oci_parse($conn, $sql);
 oci_set_prefetch($stid, 10000);
@@ -103,15 +104,64 @@ foreach ($records as $patron) {
 	$request->Patron->Addresses->Address->Type = 'Primary';
 	$request->Patron->Addresses->Address->Street = Formatter::nameCase($patron[5], ['spanish' => false, 'postnominal' => false]); // Spanish = false and Postnomial = false to keep 7 E ST from becoming 7est
 	$request->Patron->Addresses->Address->City = Formatter::nameCase($patron[6]);
+
+	// STREET: Eliminate multiple spaces (will need to iterate)
+	if (strpos($request->Patron->Addresses->Address->Street,'  ')) {
+		$request->Patron->Addresses->Address->Street = str_replace('  ',' ', $request->Patron->Addresses->Address->Street);
+	}
+	// STREET: Eliminate periods
+	if (strpos($request->Patron->Addresses->Address->Street,'.')) {
+		$request->Patron->Addresses->Address->Street = str_replace('.','', $request->Patron->Addresses->Address->Street);
+	}
+	// STREET: Eliminate apostrophes
+	if (strpos($request->Patron->Addresses->Address->Street,"'")) {
+		$request->Patron->Addresses->Address->Street = str_replace("'","", $request->Patron->Addresses->Address->Street);
+	}
+	// STREET: RD->Rd, PK->Pk, etc.
+	if(strpos($request->Patron->Addresses->Address->Street, ' CT')) {
+		$request->Patron->Addresses->Address->Street = str_replace(' CT', ' Ct', $request->Patron->Addresses->Address->Street);
+	}
+	if(strpos($request->Patron->Addresses->Address->Street, ' LN')) {
+		$request->Patron->Addresses->Address->Street = str_replace(' LN', ' Ln', $request->Patron->Addresses->Address->Street);
+	}
+	if(strpos($request->Patron->Addresses->Address->Street, ' MT')) {
+		$request->Patron->Addresses->Address->Street = str_replace(' MT', ' Mount', $request->Patron->Addresses->Address->Street);
+	}
+	if(strpos($request->Patron->Addresses->Address->Street, ' PK')) {
+		$request->Patron->Addresses->Address->Street = str_replace(' PK', ' Pk', $request->Patron->Addresses->Address->Street);
+	}
+	if(strpos($request->Patron->Addresses->Address->Street, ' PL')) {
+		$request->Patron->Addresses->Address->Street = str_replace(' PL', ' Pl', $request->Patron->Addresses->Address->Street);
+	}
+	if(strpos($request->Patron->Addresses->Address->Street, ' RD')) {
+		$request->Patron->Addresses->Address->Street = str_replace(' RD', ' Rd', $request->Patron->Addresses->Address->Street);
+	}
+	if(strpos($request->Patron->Addresses->Address->Street, ' SQ')) {
+		$request->Patron->Addresses->Address->Street = str_replace(' SQ', ' Sq', $request->Patron->Addresses->Address->Street);
+	}
+
+	// CITY: Eliminate periods
 	if (strpos($request->Patron->Addresses->Address->City,'.')) {
 		$request->Patron->Addresses->Address->City = str_replace('.','', $request->Patron->Addresses->Address->City);
 	}
-	if ($request->Patron->Addresses->Address->City == 'MT Juliet') {
-		$request->Patron->Addresses->Address->City = 'Mt Juliet';
+	// CITY: Eliminate apostrophes
+	if (strpos($request->Patron->Addresses->Address->City,"'")) {
+		$request->Patron->Addresses->Address->City = str_replace("'","", $request->Patron->Addresses->Address->City);
 	}
-	if ($request->Patron->Addresses->Address->City == 'la Vergne') {
-		$request->Patron->Addresses->Address->City = 'La Vergne';
+	// CITY: Fort Campbell, etc.
+	if (preg_match('/^FT\.?\b/i', $request->Patron->Addresses->Address->City)) {
+		$request->Patron->Addresses->Address->City = 'Fort';
 	}
+	// CITY: La Vergne, etc.
+	if (preg_match('/^LA\b/i', $request->Patron->Addresses->Address->City)) {
+		$request->Patron->Addresses->Address->City = 'La';
+	}
+	// CITY: Mount Juliet, Mount Pleasant, etc.
+	if (preg_match('/^MT\.?\b/i', $request->Patron->Addresses->Address->City)) {
+	$request->Patron->Addresses->Address->City = 'Mount';
+	}
+
+
 	$request->Patron->Addresses->Address->State = strtoupper($patron[7]);
 	if (strpos($request->Patron->Addresses->Address->State,'.')) {
 		$request->Patron->Addresses->Address->State = str_replace('.','', $request->Patron->Addresses->Address->State);
