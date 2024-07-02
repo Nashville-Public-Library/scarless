@@ -51,7 +51,7 @@ left outer join (
 ) expired on patron_v2.patronid = expired.refid
 left outer join branch_v2 editbranch on patron_v2.editbranch = editbranch.branchnumber
 where
-  patron_v2.bty in (13,40)
+  patron_v2.bty in (13,40,51)
   or regexp_like(patron_v2.patronid,'^[0-9]{6}$')
   or (regexp_like(patron_v2.patronid,'^[46][0-9]{6}$') and patron_v2.patronid != '6150737') -- excluded patronid is NPL staff shared id for discovery layer lists, etc.
   or patronid = '9999681' -- ROSS EARLY LEARNING CENTER librarian card to accommodate shared staffing at another site

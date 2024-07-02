@@ -66,7 +66,7 @@ class nashvilleCarlXMNPSWaiveFees
 		left join item_v2 i on t.item = i.item
 		left join branch_v2 pb on p.defaultbranch = pb.branchnumber
 		left join branch_v2 ib on i.owningbranch = ib.branchnumber
-		where p.bty not in (10,13,40,42)
+		where p.bty not in (10,13,40,42,51)
 		and t.transcode in ('L', 'O')
 		and t.lastactiondate > '01-MAR-20'
 		and ib.branchgroup = 2
@@ -251,7 +251,7 @@ function getItemsToCheckIn() {
                 left join item_v2 i on t.item = i.item
                 left join branch_v2 pb on p.defaultbranch = pb.branchnumber
                 left join branch_v2 ib on i.owningbranch = ib.branchnumber
-                where p.bty not in (10,13,38,40,42)
+                where p.bty not in (10,13,38,40,42,51)
                 and t.lastactiondate > '01-MAR-20' -- is this use of lastactiondate the right way to find items checked out after March 1 2020?
                 and p.expdate > (sysdate) -- do we really want to exclude patrons expired over the course of 2020?
                 and i.status='L' -- are all the things that should be L actually L (following the TLC work on ticket

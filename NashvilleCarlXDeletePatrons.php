@@ -61,11 +61,11 @@ from patron_v2
 where bty = 38
 --and defaultbranch in (190, 195,196)
 --and patronid not like '999%'
---where bty not in (9,13,40,42)
+--where bty not in (9,13,40,42,51)
 --where regdate < (sysdate -1095)
 --and (sactdate < (sysdate -1095) or sactdate is null)
 --and (actdate < (sysdate -1095) or actdate is null)
---and bty not in (9, 42, 13, 40)
+--and bty not in (9,13,40,42,51)
 and patronid not like '190%'
 --where bty = 10
 --and expdate < (sysdate -90)
