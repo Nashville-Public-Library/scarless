@@ -28,7 +28,7 @@ $sql = <<<EOT
 	select
 		patronid
 	from patron_v2 p
-	where bty in (13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,40,42,46,47) -- MNPS BTYs, excluding XMNPS
+	where bty in (13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,40,42,46,47,51) -- MNPS BTYs, excluding XMNPS
 	and trunc(expdate) = '01-SEP-24'
 	order by patronid
 	fetch first 10000 rows only -- php has problems on server and desktop running large update sets, see https://trello.com/c/2eN74bgA/3992-update-mnps-expiration-date#comment-6637a417529f6f83bc704ddd

@@ -40,7 +40,7 @@ perl -MLingua::EN::NameCase -F'\|' -lane '
 # ADD EMPTY FOR EXPIRED MNPS NOTE IDS
 	$F[10] = "";
 # MNPS SCHOOL STAFF COLLECTION STATUS = 78 (do not send)
-	if ($F[1] == 13 || $F[1] == 40) { $F[11] = "78"; } else { $F[11] = ""; }
+	if ($F[1] == 13 || $F[1] == 40 || $F[1] == 51) { $F[11] = "78"; } else { $F[11] = ""; }
 # ADD EMPTY FOR EDIT BRANCH
 	$F[12] = "";
 # FORMAT AS CSV

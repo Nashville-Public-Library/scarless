@@ -61,7 +61,7 @@ if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDA
 		$request->Patron->DefaultBranch = 'XMNPS'; // Patron Default Branch
 		$request->Patron->LastEditBranch = 'XMNPS'; // Patron Last Edit Branch
 		$request->Patron->RegBranch = 'XMNPS'; // Patron Registration Branch
-		if (($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40) && ($patron['collectionstatus'] == 0 || $patron['collectionstatus'] == 1 || $patron['collectionstatus'] == 78)) {
+		if (($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40 || $patron['borrowertypecode'] == 51) && ($patron['collectionstatus'] == 0 || $patron['collectionstatus'] == 1 || $patron['collectionstatus'] == 78)) {
 			$request->Patron->CollectionStatus = 'not sent';
 		}
 		//	if (stripos($patron['EmailAddress'],'@mnps.org') > 0) {
@@ -136,7 +136,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->RegBranch			= $patron['defaultbranch']; // Patron Registration Branch
 	$request->Patron->Email				= $patron['emailaddress']; // Patron Email
 	// NON-CSV STUFF
-	if ($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40) {
+	if ($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40 || $patron['borrowertypecode'] == 51) {
 		$request->Patron->CollectionStatus	= 'do not send';
 	} else {
 		$request->Patron->CollectionStatus	= 'not sent';
@@ -207,7 +207,7 @@ foreach ($all_rows as $patron) {
 //	$request->Patron->LastActionBranch	= $patron['defaultbranch']; // Patron Last Action Branch
 	$request->Patron->LastEditBranch	= $patron['defaultbranch']; // Patron Last Edit Branch
 	$request->Patron->RegBranch			= $patron['defaultbranch']; // Patron Registration Branch
-	if (($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40) && ($patron['collectionstatus'] == 1 || $patron['collectionstatus'] == 2 || $patron['collectionstatus'] == 78)) {
+	if (($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40 || $patron['borrowertypecode'] == 51) && ($patron['collectionstatus'] == 1 || $patron['collectionstatus'] == 2 || $patron['collectionstatus'] == 78)) {
 		$request->Patron->CollectionStatus	= 'do not send';
 	} elseif ($patron['collectionstatus'] == 1) {
 		$request->Patron->CollectionStatus	= 'not sent';
