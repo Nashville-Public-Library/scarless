@@ -33,44 +33,44 @@ $today					= DateTime::createFromFormat('Y-m-d', date('Y-m-d'));
 
 //////////////////// REMOVE CARLX PATRONS : HOMEROOM ////////////////////
 //// FROM STARTDATE UNTIL TWENTYDAY, REMOVES HOMEROOM FROM STUDENTS WHO WOULD OTHERWISE BE XMNPS ////
-//if ($today >= $startDate && $today < $twentyDay) {
-//	$all_rows = array();
-//	$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
-//	if ($fhnd){
-//		$header = fgetcsv($fhnd);
-//		while ($row = fgetcsv($fhnd)) {
-//			$all_rows[] = array_combine($header, $row);
-//		}
-//	}
-//	fclose($fhnd);
-//
-//	//print_r($all_rows);
-//	foreach ($all_rows as $patron) {
-//		// TESTING
-//		//if ($patron['PatronID'] > 190999115) { break; }
-//		if (!empty($patron['teacherid'] || !empty($patron['teachername']))) {
-//			// CREATE REQUEST
-//			$requestName = 'updatePatron';
-//			$tag = $patron['patronid'] . ' : removePatronHomeroom';
-//			$request = new stdClass();
-//			$request->Modifiers = new stdClass();
-//			$request->Modifiers->DebugMode = $patronApiDebugMode;
-//			$request->Modifiers->ReportMode = $patronApiReportMode;
-//			$request->SearchType = 'Patron ID';
-//			$request->SearchID = $patron['patronid'];
-//			$request->Patron = new stdClass();
-//			// REMOVE VALUES FOR Sponsor: Homeroom Teacher
-//			$request->Patron->Addresses = new stdClass();
-//			$request->Patron->Addresses->Address[0] = new stdClass();
-//			$request->Patron->Addresses->Address[0]->Type = 'Secondary';
-//			$request->Patron->Addresses->Address[0]->Street = ''; // Patron Homeroom Teacher ID
-//			$request->Patron->SponsorName = ''; // Patron Homeroom Teacher Name
-//			$request->Patron->LastEditDate = date('c'); // Patron Last Edit Date, format ISO 8601
-//			$request->Patron->LastEditedBy = 'PIK'; // Pika Patron Loader
-//			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-//		}
-//	}
-//}
+if ($today >= $startDate && $today < $twentyDay) {
+	$all_rows = array();
+	$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
+	if ($fhnd){
+		$header = fgetcsv($fhnd);
+		while ($row = fgetcsv($fhnd)) {
+			$all_rows[] = array_combine($header, $row);
+		}
+	}
+	fclose($fhnd);
+
+	//print_r($all_rows);
+	foreach ($all_rows as $patron) {
+		// TESTING
+		//if ($patron['PatronID'] > 190999115) { break; }
+		if (!empty($patron['teacherid'] || !empty($patron['teachername']))) {
+			// CREATE REQUEST
+			$requestName = 'updatePatron';
+			$tag = $patron['patronid'] . ' : removePatronHomeroom';
+			$request = new stdClass();
+			$request->Modifiers = new stdClass();
+			$request->Modifiers->DebugMode = $patronApiDebugMode;
+			$request->Modifiers->ReportMode = $patronApiReportMode;
+			$request->SearchType = 'Patron ID';
+			$request->SearchID = $patron['patronid'];
+			$request->Patron = new stdClass();
+			// REMOVE VALUES FOR Sponsor: Homeroom Teacher
+			$request->Patron->Addresses = new stdClass();
+			$request->Patron->Addresses->Address[0] = new stdClass();
+			$request->Patron->Addresses->Address[0]->Type = 'Secondary';
+			$request->Patron->Addresses->Address[0]->Street = ''; // Patron Homeroom Teacher ID
+			$request->Patron->SponsorName = ''; // Patron Homeroom Teacher Name
+			$request->Patron->LastEditDate = date('c'); // Patron Last Edit Date, format ISO 8601
+			$request->Patron->LastEditedBy = 'PIK'; // Pika Patron Loader
+			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		}
+	}
+}
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
@@ -255,106 +255,106 @@ foreach ($all_rows as $patron) {
 
 //////////////////// UPDATE CARLX PATRONS ////////////////////
 
-//$all_rows = array();
-//$fhnd = fopen("../data/ic2carlx_mnps_students_update.csv", "r");
-//if ($fhnd){
-//	$header = fgetcsv($fhnd);
-//	while ($row = fgetcsv($fhnd)) {
-//		$all_rows[] = array_combine($header, $row);
-//	}
-//}
-//fclose($fhnd);
-////print_r($all_rows);
-//foreach ($all_rows as $patron) {
-//	// TESTING
-//	//if ($patron['PatronID'] > 190999115) { break; }
-//	// CREATE REQUEST
-//	$requestName							= 'updatePatron';
-//	$tag								= $patron['PatronID'] . ' : ' . $requestName;
-//	$request							= new stdClass();
-//	$request->Modifiers						= new stdClass();
-//	$request->Modifiers->DebugMode					= $patronApiDebugMode;
-//	$request->Modifiers->ReportMode					= $patronApiReportMode;
-//	$request->SearchType						= 'Patron ID';
-//	$request->SearchID						= $patron['PatronID']; // Patron ID
-//	$request->Patron						= new stdClass();
-//	$request->Patron->PatronType					= $patron['Borrowertypecode']; // Patron Type
-//	$request->Patron->LastName					= $patron['Patronlastname']; // Patron Name Last
-//	$request->Patron->FirstName					= $patron['Patronfirstname']; // Patron Name First
-//	$request->Patron->MiddleName					= $patron['Patronmiddlename']; // Patron Name Middle
-//	$request->Patron->SuffixName					= $patron['Patronsuffix']; // Patron Name Suffix
-//	$request->Patron->Addresses					= new stdClass();
-//	$request->Patron->Addresses->Address[0]				= new stdClass();
-//	$request->Patron->Addresses->Address[0]->Type			= 'Primary';
-//	$request->Patron->Addresses->Address[0]->Street			= $patron['PrimaryStreetAddress']; // Patron Address Street
-//	$request->Patron->Addresses->Address[0]->City			= $patron['PrimaryCity']; // Patron Address City
-//	$request->Patron->Addresses->Address[0]->State			= $patron['PrimaryState']; // Patron Address State
-//	$request->Patron->Addresses->Address[0]->PostalCode		= $patron['PrimaryZipCode']; // Patron Address ZIP Code
-//	// $request->Patron->Phone1					= $patron['PrimaryPhoneNumber']; // Patron Primary Phone
-//	$request->Patron->Phone2					= $patron['SecondaryPhoneNumber']; // Patron Secondary Phone
-//	$request->Patron->DefaultBranch					= $patron['DefaultBranch']; // Patron Default Branch
-////	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
-//	$request->Patron->LastEditBranch				= $patron['DefaultBranch']; // Patron Last Edit Branch
-//	$request->Patron->RegBranch					= $patron['DefaultBranch']; // Patron Registration Branch
-//	if ($patron['CollectionStatus']==0 || $patron['CollectionStatus']==1 || $patron['CollectionStatus']==78) {
-//		$request->Patron->CollectionStatus			= 'do not send';
-//	}
-//	//$request->Patron->Email					= $patron['EmailAddress']; // Patron Email
-//	$request->Patron->BirthDate					= $patron['BirthDate']; // Patron Birth Date as Y-m-d
-//	// Sponsor: Homeroom Teacher
-//	$request->Patron->Addresses->Address[1]				= new stdClass();
-//	$request->Patron->Addresses->Address[1]->Type			= 'Secondary';
-//	$request->Patron->Addresses->Address[1]->Street			= $patron['TeacherID']; // Patron Homeroom Teacher ID
-//	$request->Patron->SponsorName					= $patron['TeacherName'];
-//	if (stripos($patron['PatronID'],'190999') === 0) {
-//		$request->Patron->PatronPIN				= '7357';
-//	}
-//	elseif ($today >= $startDate && $today <= $twentyDay) { // From startDate until twentyDay, reset PIN to default
-//		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
-//	}
-//
-//	// NON-CSV STUFF
-//	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('c'); // Patron Expiration Date as ISO 8601
-////	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
-//	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
-//	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
-//	if (!empty($patron['TeacherID'])) {
-//		$request->Patron->PreferredAddress			= 'Sponsor';
-//	} else {
-//		$request->Patron->PreferredAddress			= 'Primary';
-//	}
-//	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-//}
+$all_rows = array();
+$fhnd = fopen("../data/ic2carlx_mnps_students_update.csv", "r");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+fclose($fhnd);
+//print_r($all_rows);
+foreach ($all_rows as $patron) {
+	// TESTING
+	//if ($patron['PatronID'] > 190999115) { break; }
+	// CREATE REQUEST
+	$requestName							= 'updatePatron';
+	$tag								= $patron['PatronID'] . ' : ' . $requestName;
+	$request							= new stdClass();
+	$request->Modifiers						= new stdClass();
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->SearchType						= 'Patron ID';
+	$request->SearchID						= $patron['PatronID']; // Patron ID
+	$request->Patron						= new stdClass();
+	$request->Patron->PatronType					= $patron['Borrowertypecode']; // Patron Type
+	$request->Patron->LastName					= $patron['Patronlastname']; // Patron Name Last
+	$request->Patron->FirstName					= $patron['Patronfirstname']; // Patron Name First
+	$request->Patron->MiddleName					= $patron['Patronmiddlename']; // Patron Name Middle
+	$request->Patron->SuffixName					= $patron['Patronsuffix']; // Patron Name Suffix
+	$request->Patron->Addresses					= new stdClass();
+	$request->Patron->Addresses->Address[0]				= new stdClass();
+	$request->Patron->Addresses->Address[0]->Type			= 'Primary';
+	$request->Patron->Addresses->Address[0]->Street			= $patron['PrimaryStreetAddress']; // Patron Address Street
+	$request->Patron->Addresses->Address[0]->City			= $patron['PrimaryCity']; // Patron Address City
+	$request->Patron->Addresses->Address[0]->State			= $patron['PrimaryState']; // Patron Address State
+	$request->Patron->Addresses->Address[0]->PostalCode		= $patron['PrimaryZipCode']; // Patron Address ZIP Code
+	// $request->Patron->Phone1					= $patron['PrimaryPhoneNumber']; // Patron Primary Phone
+	$request->Patron->Phone2					= $patron['SecondaryPhoneNumber']; // Patron Secondary Phone
+	$request->Patron->DefaultBranch					= $patron['DefaultBranch']; // Patron Default Branch
+//	$request->Patron->LastActionBranch				= $patron['DefaultBranch']; // Patron Last Action Branch
+	$request->Patron->LastEditBranch				= $patron['DefaultBranch']; // Patron Last Edit Branch
+	$request->Patron->RegBranch					= $patron['DefaultBranch']; // Patron Registration Branch
+	if ($patron['CollectionStatus']==0 || $patron['CollectionStatus']==1 || $patron['CollectionStatus']==78) {
+		$request->Patron->CollectionStatus			= 'do not send';
+	}
+	//$request->Patron->Email					= $patron['EmailAddress']; // Patron Email
+	$request->Patron->BirthDate					= $patron['BirthDate']; // Patron Birth Date as Y-m-d
+	// Sponsor: Homeroom Teacher
+	$request->Patron->Addresses->Address[1]				= new stdClass();
+	$request->Patron->Addresses->Address[1]->Type			= 'Secondary';
+	$request->Patron->Addresses->Address[1]->Street			= $patron['TeacherID']; // Patron Homeroom Teacher ID
+	$request->Patron->SponsorName					= $patron['TeacherName'];
+	if (stripos($patron['PatronID'],'190999') === 0) {
+		$request->Patron->PatronPIN				= '7357';
+	}
+	elseif ($today >= $startDate && $today <= $twentyDay) { // From startDate until twentyDay, reset PIN to default
+		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
+	}
+
+	// NON-CSV STUFF
+	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d',$patron['ExpirationDate'])->format('c'); // Patron Expiration Date as ISO 8601
+//	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
+	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
+	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
+	if (!empty($patron['TeacherID'])) {
+		$request->Patron->PreferredAddress			= 'Sponsor';
+	} else {
+		$request->Patron->PreferredAddress			= 'Primary';
+	}
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+}
 
 //////////////////// UPDATE EMAIL ADDRESS AND NOTICES ////////////////////
 
-//$all_rows = array();
-//$fhnd = fopen("../data/ic2carlx_mnps_students_updateEmail.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_updateEmail.csv");
-//if ($fhnd){
-//	$header = fgetcsv($fhnd);
-//	while ($row = fgetcsv($fhnd)) {
-//		$all_rows[] = array_combine($header, $row);
-//	}
-//}
-//fclose($fhnd);
-////print_r($all_rows);
-//foreach ($all_rows as $patron) {
-//	// TESTING
-//	//if ($patron['PatronID'] > 190999115) { break; }
-//	// CREATE REQUEST
-//	$requestName							= 'updatePatron';
-//	$tag								= $patron['PatronID'] . ' : updatePatronEmail';
-//	$request							= new stdClass();
-//	$request->Modifiers						= new stdClass();
-//	$request->Modifiers->DebugMode					= $patronApiDebugMode;
-//	$request->Modifiers->ReportMode					= $patronApiReportMode;
-//	$request->SearchType						= 'Patron ID';
-//	$request->SearchID						= $patron['PatronID']; // Patron ID
-//	$request->Patron						= new stdClass();
-//	$request->Patron->Email						= $patron['Email']; // Email Address
-//	$request->Patron->EmailNotices					= $patron['EmailNotices']; // Email Address
-//	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
-//}
+$all_rows = array();
+$fhnd = fopen("../data/ic2carlx_mnps_students_updateEmail.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_updateEmail.csv");
+if ($fhnd){
+	$header = fgetcsv($fhnd);
+	while ($row = fgetcsv($fhnd)) {
+		$all_rows[] = array_combine($header, $row);
+	}
+}
+fclose($fhnd);
+//print_r($all_rows);
+foreach ($all_rows as $patron) {
+	// TESTING
+	//if ($patron['PatronID'] > 190999115) { break; }
+	// CREATE REQUEST
+	$requestName							= 'updatePatron';
+	$tag								= $patron['PatronID'] . ' : updatePatronEmail';
+	$request							= new stdClass();
+	$request->Modifiers						= new stdClass();
+	$request->Modifiers->DebugMode					= $patronApiDebugMode;
+	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->SearchType						= 'Patron ID';
+	$request->SearchID						= $patron['PatronID']; // Patron ID
+	$request->Patron						= new stdClass();
+	$request->Patron->Email						= $patron['Email']; // Email Address
+	$request->Patron->EmailNotices					= $patron['EmailNotices']; // Email Address
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+}
 
 //////////////////// CREATE GUARANTOR NOTES ////////////////////
 
