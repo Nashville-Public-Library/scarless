@@ -92,8 +92,8 @@ perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::
   if ($F[8]== "Tn") { $F[8] = "TN"; }
 # REMOVE ZIP+4 FROM ZIP CODE
   $F[9] =~s/-\d{4}/ /g;
-# ELIMINATE NON-NUMERIC CHARACTERS FROM PHONE NUMBERS LONGER THAN 14 CHARACTERS
-	if (length($F[14]) > 14) { $F[14] =~s/\D//g; }
+# ELIMINATE NON-NUMERIC CHARACTERS FROM PHONE NUMBERS LONGER THAN 14 CHARACTERS, THE CARLX MAXIMUM. IF THE PHONE NUMBER IS STILL MORE THAN 14 DIGITS, TRUNCATE TO 10 DIGITS
+	if (length($F[14]) > 14) { $F[14] =~s/\D//g; if (length($F[14]) > 14) { $F[14] = substr($F[14],0,10); } }
 # SET LIMITLESS PERMISSION TO YES IF BLANK
 	elsif ($F[30] =~ m/^$/) { $F[30] = "Yes"; }
 # CHANGE USER DEFINED FIELDS laptopCheckout limitlessLibrariesuse techOptout from N to No and Y to Yes
