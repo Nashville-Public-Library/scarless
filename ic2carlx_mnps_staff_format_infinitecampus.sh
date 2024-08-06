@@ -20,7 +20,7 @@ perl -MLingua::EN::NameCase -F'\|' -lane '
 	@filler = ("");
 	splice @F, 7, 0, @filler;
 # REMOVE ENTRIES WITHOUT PATRON ID
-	if ($F[0] == "") { next; }
+	if ($F[0] eq "") { next; }
 # CHANGE CASE TO Title Case IF LAST NAME IS ALL CAPS
 	if ($F[2] =~ m/^(?!TEST)[- .A-Z\x27]+$/) {
 		$F[2] = nc($F[2]);
