@@ -209,7 +209,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->RegBranch			= $patron['defaultbranch']; // Patron Registration Branch
 	if (($patron['borrowertypecode'] == 13 || $patron['borrowertypecode'] == 40 || $patron['borrowertypecode'] == 51) && ($patron['collectionstatus'] == 1 || $patron['collectionstatus'] == 2 || $patron['collectionstatus'] == 78)) {
 		$request->Patron->CollectionStatus	= 'do not send';
-	} elseif ($patron['collectionstatus'] == 1) {
+	} elseif ($patron['collectionstatus'] == 1 || empty($patron['collectionstatus'])) {
 		$request->Patron->CollectionStatus	= 'not sent';
 	} elseif ($patron['collectionstatus'] == 2) {
 		$request->Patron->CollectionStatus	= 'sent';
