@@ -70,26 +70,26 @@ perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::
 # CITY TRANSFORM TO Name Case
   $F[7] = nc($F[7]);
 # CITY CORRECT SOME COMMON MISSPELLINGS
-  if ($F[7] == "Goodletsville") { $F[7] = "Goodlettsville"; }
-  if ($F[7] == "Goodlettsvlle") { $F[7] = "Goodlettsville"; }
-  if ($F[7] == "Goodlettville") { $F[7] = "Goodlettsville"; }
-  if ($F[7] == "La Vegne") { $F[7] = "La Vergne"; }
-  if ($F[7] == "Lavergne") { $F[7] = "La Vergne"; }
-  if ($F[7] == "Mt Juliet") { $F[7] = "Mount Juliet"; }
-  if ($F[7] == "Mt. Juliet") { $F[7] = "Mount Juliet"; }
-  if ($F[7] == "Mt.Juliet") { $F[7] = "Mount Juliet"; }
-  if ($F[7] == "Nahville") { $F[7] = "Nashville"; }
-  if ($F[7] == "Nashille") { $F[7] = "Nashville"; }
-  if ($F[7] == "Nashviile") { $F[7] = "Nashville"; }
-  if ($F[7] == "Nashviille") { $F[7] = "Nashville"; }
-  if ($F[7] == "Nashvillet") { $F[7] = "Nashville"; }
-  if ($F[7] == "Nashvillle") { $F[7] = "Nashville"; }
-  if ($F[7] == "Nasvhille") { $F[7] = "Nashville"; }
-  if ($F[7] == "Nasville") { $F[7] = "Nashville"; }
-  if ($F[7] == "Whites Crekk") { $F[7] = "Whites Creek"; }
-  if ($F[7] == "Whitescreek") { $F[7] = "Whites Creek"; }
+  if ($F[7] eq "Goodletsville") { $F[7] = "Goodlettsville"; }
+  if ($F[7] eq "Goodlettsvlle") { $F[7] = "Goodlettsville"; }
+  if ($F[7] eq "Goodlettville") { $F[7] = "Goodlettsville"; }
+  if ($F[7] eq "La Vegne") { $F[7] = "La Vergne"; }
+  if ($F[7] eq "Lavergne") { $F[7] = "La Vergne"; }
+  if ($F[7] eq "Mt Juliet") { $F[7] = "Mount Juliet"; }
+  if ($F[7] eq "Mt. Juliet") { $F[7] = "Mount Juliet"; }
+  if ($F[7] eq "Mt.Juliet") { $F[7] = "Mount Juliet"; }
+  if ($F[7] eq "Nahville") { $F[7] = "Nashville"; }
+  if ($F[7] eq "Nashille") { $F[7] = "Nashville"; }
+  if ($F[7] eq "Nashviile") { $F[7] = "Nashville"; }
+  if ($F[7] eq "Nashviille") { $F[7] = "Nashville"; }
+  if ($F[7] eq "Nashvillet") { $F[7] = "Nashville"; }
+  if ($F[7] eq "Nashvillle") { $F[7] = "Nashville"; }
+  if ($F[7] eq "Nasvhille") { $F[7] = "Nashville"; }
+  if ($F[7] eq "Nasville") { $F[7] = "Nashville"; }
+  if ($F[7] eq "Whites Crekk") { $F[7] = "Whites Creek"; }
+  if ($F[7] eq "Whitescreek") { $F[7] = "Whites Creek"; }
 # STATE UPPERCASE
-  if ($F[8]== "Tn") { $F[8] = "TN"; }
+  if ($F[8] eq "Tn") { $F[8] = "TN"; }
 # REMOVE ZIP+4 FROM ZIP CODE
   $F[9] =~s/-\d{4}/ /g;
 # ELIMINATE NON-NUMERIC CHARACTERS FROM PHONE NUMBERS LONGER THAN 14 CHARACTERS, THE CARLX MAXIMUM. IF THE PHONE NUMBER IS STILL MORE THAN 14 DIGITS, TRUNCATE TO 10 DIGITS
