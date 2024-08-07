@@ -3,46 +3,46 @@ This is a patron loader built with [TLC](https://tlcdelivers.com/)'s [CarlX API]
 Students
 =========
 
-|Infinite Campus EXTRACT FIELD   |If CarlX value is NULL, CarlX value should be |If CarlX value not NULL, CX Value should be |  
-|-----|-----|-----|
-|patronId|Infinite Campus value |N/A; this is MATCHPOINT|
-|borrowerTypecode|Infinite Campus value |Infinite Campus value|
-|patronLastname|Infinite Campus value |Infinite Campus value|
-|patronFirstname|Infinite Campus value |Infinite Campus value|
-|patronMiddlename|Infinite Campus value |Infinite Campus value |
-|Patronsuffix|Infinite Campus value |Infinite Campus value |
-|primaryStreetaddress|Infinite Campus value |Infinite Campus value |
-|primaryCity|Infinite Campus value |Infinite Campus value |
-|primaryState|Infinite Campus value |Infinite Campus value |
-|primaryZipcode|Infinite Campus value |Infinite Campus value |
-|secondaryStreetaddress|NULL |CarlX value |		
-|secondaryCity|NULL |	CarlX	value |
-|secondaryState|NULL |CarlX value |		
-|secondaryZipcode|NULL |CarlX value |		
-|primaryPhonenumber|NULL |CarlX value |		
-|secondaryPhonenumber|Infinite Campus value |Infinite Campus value |		
-|alternateId|NULL |CarlX value |		
-|nonvalidatedStats|NULL |CarlX value |		
-|defaultBranch|Infinite Campus value |Infinite Campus value |		
-|validatedStatcodes|NULL |CarlX value |		
-|statusCode|"G" |CarlX value |		
-|registrationDate|TODAY |CarlX value |		
-|lastActiondate|TODAY |CarlX value |		
-|expirationDate|Infinite Campus value |Infinite Campus value |		
-|emailAddress|Infinite Campus value |CarlX value |		
-|notes|NULL |CarlX value |		
-|birthDate|Infinite Campus value |Infinite Campus value |		
-|guardian|Infinite Campus value |* |		
-|racialOrethniccategory|NULL |CarlX value |		
-|laptopCheckout|Infinite Campus value |Infinite Campus value |		
-|limitlessLibrariesuse|Infinite Campus value |Infinite Campus value |		
-|techOptout|Infinite Campus value |Infinite Campus value |		
-|teacherId|Infinite Campus value |Infinite Campus value |		
-|teacherName|Infinite Campus value |Infinite Campus value |		
-|EmailNotices|Infinite Campus value |"Yes - Do send email" |		
-|ExpiredNoteIDs|NULL |CarlX value |		
-|DeleteGuarantorNoteIDs|NULL |CarlX value |		
-|CollectionStatus|do not send |if CX=="sent", then "sent"; else "do not send" |				
+|Infinite Campus EXTRACT FIELD   |If CarlX value is NULL, CarlX value should be | If CarlX value not NULL, CX Value should be                            |  
+|-----|-----|------------------------------------------------------------------------|
+|patronId|Infinite Campus value | N/A; this is MATCHPOINT                                                |
+|borrowerTypecode|Infinite Campus value | Infinite Campus value                                                  |
+|patronLastname|Infinite Campus value | Infinite Campus value                                                  |
+|patronFirstname|Infinite Campus value | Infinite Campus value                                                  |
+|patronMiddlename|Infinite Campus value | Infinite Campus value                                                  |
+|Patronsuffix|Infinite Campus value | Infinite Campus value                                                  |
+|primaryStreetaddress|Infinite Campus value | Infinite Campus value                                                  |
+|primaryCity|Infinite Campus value | Infinite Campus value                                                  |
+|primaryState|Infinite Campus value | Infinite Campus value                                                  |
+|primaryZipcode|Infinite Campus value | Infinite Campus value                                                  |
+|secondaryStreetaddress|NULL | CarlX value                                                            |		
+|secondaryCity|NULL | 	CarlX	value                                                           |
+|secondaryState|NULL | CarlX value                                                            |		
+|secondaryZipcode|NULL | CarlX value                                                            |		
+|primaryPhonenumber|NULL | CarlX value                                                            |		
+|secondaryPhonenumber|Infinite Campus value | Infinite Campus value                                                  |		
+|alternateId|NULL | CarlX value                                                            |		
+|nonvalidatedStats|NULL | CarlX value                                                            |		
+|defaultBranch|Infinite Campus value | Infinite Campus value                                                  |		
+|validatedStatcodes|NULL | CarlX value                                                            |		
+|statusCode|"G" | CarlX value                                                            |		
+|registrationDate|TODAY | CarlX value                                                            |		
+|lastActiondate|TODAY | CarlX value                                                            |		
+|expirationDate|Infinite Campus value | Infinite Campus value                                                  |		
+|emailAddress|Infinite Campus value | CarlX value                                                            |		
+|notes|NULL | CarlX value                                                            |		
+|birthDate|Infinite Campus value | Infinite Campus value                                                  |		
+|guardian|Infinite Campus value | *                                                                      |		
+|racialOrethniccategory|NULL | CarlX value                                                            |		
+|laptopCheckout|Infinite Campus value | Infinite Campus value                                                  |		
+|limitlessLibrariesuse|Infinite Campus value | Infinite Campus value                                                  |		
+|techOptout|Infinite Campus value | Infinite Campus value                                                  |		
+|teacherId|Infinite Campus value | Infinite Campus value                                                  |		
+|teacherName|Infinite Campus value | Infinite Campus value                                                  |		
+|EmailNotices|Infinite Campus value | "Yes - Do send email"                                                  |		
+|ExpiredNoteIDs|NULL | CarlX value                                                            |		
+|DeleteGuarantorNoteIDs|NULL | CarlX value                                                            |		
+|CollectionStatus|do not send | if CX=="sent", then "sent"; else if MNPS "do not send"; else "not sent" |				
 
 \* Guarantor status will appear as CX Note. In addition to new CX Note, previous Guarantor CX Note will kept if outstanding checkouts or fees within previous Guarantor effective dates. Start value will be first day of school, or date of Guarantor's appearance in IC extract. Stop date will be day before student's thirteenth birthday, the date the Guarantor stops appearing, or the presumed last day of school.  
 
