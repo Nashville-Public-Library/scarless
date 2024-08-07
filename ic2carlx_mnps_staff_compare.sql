@@ -102,7 +102,7 @@ create table if not exists carlx_update (patronid,borrowertypecode,patronlastnam
 delete 
 from carlx_update
 ;
-insert into carlx_update select PatronID,
+insert into carlx_update select infinitecampus.PatronID,
 	Borrowertypecode,
 	Patronlastname,
 	Patronfirstname,
@@ -112,37 +112,23 @@ insert into carlx_update select PatronID,
 	ExpirationDate,
 	EmailAddress,
 	EmailNotices,
-	CollectionStatus
+	case when carlx.CollectionStatus = 2 then 2 else infinitecampus.CollectionStatus end
 from infinitecampus
-except
-select carlx.PatronID,
-	carlx.Borrowertypecode,
-	carlx.Patronlastname,
-	carlx.Patronfirstname,
-	carlx.Patronmiddlename,
-	carlx.Patronsuffix,
-	carlx.DefaultBranch,
-	carlx.ExpirationDate,
-	carlx.EmailAddress,
-	carlx.EmailNotices,
-	carlx.CollectionStatus
-from carlx
-except
-	select 	infinitecampus.PatronID,
-		infinitecampus.Borrowertypecode,
-		infinitecampus.Patronlastname,
-		infinitecampus.Patronfirstname,
-		infinitecampus.Patronmiddlename,
-		infinitecampus.Patronsuffix,
-		infinitecampus.DefaultBranch,
-		infinitecampus.ExpirationDate,
-		infinitecampus.EmailAddress,
-		infinitecampus.EmailNotices,
-		infinitecampus.CollectionStatus
-	from infinitecampus
-	left join carlx on infinitecampus.PatronID = carlx.PatronID
-	where carlx.PatronID IS NULL
-	order by infinitecampus.PatronID
+left join carlx on infinitecampus.PatronID = carlx.PatronID
+where carlx.PatronID IS NOT NULL
+and (
+    carlx.Borrowertypecode != infinitecampus.Borrowertypecode
+    or carlx.Patronlastname != infinitecampus.Patronlastname
+    or carlx.Patronfirstname != infinitecampus.Patronfirstname
+    or carlx.Patronmiddlename != infinitecampus.Patronmiddlename
+    or carlx.Patronsuffix != infinitecampus.Patronsuffix
+    or carlx.DefaultBranch != infinitecampus.DefaultBranch
+    or carlx.ExpirationDate != infinitecampus.ExpirationDate
+    or carlx.EmailAddress != infinitecampus.EmailAddress
+    or carlx.EmailNotices != infinitecampus.EmailNotices
+    or ( carlx.CollectionStatus != infinitecampus.CollectionStatus and carlx.CollectionStatus != 2 )
+)
+order by infinitecampus.PatronID
 ;
 .headers on
 .output ../data/ic2carlx_mnps_staff_update.csv

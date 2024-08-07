@@ -39,8 +39,8 @@ perl -MLingua::EN::NameCase -F'\|' -lane '
 	$F[9] = "1";
 # ADD EMPTY FOR EXPIRED MNPS NOTE IDS
 	$F[10] = "";
-# MNPS SCHOOL STAFF COLLECTION STATUS = 78 (do not send)
-	if ($F[1] == 13 || $F[1] == 40 || $F[1] == 51) { $F[11] = "78"; } else { $F[11] = ""; }
+# MNPS SCHOOL STAFF COLLECTION STATUS = 78 (do not send); OTHERS = 1 (not sent) (this value for OTHERS will be re-evaluated in ...compare.sql)
+	if ($F[1] == 13 || $F[1] == 40 || $F[1] == 51) { $F[11] = "78"; } else { $F[11] = "1"; }
 # ADD EMPTY FOR EDIT BRANCH
 	$F[12] = "";
 # FORMAT AS CSV
