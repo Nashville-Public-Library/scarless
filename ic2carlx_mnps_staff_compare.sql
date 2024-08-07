@@ -103,15 +103,15 @@ delete
 from carlx_update
 ;
 insert into carlx_update select infinitecampus.PatronID,
-	Borrowertypecode,
-	Patronlastname,
-	Patronfirstname,
-	Patronmiddlename,
-	Patronsuffix,
-	DefaultBranch,
-	ExpirationDate,
-	EmailAddress,
-	EmailNotices,
+	infinitecampus.Borrowertypecode,
+	infinitecampus.Patronlastname,
+	infinitecampus.Patronfirstname,
+	infinitecampus.Patronmiddlename,
+	infinitecampus.Patronsuffix,
+	infinitecampus.DefaultBranch,
+	infinitecampus.ExpirationDate,
+	infinitecampus.EmailAddress,
+	infinitecampus.EmailNotices,
 	case when carlx.CollectionStatus = 2 then 2 else infinitecampus.CollectionStatus end
 from infinitecampus
 left join carlx on infinitecampus.PatronID = carlx.PatronID
