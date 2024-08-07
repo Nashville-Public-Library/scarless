@@ -358,8 +358,6 @@ foreach ($all_rows as $patron) {
 
 //////////////////// CREATE GUARANTOR NOTES ////////////////////
 
-/* // DEACTIVATE
-
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_createNoteGuarantor.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_createNoteGuarantor.csv");
 if ($fhnd){
@@ -374,23 +372,21 @@ foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
-	$requestName							= 'addPatronNote';
+	$requestName						= 'addPatronNote';
 	$tag								= $patron['PatronID'] . ' : addPatronGuarantor';
 	$request							= new stdClass();
-	$request->Modifiers						= new stdClass();
-	$request->Modifiers->DebugMode					= $patronApiDebugMode;
-	$request->Modifiers->ReportMode					= $patronApiReportMode;
-	$request->Modifiers->StaffID					= 'PIK'; // Pika Patron Loader
-	$request->Note							= new stdClass();
-	$request->Note->PatronID					= $patron['PatronID']; // Patron ID
-	$request->Note->NoteType					= 2; 
-	$request->Note->NoteText					= $patron['Guarantor']; // Patron Guarantor as Note
+	$request->Modifiers					= new stdClass();
+	$request->Modifiers->DebugMode		= $patronApiDebugMode;
+	$request->Modifiers->ReportMode		= $patronApiReportMode;
+	$request->Modifiers->StaffID		= 'PIK'; // Pika Patron Loader
+	$request->Note						= new stdClass();
+	$request->Note->PatronID			= $patron['PatronID']; // Patron ID
+	$request->Note->NoteType			= 2;
+	$request->Note->NoteText			= $patron['Guarantor']; // Patron Guarantor as Note
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
 
-*/ // DEACTIVATE
-
-//////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES //////////////////// 
+//////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES ////////////////////
 
 $all_rows = array();
 $fhnd = fopen("../data/ic2carlx_mnps_students_deleteExpiredNotes.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_deleteExpiredNotes.csv");
