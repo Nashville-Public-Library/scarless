@@ -30,7 +30,7 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 	$result->response = "";
 	while (!$connectionPassed && $numTries < 2) {
 		try {
-			$client = new SOAPClient($wsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+			$client = new SOAPClient($wsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1, 'keep_alive' => false));
 			$result->response = $client->$requestName($request);
 //echo "REQUEST:\n" . $client->__getLastRequest() . "\n";
 			$connectionPassed = true;
