@@ -106,8 +106,8 @@
 # 2024 05 MAY
 #00 21 01-03 05 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 
-# 2024 06 AUGUST
-30 21 * 06 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2024 08 AUGUST
+30 21 * 08 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2024 09 SEPTEMBER
 30 21 * 09 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2024 10 OCTOBER
