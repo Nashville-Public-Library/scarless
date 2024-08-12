@@ -30,6 +30,8 @@ perl -MLingua::EN::NameCase -F'\|' -lane '
 	}
 # REMOVE WHITESPACE FROM SCHOOL CODE
 	$F[6] =~ s/\s//g;
+# Robertson Academy staff should ONLY include BTY 40; others should be skipped
+  if ($F[6] =~ m/^86665$/ && $F[1] != 40) { next; }
 # ASD Schools should be BTY out of county educator
 	if ($F[6] =~ m/^79118$/) { $F[1] = "12"; }
 	if ($F[6] =~ m/^7E601$/) { $F[1] = "12"; }
