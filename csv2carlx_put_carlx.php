@@ -33,6 +33,7 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 			$client = new SOAPClient($wsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1, 'keep_alive' => false));
 			$result->response = $client->$requestName($request);
 //echo "REQUEST:\n" . $client->__getLastRequest() . "\n";
+//echo "RESPONSE:\n" . $client->__getLastResponse() . "\n";
 			$connectionPassed = true;
 			if (is_null($result->response)) {$result->response = $client->__getLastResponse();}
 			if (!empty($result->response)) {
@@ -65,6 +66,9 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 }
 
 //////////////////// CREATE CARLX PATRONS ////////////////////
+
+echo "Creating CARLX patrons...\n";
+echo "Reading Belmont patron data...\n";
 $all_rows = array();
 $fhnd = fopen("../data/belmont.csv", "r");
 if ($fhnd){
@@ -114,7 +118,7 @@ foreach ($all_rows as $patron) {
 //	NON-CSV STUFF
 	$request->Patron->CollectionStatus				= 'not sent';
 	$request->Patron->EmailNotices					= 'send email';
-	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2024-10-01')->format('c'); // Patron Expiration Date as ISO 8601
+	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2025-10-01')->format('c'); // Patron Expiration Date as ISO 8601
 //	$request->Patron->LastActionDate				= date('c'); // Last Action Date, format ISO 8601
 	$request->Patron->LastEditDate					= date('c'); // Patron Last Edit Date, format ISO 8601
 	$request->Patron->LastEditedBy					= 'PIK'; // Pika Patron Loader
