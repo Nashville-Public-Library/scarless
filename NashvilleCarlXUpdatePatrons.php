@@ -24,12 +24,13 @@ if (!$conn) {
 	trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 $sql = <<<EOT
--- MNPS patrons with EXPDATE = 01-SEP-24 -- to be updated to 01-OCT-24
+-- Belmont patrons with EXPDATE = 01-OCT-24 -- to be updated to 01-OCT-25
 	select
 		patronid
 	from patron_v2 p
-	where bty in (13,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,40,42,46,47,51) -- MNPS BTYs, excluding XMNPS
-	and trunc(expdate) = '01-SEP-24'
+	where bty = 48
+	and trunc(expdate) = '01-OCT-24'
+	and patronid like 'B%'
 	order by patronid
 	fetch first 10000 rows only -- php has problems on server and desktop running large update sets, see https://trello.com/c/2eN74bgA/3992-update-mnps-expiration-date#comment-6637a417529f6f83bc704ddd
 EOT;
@@ -84,7 +85,7 @@ foreach ($records as $patron) {
 //	$request->Patron->Addresses->Address[0]				= new stdClass();
 //	$request->Patron->Addresses->Address[0]->Type			= 'Secondary'; // Address type "secondary" = Sponsor
 //	$request->Patron->Addresses->Address[0]->Street			= '3007111'; // Address type "secondary", street = teacher id
-	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2024-10-01')->format('c'); // Patron Expiration Date as ISO 8601
+	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2025-10-01')->format('c'); // Patron Expiration Date as ISO 8601
 
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 }
