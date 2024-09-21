@@ -44,9 +44,9 @@ foreach ($records as $patron) {
 	$request->ImageType				= 'Profile'; // Patron Profile Picture vs. Signature
 	$imageFilePath 					= "../data/images/" . $patronGroup . "/" . $patron[0] . ".jpg";
 	if (file_exists($imageFilePath)) {
-		$imageFileHandle 			= fopen($imageFilePath, "rb");
-		$request->ImageData			= fread($imageFileHandle, filesize($imageFilePath));
-		fclose($imageFileHandle);
+		$imageBin 					= file_get_contents($imageFilePath);
+		$imageHex 					= bin2hex($imageBin);
+		$request->ImageData			= $imageHex;
 	} else {
 // TO DO: create IMAGE NOT AVAILABLE image
 	}
@@ -56,7 +56,7 @@ foreach ($records as $patron) {
 }
 
 // TO DO: save the errors to a file.
-// $ferror = fopen($reportPath . "NashvilleCarlXUpdatePatrons.error.txt", "w");
+// $ferror = fopen($reportPath . "NashvilleCarlXUpdatePatronImage.error.txt", "w");
 
 // TO DO : THIS AIN'T RIGHT fwrite($ferror, print_r($errors));
 // fclose($ferror);
