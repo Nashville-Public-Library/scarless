@@ -14,7 +14,7 @@ mapfile -t valid_filenames < <(cut -d',' -f1 "$csv_file")
 # Convert the array to a set for faster lookup
 declare -A valid_set
 for filename in "${valid_filenames[@]}"; do
-    valid_set["$filename"]=1
+    valid_set["$filename.jpg"]=1
 done
 
 # Iterate over the files in the image directory
