@@ -262,10 +262,10 @@ $iterator = new DirectoryIterator('../data/images/staff/');
 $today = date_create('today')->format('U');
 //$today = date_create('2020-07-17')->format('U');
 foreach ($iterator as $fileinfo) {
-        $file = $fileinfo->getFilename();
-        $mtime = $fileinfo->getMTime();
+	$file = $fileinfo->getFilename();
+	$mtime = $fileinfo->getMTime();
 	$matches = [];
-        if ($fileinfo->isFile() && preg_match('/^(\d{6,7}).jpg$/', $file, $matches) === 1 && $mtime >= $today) {
+	if ($fileinfo->isFile() && preg_match('/^(\d{6,7}).jpg$/', $file, $matches) === 1 && $mtime >= $today) {
 		$requestName					= 'updateImage';
 		$tag							= $matches[1] . ' : ' . $requestName;
 		$request						= new stdClass();
