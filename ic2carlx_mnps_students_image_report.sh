@@ -13,6 +13,12 @@ cutoff_date="2024-08-01"
 
 echo "Processing files in $image_dir..."
 
+# Read the CSV file into an associative array
+declare -A csv_data
+while IFS=, read -r id col2 col12; do
+    csv_data["$id"]="$col2 $col12"
+done < <(tail -n +2 "$csv_file")  # Skip the header row
+
 # Process the find command output with cutoff date
 find "$image_dir" -type f -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | sort | while read -r line; do
     # Extract the date and filename
@@ -24,22 +30,9 @@ find "$image_dir" -type f -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | s
     # Extract the 9-digit ID from the filename
     id=$(echo "$filename" | grep -oP '\d{9}')
 
-    # Look up the ID in the CSV file and get the 2nd BTY and 12th BRANCHCODE column values
+    # Look up the ID in the associative array
     if [ -n "$id" ]; then
-        values=$(awk -v id="$id" '
-            BEGIN { FS = ","; OFS = " " }
-            {
-                # Remove quotes and handle commas within quoted fields
-                for (i = 1; i <= NF; i++) {
-                    gsub(/^"|"$/, "", $i)
-                    gsub(/,/, "", $i)
-                }
-                if ($1 == id) {
-                    print $2, $12
-                }
-            }
-        ' "$csv_file")
-
+        values="${csv_data[$id]}"
         # Write the results to the output file
         if [ -n "$values" ]; then
             echo "$date $filename $values" >> "$output_file"
