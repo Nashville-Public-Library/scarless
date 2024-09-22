@@ -1,4 +1,9 @@
 #!/bin/bash
+# ic2carlx_mnps_students_image_report.sh
+# James Staub
+# Nashville Public Library
+# Generate a summary report of student images that are older than a specified date
+# 2024 09 22
 
 # Define the paths
 image_dir="../data/images/students/"
