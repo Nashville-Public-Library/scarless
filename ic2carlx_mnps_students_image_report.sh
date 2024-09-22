@@ -14,8 +14,9 @@ find_images_missing_file="../data/ic2carlx_mnps_students_infinitecampus_images_m
 find_old_images_file="../data/ic2carlx_mnps_students_images_old.txt"
 find_old_images_join_file="../data/ic2carlx_mnps_students_infinitecampus_images_old_join.txt"
 output_missing_images_file="../data/ic2carlx_mnps_students_images_missing_summary.txt"
-output_old_images_file="../data/output.txt"
+output_old_images_file="../data/ic2carlx_mnps_students_images_old_summary.txt"
 combined_output_file="../data/ic2carlx_mnps_students_images_summary.txt"
+final_output_file="../data/ic2carlx_mnps_students_images_final_summary.txt"
 
 # Clear all output files
 > "$find_images_file"
@@ -49,7 +50,7 @@ awk -F, '{count[$2]++} END {for (branch in count) print branch, count[branch]}' 
 sort "$output_missing_images_file" -o "$output_missing_images_file"
 echo "Summary output created. Output written to $output_missing_images_file"
 # Display the summary output
-cat "$output_missing_images_file"
+#cat "$output_missing_images_file"
 
 # Output the find-old-images command results to a file
 echo "Finding files older than $cutoff_date..."
@@ -66,9 +67,19 @@ awk -F, '{count[$2]++} END {for (branch in count) print branch, count[branch]}' 
 sort "$output_old_images_file" -o "$output_old_images_file"
 echo "Summary output created. Output written to $output_old_images_file"
 # Display the summary output
-cat "$output_old_images_file"
+#cat "$output_old_images_file"
 
 # Combine the files on the id column
-join -t, -1 1 -2 1 "$output_missing_images_file" "$output_old_images_file" > "$combined_output_file"
+join -t' ' -a 1 -a 2 -e '0' -o '0,1.2,2.2' "$output_missing_images_file" "$output_old_images_file" > "$combined_output_file"
+echo "Combined output written to $combined_output_file"
 # Display the combined output
-cat "$combined_output_file"
+#cat "$combined_output_file"
+
+# Add the values of the second and third columns, calculate totals, and output the result to a new file
+awk '{
+    print $1, $2, $3, $2 + $3;
+    total2 += $2;
+    total3 += $3;
+} END {
+    print "Total", total2, total3, total2 + total3;
+}' "$combined_output_file" > "$final_output_file"
