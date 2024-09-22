@@ -30,6 +30,14 @@ declare -A row_totals
 declare -A col_totals
 total_count=0
 
+# Get the total number of records to be processed
+total_records=$(find "$image_dir" -type f ! -newermt "$cutoff_date" | wc -l)
+progress_step=$((total_records / 100)) # 1% of total records
+
+# Initialize progress variables
+current_record=0
+next_update=$progress_step
+
 # Process the find command output with cutoff date
 find "$image_dir" -type f ! -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | sort | while read -r line; do
     # Extract the date and filename
@@ -50,6 +58,14 @@ find "$image_dir" -type f ! -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" |
             col_totals["$col1"]=$((col_totals["$col1"] + 1))
             total_count=$((total_count + 1))
         fi
+    fi
+
+    # Update progress
+    current_record=$((current_record + 1))
+    if [ $current_record -ge $next_update ]; then
+        progress=$((current_record * 100 / total_records))
+        echo -ne "Progress: $progress% \r"
+        next_update=$((next_update + progress_step))
     fi
 done
 
@@ -83,4 +99,4 @@ col2_values=($(awk -F, '{print $3}' "$derivative_csv_file" | sort | uniq))
     printf ",%d\n" "$total_count"
 } > "$output_file"
 
-echo "Pivot table created. Output written to $output_file"
+echo -e "\nPivot table created. Output written to $output_file"
