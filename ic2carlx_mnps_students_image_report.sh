@@ -26,7 +26,7 @@ sort "$find_file" -o "$find_file"
 
 # Join the find results with the derivative CSV file
 echo "Creating the list of too-old files and branch codes..."
-join -t, -1 1 -2 1 -o 1.1,2.2 -v 1 "$find_file" "$derivative_csv_file" > "$join_file"
+join -t, -1 1 -2 1 -o 1.1,2.2 "$find_file" "$derivative_csv_file" > "$join_file"
 
 # Create the summary output
 echo "Creating summary output..."
