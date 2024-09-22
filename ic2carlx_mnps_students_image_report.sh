@@ -3,6 +3,7 @@
 # Define the paths
 image_dir="../data/images/students/"
 csv_file="../data/ic2carlx_mnps_students_infinitecampus.csv"
+derivative_csv_file="../data/ic2carlx_mnps_students_infinitecampus_derivative.csv"
 output_file="../data/output.txt"
 
 # Clear the output file
@@ -11,17 +12,17 @@ output_file="../data/output.txt"
 # Define the cutoff date
 cutoff_date="2024-08-01"
 
+echo "Creating derivative CSV file..."
+# Create the derivative CSV file
+awk -vFPAT='[^,]*|"[^"]*"' -F, '{print $1 "," $2 "," $12}' "$csv_file" > "$derivative_csv_file"
+
 echo "Processing files in $image_dir..."
 
-# Read the CSV file into an associative array
+# Read the derivative CSV file into an associative array
 declare -A csv_data
-while IFS=, read -r line; do
-    # Use awk with FPAT to handle quoted fields and commas within them
-    id=$(echo "$line" | awk -vFPAT='[^,]*|"[^"]*"' '{print $1}' | tr -d '"')
-    col2=$(echo "$line" | awk -vFPAT='[^,]*|"[^"]*"' '{print $2}' | tr -d '"')
-    col12=$(echo "$line" | awk -vFPAT='[^,]*|"[^"]*"' '{print $12}' | tr -d '"')
+while IFS=, read -r id col2 col12; do
     csv_data["$id"]="$col2 $col12"
-done < "$csv_file"
+done < "$derivative_csv_file"
 
 # Process the find command output with cutoff date
 find "$image_dir" -type f ! -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | sort | while read -r line; do
