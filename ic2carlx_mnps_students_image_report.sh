@@ -31,6 +31,7 @@ join -t, -1 1 -2 1 -o 1.1,2.2 "$find_file" "$derivative_csv_file" > "$join_file"
 # Create the summary output
 echo "Creating summary output..."
 awk -F, '{count[$2]++} END {for (branch in count) print branch, count[branch]}' "$join_file" > "$output_file"
+sort "$output_file" -o "$output_file"
 echo "Summary output created. Output written to $output_file"
 # Display the summary output
 cat "$output_file"
