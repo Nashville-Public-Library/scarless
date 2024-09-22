@@ -20,7 +20,7 @@ while IFS=, read -r id col2 col12; do
 done < <(tail -n +2 "$csv_file")  # Skip the header row
 
 # Process the find command output with cutoff date
-find "$image_dir" -type f -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | sort | while read -r line; do
+find "$image_dir" -type f ! -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | sort | while read -r line; do
     # Extract the date and filename
     date=$(echo "$line" | awk '{print $1}')
     filename=$(echo "$line" | awk '{print $2}')
