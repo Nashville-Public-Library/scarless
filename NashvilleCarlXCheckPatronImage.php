@@ -1,7 +1,7 @@
 <?php
 
 //////////////////// COMPARE LOCAL PATRON IMAGES AGAINST CARLX ////////////////////
-// echo 'SYNTAX: $ sudo php NashvilleCarlXUpdatePatronImage.php\n';
+// echo 'SYNTAX: $ sudo php NashvilleCarlXUpdatePatronImage.php --start=190000000 --type=both\n';
 
 require_once 'ic2carlx_put_carlx.php';
 
@@ -28,13 +28,42 @@ function getImageDataFromResponse($response) {
 	}
 }
 
-$iterator = new DirectoryIterator('../data/images/students');
-foreach ($iterator as $fileinfo) {
-	$file = $fileinfo->getFilename();
-	$imageFilePath = $fileinfo->getPathname();
-	$mtime = $fileinfo->getMTime();
+$options = getopt("",["start:","type:"]);
+$start = isset($options['start']) ? (int)$options['start'] : 0;
+$type = $options['type'] ?? 'both';
+
+$imageFiles = [];
+
+if ($type === 'staff' || $type === 'both') {
+	$staffImageIterator = new DirectoryIterator('../data/images/staff');
+	$staffImageFiles = iterator_to_array($staffImageIterator);
+	$staffImageFiles = array_filter($staffImageFiles, function ($fileinfo) {
+		return $fileinfo->isFile();
+	});
+	usort($staffImageFiles, function ($a, $b) {
+		return $a->getFileName() - $b->getFileName();
+	});
+}
+
+if ($type === 'student' || $type === 'both') {
+	$studentImageIterator = new DirectoryIterator('../data/images/students');
+	$studentImageFiles = iterator_to_array($studentImageIterator);
+	$studentImageFiles = array_filter($studentImageFiles, function ($fileinfo) {
+		return $fileinfo->isFile();
+	});
+	usort($studentImageFiles, function ($a, $b) {
+		return $a->getFileName() - $b->getFileName();
+	});
+}
+
+$imageFiles = array_merge($staffImageFiles, $studentImageFiles);
+
+foreach ($imageFiles as $fileInfo) {
+	$file = $fileInfo->getFilename();
+	$imageFilePath = $fileInfo->getPathname();
+	$mtime = $fileInfo->getMTime();
 	$matches = [];
-	if ($fileinfo->isFile() && preg_match('/^(190\d{6}).jpg$/', $file, $matches) === 1) {
+	if ($fileInfo->isFile() && preg_match('/^(190\d{6}|\d{6,7}).jpg$/i', $file, $matches) === 1) {
 		$imageBin = file_get_contents($imageFilePath);
 		$imageHex = bin2hex($imageBin);
 		$requestName = 'getImage';
@@ -47,12 +76,12 @@ foreach ($iterator as $fileinfo) {
 		$request->SearchID = $matches[1]; // Patron ID
 		$request->ImageType = 'Profile'; // Patron Profile Picture vs. Signature
 		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$imageCarl = '';
 		if ($result) {
-			$imageHexCarl = '';
-			$imageHexCarl = getImageDataFromResponse($result);
+			$imageCarl = getImageDataFromResponse($result);
 		}
 
-		if ($imageBin !== $imageHexCarl) {
+		if ($imageBin !== $imageCarl) {
 			echo "Local does not match CarlX: $imageFilePath\n";
 			$requestName 			= 'updateImage';
 			$tag 					= $matches[1] . ' : ' . $requestName;
