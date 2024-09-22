@@ -28,16 +28,13 @@ function getImageDataFromResponse($response) {
 	}
 }
 
-$iterator = new DirectoryIterator('../data/images/staff');
+$iterator = new DirectoryIterator('../data/images/students');
 foreach ($iterator as $fileinfo) {
 	$file = $fileinfo->getFilename();
 	$imageFilePath = $fileinfo->getPathname();
-//	echo $imageFilePath . "\n";
 	$mtime = $fileinfo->getMTime();
 	$matches = [];
-	if ($fileinfo->isFile() && preg_match('/^(\d{6,7}).jpg$/', $file, $matches) === 1) {
-//		echo "\nMATCHES MATCHES MATCHES\n";
-//		print_r($matches);
+	if ($fileinfo->isFile() && preg_match('/^(190\d{6}).jpg$/', $file, $matches) === 1) {
 		$imageBin = file_get_contents($imageFilePath);
 		$imageHex = bin2hex($imageBin);
 		$requestName = 'getImage';
@@ -49,7 +46,6 @@ foreach ($iterator as $fileinfo) {
 		$request->SearchType = 'Patron ID';
 		$request->SearchID = $matches[1]; // Patron ID
 		$request->ImageType = 'Profile'; // Patron Profile Picture vs. Signature
-//print_r($request);
 		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 		if ($result) {
 			$imageHexCarl = '';
