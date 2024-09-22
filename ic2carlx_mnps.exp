@@ -138,6 +138,15 @@ send "chmod -R 700 ../data/*\r"
 expect -re $prompt
 logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 
+# REMOVE IMAGES OF NONELIGIBLE MNPS STAFF AND STUDENTS
+set timeout 900
+logWrite $logFile "START clean up image files"
+send "bash ic2carlx_mnps_staff_imageCleanUp.sh\r"
+expect -re $prompt
+send "bash ic2carlx_mnps_student_imageCleanUp.sh\r"
+expect -re $prompt
+logWrite $logFile "COMPLETE clean up image files"
+
 # ADD/UPDATE/REMOVE FROM CARLX
 # This is where I need to clobber the CarlX API service with multiple threads
 # see https://github.com/Nashville-Public-Library/millennium2carlx/blob/master/fines.sh for example
