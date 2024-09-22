@@ -24,13 +24,19 @@ while IFS=, read -r id col2 col12; do
     csv_data["$id"]="$col2 $col12"
 done < "$derivative_csv_file"
 
+# Get the total number of records to be processed
+total_records=$(find "$image_dir" -type f ! -newermt "$cutoff_date" | wc -l)
+progress_step=$((total_records / 20)) # 5% of total records
+
+# Initialize progress variables
+current_record=0
+next_update=$progress_step
+
 # Process the find command output with cutoff date
 find "$image_dir" -type f ! -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | sort | while read -r line; do
     # Extract the date and filename
     date=$(echo "$line" | awk '{print $1}')
     filename=$(echo "$line" | awk '{print $2}')
-
-    echo "Processing file: $filename with date: $date"
 
     # Extract the 9-digit ID from the filename
     id=$(echo "$filename" | grep -oP '\d{9}')
@@ -41,14 +47,20 @@ find "$image_dir" -type f ! -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" |
         # Write the results to the output file
         if [ -n "$values" ]; then
             echo "$date $filename $values" >> "$output_file"
-            echo "Found values for ID $id: $values"
         else
             echo "$date $filename NOT_FOUND" >> "$output_file"
-            echo "ID $id not found in CSV"
         fi
     else
         echo "No valid ID found in filename: $filename"
     fi
+
+    # Update progress
+    current_record=$((current_record + 1))
+    if [ $current_record -ge $next_update ]; then
+        progress=$((current_record * 100 / total_records))
+        echo -ne "Progress: $progress% \r"
+        next_update=$((next_update + progress_step))
+    fi
 done
 
-echo "Processing complete. Output written to $output_file"
+echo -e "\nProcessing complete. Output written to $output_file"
