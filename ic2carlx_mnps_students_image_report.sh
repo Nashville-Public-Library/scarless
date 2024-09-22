@@ -2,7 +2,9 @@
 # ic2carlx_mnps_students_image_report.sh
 # James Staub
 # Nashville Public Library
-# Generate a summary report of student images that are older than a specified date
+# Generate a summary report of student images that need updating
+# because they are older than a specified date
+# or they are missing
 # 2024 09 22
 
 # Define the paths
@@ -75,11 +77,18 @@ echo "Combined output written to $combined_output_file"
 # Display the combined output
 #cat "$combined_output_file"
 
-# Add the values of the second and third columns, calculate totals, and output the result to a new file
-awk '{
+# Add the values of the second and third columns, calculate totals, and output the result to a new file with headers
+awk 'BEGIN {
+    print "branch_code old_images missing_images total_images_needing_update";
+}
+{
     print $1, $2, $3, $2 + $3;
     total2 += $2;
     total3 += $3;
 } END {
     print "Total", total2, total3, total2 + total3;
 }' "$combined_output_file" > "$final_output_file"
+
+echo "Combined output with summed columns and totals written to $final_output_file"
+# Display the final output
+cat "$final_output_file"
