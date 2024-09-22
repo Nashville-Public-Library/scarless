@@ -19,18 +19,39 @@ awk -vFPAT='[^,]*|"[^"]*"' -F, '{print $1 "," $2 "," $12}' "$csv_file" > "$deriv
 echo "Processing files in $image_dir..."
 
 # Read the derivative CSV file into an associative array
+declare -A csv_data
+while IFS=, read -r id col1 col2; do
+    csv_data["$id"]="$col1,$col2"
+done < "$derivative_csv_file"
+
+# Initialize pivot table and totals
 declare -A pivot_table
 declare -A row_totals
 declare -A col_totals
 total_count=0
 
-while IFS=, read -r id col1 col2; do
-    key="$col2,$col1"
-    pivot_table["$key"]=$((pivot_table["$key"] + 1))
-    row_totals["$col2"]=$((row_totals["$col2"] + 1))
-    col_totals["$col1"]=$((col_totals["$col1"] + 1))
-    total_count=$((total_count + 1))
-done < "$derivative_csv_file"
+# Process the find command output with cutoff date
+find "$image_dir" -type f ! -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | sort | while read -r line; do
+    # Extract the date and filename
+    date=$(echo "$line" | awk '{print $1}')
+    filename=$(echo "$line" | awk '{print $2}')
+
+    # Extract the 9-digit ID from the filename
+    id=$(echo "$filename" | grep -oP '\d{9}')
+
+    # Look up the ID in the associative array
+    if [ -n "$id" ]; then
+        values="${csv_data[$id]}"
+        if [ -n "$values" ]; then
+            IFS=',' read -r col1 col2 <<< "$values"
+            key="$col2,$col1"
+            pivot_table["$key"]=$((pivot_table["$key"] + 1))
+            row_totals["$col2"]=$((row_totals["$col2"] + 1))
+            col_totals["$col1"]=$((col_totals["$col1"] + 1))
+            total_count=$((total_count + 1))
+        fi
+    fi
+done
 
 # Get unique col1 and col2 values
 col1_values=($(awk -F, '{print $2}' "$derivative_csv_file" | sort | uniq))
