@@ -15,9 +15,13 @@ echo "Processing files in $image_dir..."
 
 # Read the CSV file into an associative array
 declare -A csv_data
-while IFS=, read -r id col2 col12; do
+while IFS=, read -r line; do
+    # Use awk to handle quoted fields and commas within them
+    id=$(echo "$line" | awk -F, '{gsub(/^"|"$/, "", $1); print $1}')
+    col2=$(echo "$line" | awk -F, '{gsub(/^"|"$/, "", $2); print $2}')
+    col12=$(echo "$line" | awk -F, '{gsub(/^"|"$/, "", $12); print $12}')
     csv_data["$id"]="$col2 $col12"
-done < <(tail -n +2 "$csv_file")  # Skip the header row
+done < "$csv_file"
 
 # Process the find command output with cutoff date
 find "$image_dir" -type f ! -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | sort | while read -r line; do
