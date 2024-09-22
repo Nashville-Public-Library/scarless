@@ -19,48 +19,47 @@ awk -vFPAT='[^,]*|"[^"]*"' -F, '{print $1 "," $2 "," $12}' "$csv_file" > "$deriv
 echo "Processing files in $image_dir..."
 
 # Read the derivative CSV file into an associative array
-declare -A csv_data
-while IFS=, read -r id col2 col12; do
-    csv_data["$id"]="$col2 $col12"
+declare -A pivot_table
+declare -A row_totals
+declare -A col_totals
+total_count=0
+
+while IFS=, read -r id col1 col2; do
+    key="$col2,$col1"
+    pivot_table["$key"]=$((pivot_table["$key"] + 1))
+    row_totals["$col2"]=$((row_totals["$col2"] + 1))
+    col_totals["$col1"]=$((col_totals["$col1"] + 1))
+    total_count=$((total_count + 1))
 done < "$derivative_csv_file"
 
-# Get the total number of records to be processed
-total_records=$(find "$image_dir" -type f ! -newermt "$cutoff_date" | wc -l)
-progress_step=$((total_records / 100)) # 1% of total records
+# Get unique col1 and col2 values
+col1_values=($(awk -F, '{print $2}' "$derivative_csv_file" | sort | uniq))
+col2_values=($(awk -F, '{print $3}' "$derivative_csv_file" | sort | uniq))
 
-# Initialize progress variables
-current_record=0
-next_update=$progress_step
+# Print the header
+{
+    printf "Branch Code"
+    for col1 in "${col1_values[@]}"; do
+        printf ",%s" "$col1"
+    done
+    printf ",Total\n"
 
-# Process the find command output with cutoff date
-find "$image_dir" -type f ! -newermt "$cutoff_date" -printf "%TY-%Tm-%Td %f\n" | sort | while read -r line; do
-    # Extract the date and filename
-    date=$(echo "$line" | awk '{print $1}')
-    filename=$(echo "$line" | awk '{print $2}')
+    # Print the rows
+    for col2 in "${col2_values[@]}"; do
+        printf "%s" "$col2"
+        for col1 in "${col1_values[@]}"; do
+            key="$col2,$col1"
+            printf ",%d" "${pivot_table["$key"]}"
+        done
+        printf ",%d\n" "${row_totals["$col2"]}"
+    done
 
-    # Extract the 9-digit ID from the filename
-    id=$(echo "$filename" | grep -oP '\d{9}')
+    # Print the column totals
+    printf "Total"
+    for col1 in "${col1_values[@]}"; do
+        printf ",%d" "${col_totals["$col1"]}"
+    done
+    printf ",%d\n" "$total_count"
+} > "$output_file"
 
-    # Look up the ID in the associative array
-    if [ -n "$id" ]; then
-        values="${csv_data[$id]}"
-        # Write the results to the output file
-        if [ -n "$values" ]; then
-            echo "$date $filename $values" >> "$output_file"
-        else
-            echo "$date $filename NOT_FOUND" >> "$output_file"
-        fi
-    else
-        echo "No valid ID found in filename: $filename"
-    fi
-
-    # Update progress
-    current_record=$((current_record + 1))
-    if [ $current_record -ge $next_update ]; then
-        progress=$((current_record * 100 / total_records))
-        echo -ne "Progress: $progress% \r"
-        next_update=$((next_update + progress_step))
-    fi
-done
-
-echo -e "\nProcessing complete. Output written to $output_file"
+echo "Pivot table created. Output written to $output_file"
