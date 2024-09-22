@@ -18,7 +18,7 @@ find_old_images_join_file="../data/ic2carlx_mnps_students_infinitecampus_images_
 output_missing_images_file="../data/ic2carlx_mnps_students_images_missing_summary.txt"
 output_old_images_file="../data/ic2carlx_mnps_students_images_old_summary.txt"
 combined_output_file="../data/ic2carlx_mnps_students_images_summary.txt"
-final_output_file="../data/ic2carlx_mnps_students_images_final_summary.txt"
+final_output_file="../data/ic2carlx_mnps_students_images_final_summary.csv"
 
 # Clear all output files
 > "$find_images_file"
@@ -79,6 +79,7 @@ echo "Combined output written to $combined_output_file"
 
 # Add the values of the second and third columns, calculate totals, and output the result to a new file with headers
 awk 'BEGIN {
+    OFS = ",";
     print "branch_code old_images missing_images total_images_needing_update";
 }
 {
