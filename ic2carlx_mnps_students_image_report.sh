@@ -80,7 +80,7 @@ echo "Combined output written to $combined_output_file"
 # Add the values of the second and third columns, calculate totals, and output the result to a new file with headers
 awk 'BEGIN {
     OFS = ",";
-    print "branch_code old_images missing_images total_images_needing_update";
+    print "branch_code,missing_images,old_images,total_images_needing_update";
 }
 {
     print $1, $2, $3, $2 + $3;
