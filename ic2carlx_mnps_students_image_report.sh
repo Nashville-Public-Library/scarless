@@ -26,7 +26,7 @@ done < "$derivative_csv_file"
 
 # Get the total number of records to be processed
 total_records=$(find "$image_dir" -type f ! -newermt "$cutoff_date" | wc -l)
-progress_step=$((total_records / 20)) # 5% of total records
+progress_step=$((total_records / 100)) # 1% of total records
 
 # Initialize progress variables
 current_record=0
