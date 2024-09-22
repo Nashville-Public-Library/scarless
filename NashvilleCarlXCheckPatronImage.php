@@ -24,15 +24,10 @@ function getImageDataFromResponse($response) {
 //		throw new InvalidArgumentException('Expected an object property named "ImageData".');
 	} else {
 		$imageData = $response->response->ImageData;
-		// Check if running on Linux and convert to hex if necessary
-		if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
-			$imageData = bin2hex($imageData);
-		}
 		return $imageData;
 	}
 }
 
-$errors = array();
 $iterator = new DirectoryIterator('../data/images/staff');
 foreach ($iterator as $fileinfo) {
 	$file = $fileinfo->getFilename();
@@ -66,16 +61,10 @@ foreach ($iterator as $fileinfo) {
 			$requestName 			= 'updateImage';
 			$tag 					= $matches[1] . ' : ' . $requestName;
 			$imageData 				= file_get_contents($imageFilePath);
-			// Check if running on Linux and convert to hex if necessary
-			if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
-				$imageData = bin2hex($imageData);
-			}
 			$request->ImageData		= $imageData;
 			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 		}
 	}
 }
-if (count($errors) > 0) {
-	print_r($errors);
-}
+
 ?>
