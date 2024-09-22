@@ -1,12 +1,17 @@
 #!/bin/bash
 # James Staub
 # Nashville Public Library
-# Delete patron images that are not in the ..._infinitecampus.csv file
+# Delete patron images that:
+# 1. are likely invalid because they are less than 4KB
+# 2. are not in the ..._infinitecampus.csv file
 # 2024 09 21
 
 # Define the paths
 image_dir="../data/images/staff/"
 csv_file="../data/ic2carlx_mnps_staff_infinitecampus.csv"
+
+# Delete images that are less than 4KB
+find "$image_dir" -type f -size -4k -delete
 
 # Extract the first column from the CSV file and store it in an array
 mapfile -t valid_filenames < <(cut -d',' -f1 "$csv_file")
