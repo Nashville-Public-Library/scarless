@@ -143,7 +143,7 @@ set timeout 900
 logWrite $logFile "START clean up image files"
 send "bash ic2carlx_mnps_staff_imageCleanUp.sh\r"
 expect -re $prompt
-send "bash ic2carlx_mnps_student_imageCleanUp.sh\r"
+send "bash ic2carlx_mnps_students_imageCleanUp.sh\r"
 expect -re $prompt
 logWrite $logFile "COMPLETE clean up image files"
 
