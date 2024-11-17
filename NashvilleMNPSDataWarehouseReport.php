@@ -79,6 +79,7 @@ with co as (
         , to_char(cos.systemtimestamp, 'YYYYMMDD') as yearMonthDay
         , patronid as studentID
     from cos
+    where regexp_like(patronid, '^190[0-9]{6}$') -- MNPS student IDs start with 190, followed by 6 digits
 )
 select
     schoolcode
