@@ -7,7 +7,7 @@
 // Usage: php NashvilleMNPSDataWarehouseReport.php YYYYMM
 // MNPS Data Warehouse Reports include
 // + tanglible items checked out
-// + online items checked out
+// + online items checked out??? not implemented yet 2024 11 16
 class nashvilleMNPSDataWarehouseReport
 {
 	private $reportPath;
