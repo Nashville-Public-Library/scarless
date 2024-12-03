@@ -8,7 +8,7 @@ php NashvilleMNPSDataWarehouseReport.php
 
 # Move the file to the destination directory
 DATESTRING=$(date -d "$(date +%Y-%m-15) -1 month" +%Y%m)
-SOURCE_FILE="../data/Library Services - Checkouts Tangible - $DATESTRING.txt"
+SOURCE_FILE="../data/LibraryServices-CheckoutsTangible-$DATESTRING.txt"
 DEST_DIR="/home/mnps.org/data/"
 
 # Move the files
