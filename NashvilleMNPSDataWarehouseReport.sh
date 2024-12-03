@@ -11,5 +11,9 @@ DATESTRING=$(date -d "$(date +%Y-%m-15) -1 month" +%Y%m)
 SOURCE_FILE="../data/LibraryServices-CheckoutsTangible-$DATESTRING.txt"
 DEST_DIR="/home/mnps.org/data/"
 
+# Set file ownership and permissions
+chown :mnps.org $SOURCE_FILE
+chmod 644 $SOURCE_FILE
+
 # Move the files
 mv $SOURCE_FILE $DEST_DIR/
