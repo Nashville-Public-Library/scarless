@@ -110,7 +110,7 @@ EOT;
 
 	function writeData($rows)
 	{
-		$filename = $this->reportPath . 'Library Services - Checkouts Tangible - ' . $this->reportDate . '.txt';
+		$filename = $this->reportPath . 'LibraryServices-CheckoutsTangible-' . $this->reportDate . '.txt';
 		$fp = fopen($filename, 'w');
 		$header = array('schoolcode', 'yearmonthday', 'studentid', 'countOfCheckouts');
 		fputcsv($fp, $header, "\t");
