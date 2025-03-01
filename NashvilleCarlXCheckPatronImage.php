@@ -79,6 +79,7 @@ if (!empty($staffImageFiles) && !empty($studentImageFiles)) {
 	$imageFiles = $studentImageFiles;
 }
 
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($imageFiles as $fileInfo) {
 	$file = $fileInfo->getFilename();
 	$imageFilePath = $fileInfo->getPathname();
@@ -96,7 +97,7 @@ foreach ($imageFiles as $fileInfo) {
 		$request->SearchType = 'Patron ID';
 		$request->SearchID = $matches[1]; // Patron ID
 		$request->ImageType = 'Profile'; // Patron Profile Picture vs. Signature
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 		$imageCarl = '';
 		if ($result) {
 			$imageCarl = getImageDataFromResponse($result);
