@@ -21,6 +21,21 @@ $reportPath		= '../data/';
 
 //////////////////// FUNCTIONS ////////////////////
 
+// Custom error handler function
+function customErrorHandler($errno, $errstr, $errfile, $errline) {
+	if (strpos($errstr, 'Failed to open stream: Too many open files in') !== false) {
+		// Handle the specific warning here
+		echo "Custom Warning: $errstr in $errfile on line $errline\n";
+		// Optionally, you can log this warning to a file or take other actions
+		exit(1);
+	}
+	// Ensure the default error handler is still called
+	return false;
+}
+
+// Set the custom error handler
+set_error_handler('customErrorHandler');
+
 function callAPI($wsdl, $requestName, $request, $tag, $client = null) {
 //	$logger = Log::singleton('file', $reportPath . 'ic2carlx.log');
 //echo "REQUEST:\n" . var_dump($request) ."\n";
