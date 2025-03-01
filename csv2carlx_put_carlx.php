@@ -21,7 +21,7 @@ $reportPath		= '../data/';
 
 //////////////////// FUNCTIONS ////////////////////
 
-function callAPI($wsdl, $requestName, $request, $tag) {
+function callAPI($wsdl, $requestName, $request, $tag, $client = null) {
 //	$logger = Log::singleton('file', $reportPath . 'csv2carlx.log');
 //echo "REQUEST:\n" . var_dump($request) ."\n";
 	$connectionPassed = false;
@@ -30,7 +30,9 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 	$result->response = "";
 	while (!$connectionPassed && $numTries < 2) {
 		try {
-			$client = new SOAPClient($wsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1, 'keep_alive' => false));
+			if ($client === null) {
+				$client = new SOAPClient($wsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+			}
 			$result->response = $client->$requestName($request);
 //echo "REQUEST:\n" . $client->__getLastRequest() . "\n";
 //echo "RESPONSE:\n" . $client->__getLastResponse() . "\n";
@@ -79,6 +81,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] != 'B99999999') { break; }
@@ -126,7 +129,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->PreferredAddress				= 'Primary';
 	$request->Patron->RegisteredBy					= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate				= date('c'); // Registration Date, format ISO 8601
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 // SET PIN FOR CREATED PATRON
 // createPatron is not setting PIN as requested. See TLC ticket 452557
 // Therefore we use updatePatron to set PIN
@@ -145,7 +148,7 @@ foreach ($all_rows as $patron) {
 	} else {
 		$request->Patron->PatronPIN				= createRandomPIN();
 	}
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 }
 
 // create cryptographically secure random password for new patron that is 6 characters long and is composed of hexadecimal characters 0-9 and a-f
