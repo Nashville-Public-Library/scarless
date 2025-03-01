@@ -52,6 +52,8 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 			}
 		} catch (SoapFault $e) {
 			if ($numTries == 2) { $result->error = "EXCEPTION: " . $tag . " : " . $e->getMessage(); }
+		} finally {
+			unset($client); // Ensure the SOAP client is unset to free resources
 		}
 		$numTries++;
 	}
