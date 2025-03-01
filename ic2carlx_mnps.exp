@@ -16,6 +16,14 @@ set logFile "$localPath$name.log"
 # CONFIG
 set nowEpoch [clock seconds]
 
+# PARSE ARGUMENTS
+set testMode 0
+foreach {arg} $argv {
+    if {$arg == "--test"} {
+        set testMode 1
+    }
+}
+
 # START BASH
 set timeout 10
 set prompt {\$ $}
@@ -163,6 +171,11 @@ logWrite $logFile "COMPLETE clean up image files"
 # see also https://nikic.github.io/2012/12/22/Cooperative-multitasking-using-coroutines-in-PHP.html
 # see also https://blog.ircmaxell.com/2012/07/what-generators-can-do-for-you.html#Other-Uses
 # but until then, the purely sequential way...
+
+if {$testMode == 1} {
+    logWrite $logFile "TEST MODE: skipping put carlx"
+    exit
+}
 
 set timeout 3600
 logWrite $logFile "START mnps staff put carlx"
