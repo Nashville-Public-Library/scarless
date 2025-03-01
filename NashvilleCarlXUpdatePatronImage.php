@@ -45,8 +45,7 @@ foreach ($records as $patron) {
 	$imageFilePath 					= "../data/images/" . $patronGroup . "/" . $patron[0] . ".jpg";
 	if (file_exists($imageFilePath)) {
 		$imageBin 					= file_get_contents($imageFilePath);
-		$imageHex 					= bin2hex($imageBin);
-		$request->ImageData			= $imageHex;
+		$request->ImageData			= $imageBin;
 	} else {
 // TO DO: create IMAGE NOT AVAILABLE image
 	}
