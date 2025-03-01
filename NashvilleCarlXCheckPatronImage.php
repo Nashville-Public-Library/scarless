@@ -12,6 +12,16 @@ $patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode     = $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
 $reportPath             = '../data/';
+if (!empty($configArray['Catalog']['staffSubDir'])) {
+	$staffSubDir = $configArray['Catalog']['staffSubDir'];
+} else {
+	$staffSubDir = 'staff';
+}
+if (!empty($configArray['Catalog']['studentSubDir'])) {
+	$studentSubDir = $configArray['Catalog']['studentSubDir'];
+} else {
+	$studentSubDir = 'students';
+}
 
 function getImageDataFromResponse($response) {
 	// Ensure the response is an object
@@ -35,7 +45,7 @@ $type = $options['type'] ?? 'both';
 $imageFiles = [];
 
 if ($type === 'staff' || $type === 'both') {
-	$staffImageIterator = new DirectoryIterator('../data/images/staff');
+	$staffImageIterator = new DirectoryIterator("../data/images/$staffSubDir");
 	$staffImageFiles = iterator_to_array($staffImageIterator);
 	$staffImageFiles = array_filter($staffImageFiles, function ($fileinfo) {
 		return $fileinfo->isFile();
@@ -46,7 +56,7 @@ if ($type === 'staff' || $type === 'both') {
 }
 
 if ($type === 'student' || $type === 'both') {
-	$studentImageIterator = new DirectoryIterator('../data/images/students');
+	$studentImageIterator = new DirectoryIterator("../data/images/$studentSubDir");
 	$studentImageFiles = iterator_to_array($studentImageIterator);
 	$studentImageFiles = array_filter($studentImageFiles, function ($fileinfo) {
 		return $fileinfo->isFile();
