@@ -112,17 +112,14 @@ EOT;
 		return $data;
 	}
 
-	function callAPI($wsdl, $requestName, $request, $tag)
+	function callAPI($wsdl, $requestName, $request, $tag, $client)
 	{
-		$this->circulationApiLogin;
-		$this->circulationApiPassword;
 		$connectionPassed = false;
 		$numTries = 0;
 		$result = new stdClass();
 		$result->response = "";
 		while (!$connectionPassed && $numTries < 3) {
 			try {
-				$client = new SOAPClient($wsdl, array('connection_timeout' => 3, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1, 'login' => $this->circulationApiLogin, 'password' => $this->circulationApiPassword));
 				$result->response = $client->$requestName($request);
 				$connectionPassed = true;
 				if (is_null($result->response)) {
@@ -164,7 +161,7 @@ EOT;
 		return $result;
 	}
 
-	function checkoutViaAPI($item, $patronid)
+	function checkoutViaAPI($item, $patronid, $client)
 	{
 		$requestName = 'CheckoutItem';
 		$tag = $requestName . ' ' . $item;
@@ -179,7 +176,7 @@ EOT;
 		$requestCheckoutItem->Alias = 'PIK'; // Staffer alias
 //		$requestCheckoutItem->damagedItemNote = '';
 		$requestCheckoutItem->Override = true; // Circulation override
-		return $this->callAPI($this->circulationApiWsdl, $requestName, $requestCheckoutItem, $tag);
+		return $this->callAPI($this->circulationApiWsdl, $requestName, $requestCheckoutItem, $tag, $client);
 	}
 }
 
@@ -187,9 +184,10 @@ $update = new nashvilleCarlXCirculationChangeDueDates();
 $update->getConfig();
 $items = $update->getDataViaSQL();
 // $items = $update->getDataViaCSV();
+$client = new SOAPClient($this->circulationApiWsdl, array('connection_timeout' => 3, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1, 'login' => $this->circulationApiLogin, 'password' => $this->circulationApiPassword));
 foreach ($items as $item)
 {
 //	var_dump($item);
-	$result = $update->checkoutViaAPI($item['ITEM'], $item['PATRONID']);
+	$result = $update->checkoutViaAPI($item['ITEM'], $item['PATRONID'], $client);
 //	var_dump($resultCheckin);
 }
