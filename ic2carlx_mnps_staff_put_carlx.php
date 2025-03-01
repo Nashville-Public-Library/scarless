@@ -43,7 +43,7 @@ if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDA
 	}
 	fclose($fhnd);
 	//print_r($all_rows);
-
+	$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 	foreach ($all_rows as $patron) {
 		// TESTING
 		//if ($patron['patronid'] > 999115) { break; }
@@ -76,7 +76,7 @@ if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDA
 		$request->Patron->LastEditDate = date('c'); // Patron Last Edit Date, format ISO 8601
 		$request->Patron->LastEditedBy = 'PIK'; // Pika Patron Loader
 		$request->Patron->PreferredAddress = 'Primary';
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 
 		// CREATE URGENT 'Former MNPS Patron' NOTE
 		// CREATE REQUEST
@@ -96,7 +96,7 @@ if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDA
 			$PatronExpirationDate = date('Y-m-d', strtotime('yesterday')); // Patron Expiration Date
 		}
 		$request->Note->NoteText = 'Former MNPS staffer, patron expired ' . $PatronExpirationDate . '. Previous branchcode: ' . $patron['defaultbranch'] . '. Previous bty: ' . $patron['borrowertypecode'] . '. DO NOT convert this account to NPL; create new account after outstanding transactions are resolved.';
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	}
 }
 
@@ -112,7 +112,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
-
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['patronid'] > 999115) { break; }
@@ -149,7 +149,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron->PatronStatusCode	= 'G'; // Patron Status Code = GOOD
 	$request->Patron->RegisteredBy		= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate	= date('c'); // Registration Date, format ISO 8601
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 
 // SET PIN FOR CREATED PATRON
 // createPatron is not setting PIN as requested. See TLC ticket 452557
@@ -169,7 +169,7 @@ foreach ($all_rows as $patron) {
 	} else {
 		$request->Patron->PatronPIN		= createRandomPIN();
 	}
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 }
 
 //////////////////// UPDATE CARLX PATRONS ////////////////////
@@ -184,7 +184,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
-
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['patronid'] > 999115) { break; }
@@ -225,7 +225,7 @@ foreach ($all_rows as $patron) {
 //	$request->Patron->LastActionDate	= date('c'); // Last Action Date, format ISO 8601
 	$request->Patron->LastEditDate		= date('c'); // Patron Last Edit Date, format ISO 8601
 	$request->Patron->LastEditedBy		= 'PIK'; // Pika Patron Loader
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 }
 
 //////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES //////////////////// 
@@ -239,6 +239,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 999115) { continue; }
@@ -252,7 +253,7 @@ foreach ($all_rows as $patron) {
 		$request->Modifiers->DebugMode	= $patronApiDebugMode;
 		$request->Modifiers->ReportMode	= $patronApiReportMode;
 		$request->NoteID				= $noteID;
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	}
 }
 
@@ -284,7 +285,7 @@ foreach ($iterator as $fileinfo) {
 // TO DO: create IMAGE NOT AVAILABLE image
 		}
 		if (isset($request->ImageData)) {
-			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+			$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 		}
 	}
 }
