@@ -4,8 +4,6 @@
 // echo 'SYNTAX: $ sudo php NashvilleCarlXUpdatePatronImage.php --start=190000000 --type=both\n';
 
 require_once 'ic2carlx_put_carlx.php';
-// Set the custom error handler
-set_error_handler('customErrorHandler');
 
 date_default_timezone_set('America/Chicago');
 $startTime 				= microtime(true);

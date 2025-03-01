@@ -33,6 +33,8 @@ function customErrorHandler($errno, $errstr, $errfile, $errline) {
 	return false;
 }
 
+// Set error reporting to include warnings
+error_reporting(E_ALL);
 // Set the custom error handler
 set_error_handler('customErrorHandler');
 
