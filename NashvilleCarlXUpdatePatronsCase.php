@@ -78,16 +78,9 @@ if ($fhnd){
 }
 
 $count = 0;
-$callcount = 0;
-$round = 0;
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($records as $patron) {
 	$count++;
-	if ($callcount >= 10000) { // empirically, when run on catalog.library.nashville.org, the 4092nd update and beyond does not actually update. On NLMNJSTAUB, it updates until the 12597th update
-		exit;
-		$callcount = 0;
-		$round++;
-	}
-
 	// CREATE PATRON UPDATE REQUEST
 	$requestName = 'updatePatron';
 	$tag = $patron[0] . ' : ' . $requestName;
@@ -181,7 +174,7 @@ foreach ($records as $patron) {
 //	$request->Patron->FullName = $request->Patron->FirstName . ' ' . $request->Patron->MiddleName . ' ' . $request->Patron->LastName . ' ' . $request->Patron->SuffixName;
 
 //	if($request->Patron->FirstName != $patron[1] || $request->Patron->MiddleName != $patron[2] || $request->Patron->LastName != $patron[3] || $request->Patron->SuffixName != $patron[4]) {
-//		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+//		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 //		$callcount++;
 //		echo 'COUNT: ' . $count . "\n";
 //		echo 'ROUND/CALL COUNT: ' . $round . '/' . $callcount . "\n";
@@ -193,10 +186,9 @@ foreach ($records as $patron) {
 
 	if($request->Patron->Addresses->Address->Street != $patron[5] || $request->Patron->Addresses->Address->City != $patron[6] || $request->Patron->Addresses->Address->State != $patron[7] || $request->Patron->Addresses->Address->PostalCode != $patron[8]) {
 //	if($request->Patron->Addresses->Address->PostalCode != $patron[8]) {
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 		$callcount++;
 		echo 'COUNT: ' . $count . "\n";
-		echo 'ROUND/CALL COUNT: ' . $round . '/' . $callcount . "\n";
 		echo 'Patron ID: ' . $request->SearchID . "\n";
 		echo 'Patron Primary Address Street: ' . $patron[5] . ' -> ' . $request->Patron->Addresses->Address->Street . "\n";
 		echo 'Patron Primary Address City: ' . $patron[6] . ' -> ' . $request->Patron->Addresses->Address->City . "\n";
