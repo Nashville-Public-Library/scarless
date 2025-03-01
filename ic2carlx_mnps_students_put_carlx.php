@@ -45,6 +45,7 @@ if ($today >= $startDate && $today < $twentyDay) {
 	fclose($fhnd);
 
 	//print_r($all_rows);
+	$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 	foreach ($all_rows as $patron) {
 		// TESTING
 		//if ($patron['PatronID'] > 190999115) { break; }
@@ -67,7 +68,7 @@ if ($today >= $startDate && $today < $twentyDay) {
 			$request->Patron->SponsorName = ''; // Patron Homeroom Teacher Name
 			$request->Patron->LastEditDate = date('c'); // Patron Last Edit Date, format ISO 8601
 			$request->Patron->LastEditedBy = 'PIK'; // Pika Patron Loader
-			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+			$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 		}
 	}
 }
@@ -85,6 +86,7 @@ if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDA
 	}
 	fclose($fhnd);
 	//print_r($all_rows);
+	$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 	foreach ($all_rows as $patron) {
 		// TESTING
 		//if ($patron['patronid'] > 190999115) { break; }
@@ -130,7 +132,7 @@ if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDA
 		$request->Patron->LastEditDate = date('c'); // Patron Last Edit Date, format ISO 8601
 		$request->Patron->LastEditedBy = 'PIK'; // Pika Patron Loader
 		$request->Patron->PreferredAddress = 'Primary';
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	// CREATE URGENT 'Former MNPS Patron' NOTE
 		// CREATE REQUEST
 		$requestName = 'addPatronNote';
@@ -149,7 +151,7 @@ if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDA
 			$PatronExpirationDate = date('Y-m-d', strtotime('yesterday')); // Patron Expiration Date
 		}
 		$request->Note->NoteText = 'MNPS patron expired ' . $PatronExpirationDate . '. Previous branchcode: ' . $patron['defaultbranch'] . '. Previous bty: ' . $patron['borrowertypecode'] . '. This account may be converted to NPL after staff update patron barcode, patron type, email, phone, address, branch, and guarantor.';
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	}
 }
 
@@ -164,6 +166,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
@@ -231,7 +234,7 @@ foreach ($all_rows as $patron) {
 	}
 	$request->Patron->RegisteredBy					= 'PIK'; // Registered By : Pika Patron Loader
 	$request->Patron->RegistrationDate				= date('c'); // Registration Date, format ISO 8601
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 // SET PIN FOR CREATED PATRON
 // createPatron is not setting PIN as requested. See TLC ticket 452557
 // Therefore we use updatePatron to set PIN
@@ -250,7 +253,7 @@ foreach ($all_rows as $patron) {
 	} else {
 		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
 	}
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 }
 
 //////////////////// UPDATE CARLX PATRONS ////////////////////
@@ -265,6 +268,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
@@ -323,7 +327,7 @@ foreach ($all_rows as $patron) {
 	} else {
 		$request->Patron->PreferredAddress			= 'Primary';
 	}
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 }
 
 //////////////////// UPDATE EMAIL ADDRESS AND NOTICES ////////////////////
@@ -338,6 +342,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
@@ -353,7 +358,7 @@ foreach ($all_rows as $patron) {
 	$request->Patron						= new stdClass();
 	$request->Patron->Email						= $patron['Email']; // Email Address
 	$request->Patron->EmailNotices					= $patron['EmailNotices']; // Email Address
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 }
 
 //////////////////// CREATE GUARANTOR NOTES ////////////////////
@@ -368,6 +373,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
@@ -383,7 +389,7 @@ foreach ($all_rows as $patron) {
 	$request->Note->PatronID			= $patron['PatronID']; // Patron ID
 	$request->Note->NoteType			= 2;
 	$request->Note->NoteText			= $patron['Guarantor']; // Patron Guarantor as Note
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 }
 
 //////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES ////////////////////
@@ -398,6 +404,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { continue; }
@@ -411,7 +418,7 @@ foreach ($all_rows as $patron) {
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;
 		$request->Modifiers->ReportMode				= $patronApiReportMode;
 		$request->NoteID					= $noteID;
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	}
 }
 
@@ -427,6 +434,7 @@ if ($fhnd){
 }
 fclose($fhnd);
 //print_r($all_rows);
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($all_rows as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { continue; }
@@ -440,7 +448,7 @@ foreach ($all_rows as $patron) {
 		$request->Modifiers->DebugMode				= $patronApiDebugMode;
 		$request->Modifiers->ReportMode				= $patronApiReportMode;
 		$request->NoteID					= $noteID;
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	}
 }
 
@@ -449,6 +457,7 @@ foreach ($all_rows as $patron) {
 $iterator = new DirectoryIterator('../data/images/students');
 $today = date_create('today')->format('U');
 //$today = date_create('2020-08-10')->format('U');
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($iterator as $fileinfo) {
 	$file = $fileinfo->getFilename();
 	$mtime = $fileinfo->getMTime();
@@ -471,7 +480,7 @@ foreach ($iterator as $fileinfo) {
 // TO DO: create IMAGE NOT AVAILABLE image
 		}
 		if (isset($request->ImageData)) {
-			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+			$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 		}
 	}
 }
