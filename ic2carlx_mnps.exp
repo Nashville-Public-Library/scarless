@@ -54,7 +54,7 @@ send "rsync -a "
 send $icPath
 send "CARLX_INFINITECAMPUS.zip $localPath/CARLX_INFINITECAMPUS.zip"
 send "\r"
-if {[string length $icUser] != 0} {
+if {[info exists icUser] && [string length $icUser] > 0} {
     # $icUser is not empty
     expect "password:"
     send $icPassword
@@ -68,7 +68,7 @@ send "rsync -a --delete "
 send $icPath
 send "images/ $localPath/images/"
 send "\r"
-if {[string length $icUser] != 0} {
+if {[info exists icUser] && [string length $icUser] > 0} {
     # $icUser is not empty
     expect "password:"
     send $icPassword
