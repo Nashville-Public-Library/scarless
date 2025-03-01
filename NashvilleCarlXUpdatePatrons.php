@@ -59,6 +59,7 @@ if ($fhnd){
 
 $i = 0;
 $errors = array();
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($records as $patron) {
 	// CREATE PATRON UPDATE REQUEST
 	$requestName = 'updatePatron';
@@ -87,6 +88,6 @@ foreach ($records as $patron) {
 //	$request->Patron->Addresses->Address[0]->Street			= '3007111'; // Address type "secondary", street = teacher id
 	$request->Patron->ExpirationDate				= date_create_from_format('Y-m-d','2025-10-01')->format('c'); // Patron Expiration Date as ISO 8601
 
-	$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 }
 ?>
