@@ -21,7 +21,7 @@ $reportPath		= '../data/';
 
 //////////////////// FUNCTIONS ////////////////////
 
-function callAPI($wsdl, $requestName, $request, $tag) {
+function callAPI($wsdl, $requestName, $request, $tag, $client = null) {
 //	$logger = Log::singleton('file', $reportPath . 'ic2carlx.log');
 //echo "REQUEST:\n" . var_dump($request) ."\n";
 	$connectionPassed = false;
@@ -30,7 +30,9 @@ function callAPI($wsdl, $requestName, $request, $tag) {
 	$result->response = "";
 	while (!$connectionPassed && $numTries < 2) {
 		try {
-			$client = new SOAPClient($wsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+			if ($client === null) {
+				$client = new SOAPClient($wsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+			}
 			$result->response = $client->$requestName($request);
 //echo "REQUEST:\n" . $client->__getLastRequest() . "\n";
 			$connectionPassed = true;

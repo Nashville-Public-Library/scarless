@@ -23,6 +23,7 @@ if ($fhnd){
 
 $i = 0;
 $errors = array();
+$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($records as $patron) {
 
 	if (preg_match('/^\d{6,7}$/', $patron[0]) === 1) {
@@ -50,7 +51,7 @@ foreach ($records as $patron) {
 // TO DO: create IMAGE NOT AVAILABLE image
 	}
 	if (isset($request->ImageData)) {
-		$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	}
 }
 
