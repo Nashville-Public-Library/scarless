@@ -49,7 +49,7 @@ expect -re $prompt
 
 # RETRIEVE IMAGES
 set timeout 1800
-send "rsync -a "
+send "rsync -a --delete "
 send $icUser
 send ":"
 send $icPath
