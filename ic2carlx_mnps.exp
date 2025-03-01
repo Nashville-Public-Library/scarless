@@ -43,9 +43,7 @@ expect_before {
 logWrite $logFile "START get infinitecampus"
 
 # IF ICUSER IS IN CONFIG.PWD.INI, USE IT. ICUSER SHOULD LOOK LIKE "limitless@connected.library.nashville.org"
-if {[string length $icUser] == 0} {
-    # $icUser is empty
-} else {
+if {[info exists icUser] && [string length $icUser] > 0} {
     # $icUser is not empty
     set icPath "$icUser:$icPath"
 }
