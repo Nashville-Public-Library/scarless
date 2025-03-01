@@ -54,7 +54,7 @@ if ($type === 'staff' || $type === 'both') {
 		}
 	}
 	usort($staffImageFiles, function ($a, $b) {
-		return $a->getFilename() <=> $b->getFilename();
+		return (int)$a->getBasename('.jpg') <=> (int)$b->getBasename('.jpg');
 	});
 }
 
@@ -68,7 +68,7 @@ if ($type === 'student' || $type === 'both') {
 		}
 	}
 	usort($studentImageFiles, function ($a, $b) {
-		return $a->getFilename() <=> $b->getFilename();
+		return (int)$a->getBasename('.jpg') <=> (int)$b->getBasename('.jpg');
 	});
 }
 
