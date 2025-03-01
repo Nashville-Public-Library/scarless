@@ -12,6 +12,16 @@ $patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode     = $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
 $reportPath             = '../data/';
+if (!empty($configArray['Catalog']['staffSubDir'])) {
+	$staffSubDir = $configArray['Catalog']['staffSubDir'];
+} else {
+	$staffSubDir = 'staff';
+}
+if (!empty($configArray['Catalog']['studentSubDir'])) {
+	$studentSubDir = $configArray['Catalog']['studentSubDir'];
+} else {
+	$studentSubDir = 'students';
+}
 
 $records = array();
 $fhnd = fopen($reportPath . "CARLX_MNPS_UPDATE_PATRON_IMAGE.CSV", "r");
@@ -27,9 +37,9 @@ $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'featu
 foreach ($records as $patron) {
 
 	if (preg_match('/^\d{6,7}$/', $patron[0]) === 1) {
-		$patronGroup = "staff";
+		$patronGroup = $staffSubDir;
 	} elseif (preg_match('/^190\d{6}$/', $patron[0]) === 1) {
-		$patronGroup = "students";
+		$patronGroup = $studentSubDir;
 	} else {
 		continue;
 	}
