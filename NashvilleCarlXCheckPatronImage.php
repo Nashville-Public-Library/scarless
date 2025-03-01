@@ -66,7 +66,13 @@ if ($type === 'student' || $type === 'both') {
 	});
 }
 
-$imageFiles = array_merge($staffImageFiles, $studentImageFiles);
+if(!empty($staffImageFiles) && !empty($studentImageFiles)) {
+	$imageFiles = array_merge($staffImageFiles, $studentImageFiles);
+} elseif (!empty($staffImageFiles)) {
+	$imageFiles = $staffImageFiles;
+} elseif (!empty($studentImageFiles)) {
+	$imageFiles = $studentImageFiles;
+}
 
 foreach ($imageFiles as $fileInfo) {
 	$file = $fileInfo->getFilename();
