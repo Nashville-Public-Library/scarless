@@ -42,14 +42,14 @@ $options = getopt("",["start:","type:"]);
 $start = isset($options['start']) ? (int)$options['start'] : 0;
 $type = $options['type'] ?? 'both';
 
-
 $imageFiles = [];
 
 if ($type === 'staff' || $type === 'both') {
 	$staffImageIterator = new DirectoryIterator("../data/images/$staffSubDir");
 	$staffImageFiles = [];
 	foreach ($staffImageIterator as $fileinfo) {
-		if ($fileinfo->isFile()) {
+		$fileInt = (int)$fileinfo->getBasename('.jpg');
+		if ($fileinfo->isFile() && $fileInt >= $start) {
 			$staffImageFiles[] = new SplFileInfo($fileinfo->getPathname());
 		}
 	}
@@ -62,7 +62,8 @@ if ($type === 'student' || $type === 'both') {
 	$studentImageIterator = new DirectoryIterator("../data/images/$studentSubDir");
 	$studentImageFiles = [];
 	foreach ($studentImageIterator as $fileinfo) {
-		if ($fileinfo->isFile()) {
+		$fileInt = (int)$fileinfo->getBasename('.jpg');
+		if ($fileinfo->isFile() && $fileInt >= $start) {
 			$studentImageFiles[] = new SplFileInfo($fileinfo->getPathname());
 		}
 	}
