@@ -110,7 +110,7 @@ foreach ($imageFiles as $fileInfo) {
 			$tag = $matches[1] . ' : ' . $requestName;
 			$imageData = file_get_contents($imageFilePath);
 			$request->ImageData = $imageData;
-			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
+			$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 		}
 	}
 }
