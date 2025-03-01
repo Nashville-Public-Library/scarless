@@ -11,6 +11,7 @@ function getDataFromCarlX() {
 	$carlx_db_php		= $configArray['Catalog']['carlx_db_php'];
 	$carlx_db_php_user	= $configArray['Catalog']['carlx_db_php_user'];
 	$carlx_db_php_password	= $configArray['Catalog']['carlx_db_php_password'];
+	$itemApiWsdl		= $configArray['Catalog']['itemApiWsdl'];
 	$reportPath		= '../data/';
 	// connect to carlx oracle db
 	$conn = oci_connect($carlx_db_php_user, $carlx_db_php_password, $carlx_db_php);
@@ -88,6 +89,7 @@ function updateItems() {
 	$callcount = 0;
 	getDataFromCarlX();
 	$records = getDataFromCSV();
+	$client = new SOAPClient($itemApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 	foreach ($records as $item) {
 		// CREATE ITEM UPDATE REQUEST
 		$requestName = 'updateItem';
@@ -100,7 +102,7 @@ function updateItems() {
 		$request->Item = new stdClass();
 		$request->Item->Price = trim($item[2]);
 
-		$result = callAPI($itemApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($itemApiWsdl, $requestName, $request, $tag, $client);
 		$callcount++;
 	//	var_dump($result);
 	//	if (isset($result->Fault)) {
