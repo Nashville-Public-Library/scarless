@@ -42,31 +42,36 @@ $options = getopt("",["start:","type:"]);
 $start = isset($options['start']) ? (int)$options['start'] : 0;
 $type = $options['type'] ?? 'both';
 
+
 $imageFiles = [];
 
 if ($type === 'staff' || $type === 'both') {
 	$staffImageIterator = new DirectoryIterator("../data/images/$staffSubDir");
-	$staffImageFiles = iterator_to_array($staffImageIterator);
-	$staffImageFiles = array_filter($staffImageFiles, function ($fileinfo) {
-		return $fileinfo->isFile();
-	});
+	$staffImageFiles = [];
+	foreach ($staffImageIterator as $fileinfo) {
+		if ($fileinfo->isFile()) {
+			$staffImageFiles[] = new SplFileInfo($fileinfo->getPathname());
+		}
+	}
 	usort($staffImageFiles, function ($a, $b) {
-		return $a->getFileName() - $b->getFileName();
+		return $a->getFilename() <=> $b->getFilename();
 	});
 }
 
 if ($type === 'student' || $type === 'both') {
 	$studentImageIterator = new DirectoryIterator("../data/images/$studentSubDir");
-	$studentImageFiles = iterator_to_array($studentImageIterator);
-	$studentImageFiles = array_filter($studentImageFiles, function ($fileinfo) {
-		return $fileinfo->isFile();
-	});
+	$studentImageFiles = [];
+	foreach ($studentImageIterator as $fileinfo) {
+		if ($fileinfo->isFile()) {
+			$studentImageFiles[] = new SplFileInfo($fileinfo->getPathname());
+		}
+	}
 	usort($studentImageFiles, function ($a, $b) {
-		return $a->getFileName() - $b->getFileName();
+		return $a->getFilename() <=> $b->getFilename();
 	});
 }
 
-if(!empty($staffImageFiles) && !empty($studentImageFiles)) {
+if (!empty($staffImageFiles) && !empty($studentImageFiles)) {
 	$imageFiles = array_merge($staffImageFiles, $studentImageFiles);
 } elseif (!empty($staffImageFiles)) {
 	$imageFiles = $staffImageFiles;
@@ -99,10 +104,10 @@ foreach ($imageFiles as $fileInfo) {
 
 		if ($imageBin !== $imageCarl) {
 			echo "Local does not match CarlX: $imageFilePath\n";
-			$requestName 			= 'updateImage';
-			$tag 					= $matches[1] . ' : ' . $requestName;
-			$imageData 				= file_get_contents($imageFilePath);
-			$request->ImageData		= $imageData;
+			$requestName = 'updateImage';
+			$tag = $matches[1] . ' : ' . $requestName;
+			$imageData = file_get_contents($imageFilePath);
+			$request->ImageData = $imageData;
 			$result = callAPI($patronApiWsdl, $requestName, $request, $tag);
 		}
 	}
