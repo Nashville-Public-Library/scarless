@@ -88,6 +88,7 @@ function updateItems() {
 	$callcount = 0;
 	getDataFromCarlX();
 	$records = getDataFromCSV();
+	$client = new SOAPClient($itemApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 	foreach ($records as $item) {
 		// CREATE ITEM UPDATE REQUEST
 		$requestName = 'updateItem';
@@ -100,7 +101,7 @@ function updateItems() {
 		$request->Item = new stdClass();
 		$request->Item->Price = trim($item[2]);
 
-		$result = callAPI($itemApiWsdl, $requestName, $request, $tag);
+		$result = callAPI($itemApiWsdl, $requestName, $request, $tag, $client);
 		$callcount++;
 	//	var_dump($result);
 	//	if (isset($result->Fault)) {
