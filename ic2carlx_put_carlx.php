@@ -22,6 +22,7 @@ $reportPath		= '../data/';
 //////////////////// FUNCTIONS ////////////////////
 
 // Custom error handler function
+// As of 2025 03 01, this custom error handler does NOT work
 function customErrorHandler($errno, $errstr, $errfile, $errline) {
 	if (strpos($errstr, 'Failed to open stream: Too many open files in') !== false) {
 		// Handle the specific warning here
