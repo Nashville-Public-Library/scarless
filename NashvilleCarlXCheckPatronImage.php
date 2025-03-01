@@ -12,13 +12,13 @@ $patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode     = $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
 $reportPath             = '../data/';
-if (!empty($configArray['Catalog']['staffSubDir'])) {
-	$staffSubDir = $configArray['Catalog']['staffSubDir'];
+if (!empty($configArray['Infinite Campus']['staffSubDir'])) {
+	$staffSubDir = $configArray['Infinite Campus']['staffSubDir'];
 } else {
 	$staffSubDir = 'staff';
 }
-if (!empty($configArray['Catalog']['studentSubDir'])) {
-	$studentSubDir = $configArray['Catalog']['studentSubDir'];
+if (!empty($configArray['Infinite Campus']['studentSubDir'])) {
+	$studentSubDir = $configArray['Infinite Campus']['studentSubDir'];
 } else {
 	$studentSubDir = 'students';
 }
