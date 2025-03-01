@@ -92,17 +92,17 @@ EOT;
 		return $data;
 	}
 
-	function callAPI($wsdl, $requestName, $request, $tag)
+	function callAPI($wsdl, $requestName, $request, $tag, $client)
 	{
-		$this->circulationApiLogin;
-		$this->circulationApiPassword;
 		$connectionPassed = false;
 		$numTries = 0;
 		$result = new stdClass();
 		$result->response = "";
 		while (!$connectionPassed && $numTries < 3) {
 			try {
-				$client = new SOAPClient($wsdl, array('connection_timeout' => 3, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1, 'login' => $this->circulationApiLogin, 'password' => $this->circulationApiPassword));
+				if ($client === null) {
+					$client = new SOAPClient($wsdl, array('connection_timeout' => 3, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1, 'login' => $this->circulationApiLogin, 'password' => $this->circulationApiPassword));
+				}
 				$result->response = $client->$requestName($request);
 				$connectionPassed = true;
 				if (is_null($result->response)) {
@@ -144,7 +144,7 @@ EOT;
 		return $result;
 	}
 
-	function checkinViaAPI($item, $branchcode)
+	function checkinViaAPI($item, $branchcode, $circulationAPIClient)
 	{
 		$requestName = 'CheckinItem';
 		$tag = $requestName . ' ' . $item;
@@ -157,10 +157,10 @@ EOT;
 		$requestCheckinItem->Alias = $this->alias; // Staffer alias
 //		$requestCheckinItem->damagedItemNote = 'MNPS 2020-21 pandemic waive';
 		$requestCheckinItem->damagedItemNote = 'MNPS 2024 06 HERO waive';
-		return $this->callAPI($this->circulationApiWsdl, $requestName, $requestCheckinItem, $tag);
+		return $this->callAPI($this->circulationApiWsdl, $requestName, $requestCheckinItem, $tag, $circulationAPIClient);
 	}
 
-	function itemUpdateToMissing($item)
+	function itemUpdateToMissing($item, $itemAPIClient)
 	{
 		$requestName = 'UpdateItem';
 		$tag = $requestName . ' ' . $item;
@@ -171,10 +171,10 @@ EOT;
 		$requestUpdateItem->ItemID = $item; // Item Barcode
 		$requestUpdateItem->Item = new stdClass();
 		$requestUpdateItem->Item->Status = 'SM';
-		return $this->callAPI($this->itemApiWsdl, $requestName, $requestUpdateItem, $tag);
+		return $this->callAPI($this->itemApiWsdl, $requestName, $requestUpdateItem, $tag, $itemAPIClient);
 	}
 
-	function createItemNote ($item)
+	function createItemNote ($item, $itemAPIClient)
 	{
 		$requestName = 'createItemNote';
 		$tag = $item . ': ' . $requestName;
@@ -189,7 +189,7 @@ EOT;
 //		$request->Note->NoteText = 'MNPS 2020-21 pandemic waive';
 		$request->Note->NoteText = 'MNPS 2024 06 HERO waive';
 		$request->Note->Alias = $this->alias;
-		return $this->callAPI($this->itemApiWsdl, $requestName, $request, $tag);
+		return $this->callAPI($this->itemApiWsdl, $requestName, $request, $tag, $itemAPIClient);
 	}
 }
 
@@ -197,14 +197,16 @@ $waive = new nashvilleCarlXMNPSWaiveFees();
 $waive->getConfig();
 // $items = $waive->getItemsToCheckInViaSQL();
 $items = $waive->getItemsToCheckInViaCSV();
+$itemAPIClient = new SOAPClient($this->itemApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
+$circulationAPIClient = new SOAPClient($this->circulationApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($items as $item)
 {
 	var_dump($item);
-	$resultCheckin = $waive->checkinViaAPI($item['ITEM'], $item['BRANCHCODE']);
+	$resultCheckin = $waive->checkinViaAPI($item['ITEM'], $item['BRANCHCODE'], $circulationAPIClient);
 	var_dump($resultCheckin);
-	$resultItemUpdate = $waive->itemUpdateToMissing($item['ITEM']);
+	$resultItemUpdate = $waive->itemUpdateToMissing($item['ITEM'], $itemAPIClient);
 	var_dump($resultItemUpdate);
-	$resultItemNote = $waive->createItemNote($item['ITEM']);
+	$resultItemNote = $waive->createItemNote($item['ITEM'], $itemAPIClient);
 	var_dump($resultItemNote);
 }
 
