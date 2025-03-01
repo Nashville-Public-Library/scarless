@@ -34,30 +34,40 @@ expect_before {
 
 logWrite $logFile "START get infinitecampus"
 
+# IF ICUSER IS IN CONFIG.PWD.INI, USE IT. ICUSER SHOULD LOOK LIKE "limitless@connected.library.nashville.org"
+if {[string length $icUser] == 0} {
+    # $icUser is empty
+} else {
+    # $icUser is not empty
+    set icPath "$icUser:$icPath"
+}
+
 # RETRIEVE INFINITECAMPUS ZIP PACKAGE
 set timeout 10
 send "rsync -a "
-send $icUser
-send ":"
 send $icPath
 send "CARLX_INFINITECAMPUS.zip $localPath/CARLX_INFINITECAMPUS.zip"
 send "\r"
-expect "password:"
-send $icPassword
-send "\r"
+if {[string length $icUser] != 0} {
+    # $icUser is not empty
+    expect "password:"
+    send $icPassword
+    send "\r"
+}
 expect -re $prompt
 
 # RETRIEVE IMAGES
 set timeout 1800
 send "rsync -a --delete "
-send $icUser
-send ":"
 send $icPath
 send "images/ $localPath/images/"
 send "\r"
-expect "password:"
-send $icPassword
-send "\r"
+if {[string length $icUser] != 0} {
+    # $icUser is not empty
+    expect "password:"
+    send $icPassword
+    send "\r"
+}
 expect -re $prompt
 
 # UNZIP INFINITE CAMPUS PACKAGE
