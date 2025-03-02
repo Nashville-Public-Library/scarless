@@ -29,7 +29,7 @@
 # PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/home/scarless/.local/bin:/home/scarless/bin
 
 # MONTHLY REPORT
-0 2 1 * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport.sh;
+0 2 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport.sh;
 
 # RUN IC2CARLX MNPS
 #30 20 * * * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
