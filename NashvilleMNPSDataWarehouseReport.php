@@ -4,12 +4,9 @@
 // 2024 11 16
 // James Staub
 // Nashville Public Library
-// Usage: php NashvilleMNPSDataWarehouseReport.php YYYYMM
-// MNPS Data Warehouse Reports include
-// + tanglible items checked out
-// + online items checked out??? not implemented yet 2024 11 16
-class nashvilleMNPSDataWarehouseReport
-{
+// Usage: php NashvilleMNPSDataWarehouseReport.php YYYY-MM-DD
+
+class nashvilleMNPSDataWarehouseReport {
 	private $reportPath;
 	private $carlx_db_php;
 	private $carlx_db_php_user;
@@ -22,9 +19,11 @@ class nashvilleMNPSDataWarehouseReport
 	private $itemApiWsdl;
 	private $circulationApiWsdl;
 	private $alias;
+	public $reportDate;
+	public $mnpsLimitlessConditions = array('MNPS', 'LimitlessLibraries');
+	public $staffStudentConditions = array('staff', 'student');
 
-	function getConfig()
-	{
+	function getConfig() {
 		date_default_timezone_set('America/Chicago');
 		// $startTime = microtime(true);
 		$this->reportPath = '../data/';
@@ -46,26 +45,54 @@ class nashvilleMNPSDataWarehouseReport
 
 	}
 
-	function getCarlXDataViaSQL($reportDate)
-	{
-		// Calculate the number of months difference
-		$currentDate = new DateTime();
-		$reportDateObj = DateTime::createFromFormat('Ym', $reportDate);
-		$monthsDifference = ($currentDate->format('Y') - $reportDateObj->format('Y')) * 12 + ($currentDate->format('m') - $reportDateObj->format('m'));
+	function getCarlXDataViaSQL($reportDate, $mnpsLimitlessCondition, $staffStudentCondition) {
+		// MNPS vs Limitless condition
+		$mnpsLimitlessSQL = "";
+		if (!in_array($mnpsLimitlessCondition, $this->mnpsLimitlessConditions)) {
+			throw new InvalidArgumentException("Invalid MNPS/Limitless Libraries condition");
+		} else if ($mnpsLimitlessCondition === "MNPS") {
+			$mnpsLimitlessSQL = <<<EOT
+    and co.envbranch != 29 -- Exclude the Limitless Libraries checkout terminals
+    and bre.branchgroup = 2 -- Only envbranch at MNPS
+    and bri.branchgroup = 2 -- Only MNPS items
+EOT;
+		} else if ($mnpsLimitlessCondition === "LimitlessLibraries") {
+			$mnpsLimitlessSQL = <<<EOT
+	and co.envbranch = 29 -- Only the Limitless Libraries checkout terminals
+	and bri.branchgroup = 1 -- Only Limitless Libraries (NPL) items
+EOT;
+		}
+
+		// staff vs. student condition
+		$staffStudentSQL = "";
+		if (!in_array($staffStudentCondition, $this->staffStudentConditions)) {
+			throw new InvalidArgumentException("Invalid staff/student condition");
+		} else if ($staffStudentCondition === "staff") {
+			$staffStudentSQL = <<<EOT
+	and regexp_like(patronid, '^190[0-9]{6}$') -- MNPS student IDs start with 190, followed by 6 digits, i.e., NOT MNPS staff or NPL patrons
+	and patronid not like '190999%' -- Exclude test student patronids
+EOT;
+		} else if ($staffStudentCondition === "student") {
+			$staffStudentSQL = <<<EOT
+	and regexp_like(patronid, '^[0-9]{6,7}$') -- MNPS staff IDs are 6 or 7 digits, i.e., NOT MNPS students or NPL patrons
+	and patronid not like '999%' -- Exclude test staff patronids
+EOT;
+		}
 
 		$sql = <<<EOT
--- MNPS SCHOOL LIBRARY MONTHLY CHECKOUTS
--- Does NOT include Limitless Libraries envbranch checkouts
--- Does NOT include NPL Item checkouts
--- Does NOT include checkouts to MNPS staff
+-- DAILY CHECKOUT REPORT FOR MNPS DATA WAREHOUSE
+-- Configurable for MNPS Items vs. Limitless Libraries (NPL) Items
+-- Configurable for MNPS Students vs. MNPS Staff
+-- Does NOT include NPL Item checkouts at NPL branches
 -- Does NOT include transactions where checkout is likely assigned to the wrong patron
 with co as (
     select
         *
     from txlog_v2
-    where systemtimestamp >= add_months(trunc(sysdate, 'MON'), -1) -- last full month
-    and systemtimestamp < add_months(trunc(sysdate, 'MON'), -0) -- last full month
-    and transactiontype = 'CH'
+	where systemtimestamp >= to_date('$reportDate','YYYY-MM-DD') 
+	  and systemtimestamp < to_date('$reportDate','YYYY-MM-DD') + 1 -- DAILY REPORT
+	  	and patronid = '190248976'
+
 )
 , cos as (
     select
@@ -79,11 +106,9 @@ with co as (
     left join branch_v2 bre on co.envbranch = bre.branchnumber
     left join branch_v2 bri on co.itembranch = bri.branchnumber
     left join branch_v2 brp on co.patronbranchofregistration = brp.branchnumber
-    where regexp_like(patronid, '^190[0-9]{6}$') -- MNPS student IDs start with 190, followed by 6 digits, i.e., NOT MNPS staff or NPL patrons
-    and patronid not like '190999%' -- Exclude test student patronids
-    and co.envbranch != 29 -- Exclude the Limitless Libraries checkout terminals
-    and bre.branchgroup = 2 -- Only envbranch at MNPS
-    and bri.branchgroup = 2 -- Only MNPS items
+    where 1=1 -- throwaway line to make it easier to add conditions
+    $mnpsLimitlessSQL
+    $staffStudentSQL
 )
 --select * from cos; -- useful for troubleshooting when you want transactions
 , coss as (
@@ -161,9 +186,8 @@ EOT;
 		return $data;
 	}
 
-	function writeData($rows)
-	{
-		$filename = $this->reportPath . 'LibraryServices-CheckoutsTangible-' . $this->reportDate . '.txt';
+	function writeData($rows, $reportDate, $mnpsLimitlessCondition, $staffStudentCondition) {
+		$filename = $this->reportPath . 'LibraryServices-Checkouts-' . $mnpsLimitlessCondition . '-' . $staffStudentCondition . '-' . $reportDate . '.txt';
 		$fp = fopen($filename, 'w');
 		$header = array('schoolcode', 'yearmonthday', 'studentid', 'countOfCheckouts');
 		fputcsv($fp, $header, "\t");
@@ -173,22 +197,30 @@ EOT;
 		fclose($fp);
 	}
 
-	function setReportDate($date) {
-		$this->reportDate = $date;
+	function setReportDate($date = null) {
+		if (isset($date)) {
+			$this->reportDate = date('Y-m-d', strtotime($date));
+		} else {
+			// default to yesterday
+			$this->reportDate = date('Y-m-d', strtotime('yesterday'));
+		}
 	}
-}
-
-if (isset($argv[1])) {
-	$reportDate = $argv[1];
-} else {
-	// default to the previous month
-	$reportDate = date('Ym', strtotime('first day of last month'));
 }
 
 $report = new nashvilleMNPSDataWarehouseReport();
 $report->getConfig();
-$report->setReportDate($reportDate);
-$carlXRows = $report->getCarlXDataViaSQL($reportDate);
-$report->writeData($carlXRows);
+
+if (!empty($argv[1])) {
+	$report->setReportDate($argv[1]);
+} else {
+	$report->setReportDate();
+}
+
+foreach ($report->mnpsLimitlessConditions as $mnpsLimitlessCondition) {
+	foreach ($report->staffStudentConditions as $staffStudentCondition) {
+		$carlXRows = $report->getCarlXDataViaSQL($report->reportDate, $mnpsLimitlessCondition, $staffStudentCondition);
+		$report->writeData($carlXRows, $report->reportDate, $mnpsLimitlessCondition, $staffStudentCondition);
+	}
+}
 
 ?>
