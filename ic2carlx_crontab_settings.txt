@@ -28,6 +28,9 @@
 
 # PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/home/scarless/.local/bin:/home/scarless/bin
 
+# MONTHLY REPORT
+0 2 1 * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport.sh;
+
 # RUN IC2CARLX MNPS
 #30 20 * * * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2020 12 DECEMBER
@@ -88,23 +91,24 @@
 # 2023 08 AUGUST
 #00 21 * 08 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2023 09 SEPTEMBER
-#00 21 * 09 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# changed run time to 9:30PM with because IC is taking longer to export student extract
+#30 21 * 09 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2023 10 OCTOBER
-#00 21 01-05,15-31 10 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+#30 21 01-05,15-31 10 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2023 11 NOVEMBER
-#00 21 01-21,26-30 11 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+#30 21 01-21,26-30 11 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2023 12 DECEMBER
-#00 21 01-14 12 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+#30 21 01-14 12 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2024 01 JANUARY
-#00 21 07-31 01 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+#30 21 07-31 01 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2024 02 FEBRUARY
-#00 21 * 02 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+#30 21 * 02 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2024 03 MARCH
-#00 21 01-08,17-31 03 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+#30 21 01-08,17-31 03 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2024 04 APRIL
-#00 21 * 04 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+#30 21 * 04 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2024 05 MAY
-#00 21 01-03 05 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+#30 21 01-03 05 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 
 # 2024 08 AUGUST
 30 21 * 08 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
@@ -118,11 +122,12 @@
 30 21 01-20 12 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2025 01 JANUARY
 30 21 06-31 01 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# EXTRACT DELIVERY MOVED TO 4AM
 # 2025 02 FEBRUARY
-30 21 * 02 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+30 04 * 02 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2025 03 MARCH
-30 21 01-07,17-31 03 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+30 04 01-07,17-31 03 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2025 04 APRIL
-30 21 * 04 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+30 04 * 04 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2025 05 MAY
-30 21 01-02 05 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+30 04 01-02 05 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
