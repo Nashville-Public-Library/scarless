@@ -21,6 +21,7 @@ $patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode     = $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
 $reportPath             = '../data/';
+$studentSubDir 			= (isset($configArray['Infinite Campus']['studentSubDir']) && !empty($configArray['Infinite Campus']['studentSubDir'])) ? $configArray['Infinite Campus']['studentSubDir'] : 'students';
 $startDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['startDate']);
 $twentyDay				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['twentyDay']);
 $stopDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['stopDate']);
@@ -471,7 +472,7 @@ foreach ($iterator as $fileinfo) {
 		$request->SearchType			= 'Patron ID';
 		$request->SearchID				= substr($file,0,9); // Patron ID
 		$request->ImageType				= 'Profile'; // Patron Profile Picture vs. Signature
-		$imageFilePath 					= "../data/images/students/" . $file;
+		$imageFilePath 					= "../data/images/" . $studentSubDir . "/" . $file;
 		if (file_exists($imageFilePath)) {
 			$imageFileHandle 				= fopen($imageFilePath, "rb");
 			$request->ImageData				= fread($imageFileHandle, filesize($imageFilePath));
