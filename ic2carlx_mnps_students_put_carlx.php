@@ -21,7 +21,7 @@ $patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode     = $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
 $reportPath             = '../data/';
-$studentSubDir 			= (isset($configArray['Infinite Campus']['studentSubDir']) && !empty($configArray['Infinite Campus']['studentSubDir'])) ? $configArray['Infinite Campus']['studentSubDir'] : 'students';
+$studentSubDir 			= (!empty($configArray['Infinite Campus']['studentSubDir'])) ? $configArray['Infinite Campus']['studentSubDir'] : 'students';
 $startDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['startDate']);
 $twentyDay				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['twentyDay']);
 $stopDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['stopDate']);
@@ -455,7 +455,7 @@ foreach ($all_rows as $patron) {
 
 //////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
-$iterator = new DirectoryIterator('../data/images/students');
+$iterator = new DirectoryIterator('../data/images/' . $studentSubDir . '/');
 $today = date_create('today')->format('U');
 //$today = date_create('2020-08-10')->format('U');
 $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));

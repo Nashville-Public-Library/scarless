@@ -19,7 +19,7 @@ $patronApiWsdl			= $configArray['Catalog']['patronApiWsdl'];
 $patronApiDebugMode		= $configArray['Catalog']['patronApiDebugMode'];
 $patronApiReportMode	= $configArray['Catalog']['patronApiReportMode'];
 $reportPath				= '../data/';
-$staffSubDir 			= (isset($configArray['Infinite Campus']['staffSubDir']) && !empty($configArray['Infinite Campus']['staffSubDir'])) ? $configArray['Infinite Campus']['staffSubDir'] : 'staff';
+$staffSubDir 			= (!empty($configArray['Infinite Campus']['staffSubDir'])) ? $configArray['Infinite Campus']['staffSubDir'] : 'staff';
 $startDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['startDate']);
 $twentyDay				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['twentyDay']);
 $stopDate				= DateTime::createFromFormat('Y-m-d', $configArray['Calendar']['stopDate']);
@@ -260,7 +260,7 @@ foreach ($all_rows as $patron) {
 
 //////////////////// CREATE/UPDATE PATRON IMAGES ////////////////////
 // if they were modified today
-$iterator = new DirectoryIterator('../data/images/staff/');
+$iterator = new DirectoryIterator('../data/images/'. $staffSubDir . '/');
 $today = date_create('today')->format('U');
 //$today = date_create('2020-07-17')->format('U');
 foreach ($iterator as $fileinfo) {
@@ -277,7 +277,7 @@ foreach ($iterator as $fileinfo) {
 		$request->SearchType			= 'Patron ID';
 		$request->SearchID				= $matches[1]; // Patron ID
 		$request->ImageType				= 'Profile'; // Patron Profile Picture vs. Signature
-		$imageFilePath 					= "../data/images/". $staffSubDir ."/" . $file;
+		$imageFilePath 					= "../data/images/" . $staffSubDir . "/" . $file;
 		if (file_exists($imageFilePath)) {
 			$imageFileHandle 			= fopen($imageFilePath, "rb");
 			$request->ImageData			= fread($imageFileHandle, filesize($imageFilePath));
