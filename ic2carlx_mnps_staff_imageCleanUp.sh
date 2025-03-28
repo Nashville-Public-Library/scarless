@@ -4,10 +4,11 @@
 # Delete patron images that:
 # 1. are likely invalid because they are less than 4KB
 # 2. are not in the ..._infinitecampus.csv file
-# 2024 09 21
 
 # Define the paths
-image_dir="../data/images/staff/"
+base_dir="../data/images/"
+sub_dir="${1:-staff}"
+image_dir="${base_dir}${sub_dir}/"
 csv_file="../data/ic2carlx_mnps_staff_infinitecampus.csv"
 
 # Delete images that are less than 4KB

@@ -5,7 +5,9 @@
 # 2024 09 21
 
 # Define the paths
-image_dir="../data/images/students/"
+base_dir="../data/images/"
+sub_dir="${1:-students}"
+image_dir="${base_dir}${sub_dir}/"
 csv_file="../data/ic2carlx_mnps_students_infinitecampus.csv"
 
 # Extract the first column from the CSV file and store it in an array
