@@ -157,9 +157,19 @@ logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 # REMOVE IMAGES OF NONELIGIBLE MNPS STAFF AND STUDENTS
 set timeout 900
 logWrite $logFile "START clean up image files"
-send "bash ic2carlx_mnps_staff_imageCleanUp.sh\r"
+send "bash ic2carlx_mnps_staff_imageCleanUp.sh"
+# IF staffSubDir IS IN CONFIG.PWD.INI, USE IT. THESE SHOULD LOOK LIKE "Staff", i.e., no leading or trailing slashes
+if {[info exists staffSubDir] && [string length $staffSubDir] > 0} {
+    send " staffSubDir"
+}
+send "\r"
 expect -re $prompt
-send "bash ic2carlx_mnps_students_imageCleanUp.sh\r"
+send "bash ic2carlx_mnps_students_imageCleanUp.sh"
+# IF studentSubDir IS IN CONFIG.PWD.INI, USE IT. THESE SHOULD LOOK LIKE "Students", i.e., no leading or trailing slashes
+if {[info exists studentSubDir] && [string length $studentSubDir] > 0} {
+    send " studentSubDir"
+}
+send "\r"
 expect -re $prompt
 logWrite $logFile "COMPLETE clean up image files"
 
