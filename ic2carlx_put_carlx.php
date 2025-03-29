@@ -48,7 +48,7 @@ function callAPI($wsdl, $requestName, $request, $tag, $client = null) {
 	$result->response = "";
 	while (!$connectionPassed && $numTries < 2) {
 		try {
-			if ($client === null) {
+			if (($client ?? null) === null) { // client is either not set or is null
 				$client = new SOAPClient($wsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 			}
 			$result->response = $client->$requestName($request);
