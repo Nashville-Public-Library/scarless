@@ -42,7 +42,8 @@ class nashvilleMNPSDataWarehouseReport {
 
 		$this->apiDebugMode = true;
 		$this->apiReportMode = false;
-
+		$this->mackinUsername = $configArray['Catalog']['mackinUsername'];
+		$this->mackinPassword = $configArray['Catalog']['mackinPassword'];
 	}
 
 	function getCarlXDataViaSQL($reportDate, $mnpsLimitlessCondition, $staffStudentCondition) {
@@ -186,6 +187,10 @@ EOT;
 		return $data;
 	}
 
+	function getMackinData() {
+
+
+	}
 	function writeData($rows, $reportDate, $mnpsLimitlessCondition, $staffStudentCondition) {
 		$filename = $this->reportPath . 'LibraryServices-Checkouts-' . $mnpsLimitlessCondition . '-' . $staffStudentCondition . '-' . $reportDate . '.txt';
 		$fp = fopen($filename, 'w');
