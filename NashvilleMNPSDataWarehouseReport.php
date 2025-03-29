@@ -91,6 +91,7 @@ with co as (
     from txlog_v2
 	where systemtimestamp >= to_date('$reportDate','YYYY-MM-DD') 
 	  and systemtimestamp < to_date('$reportDate','YYYY-MM-DD') + 1 -- DAILY REPORT
+	  and transactiontype = 'CH' -- checkouts only
 )
 , cos as (
     select
