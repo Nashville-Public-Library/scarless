@@ -1,7 +1,6 @@
 <?php
 
-// Gather monthly report for MNPS Data Warehouse
-// 2024 11 16
+// Gather daily report for MNPS Data Warehouse
 // James Staub
 // Nashville Public Library
 // Usage: php NashvilleMNPSDataWarehouseReport.php YYYY-MM-DD
@@ -70,13 +69,13 @@ EOT;
 			throw new InvalidArgumentException("Invalid staff/student condition");
 		} else if ($staffStudentCondition === "staff") {
 			$staffStudentSQL = <<<EOT
-	and regexp_like(patronid, '^190[0-9]{6}$') -- MNPS student IDs start with 190, followed by 6 digits, i.e., NOT MNPS staff or NPL patrons
-	and patronid not like '190999%' -- Exclude test student patronids
+	and regexp_like(patronid, '^[0-9]{6,7}$') -- MNPS staff IDs are 6 or 7 digits, i.e., NOT MNPS students or NPL patrons
+	and patronid not like '999%' -- Exclude test staff patronids
 EOT;
 		} else if ($staffStudentCondition === "student") {
 			$staffStudentSQL = <<<EOT
-	and regexp_like(patronid, '^[0-9]{6,7}$') -- MNPS staff IDs are 6 or 7 digits, i.e., NOT MNPS students or NPL patrons
-	and patronid not like '999%' -- Exclude test staff patronids
+	and regexp_like(patronid, '^190[0-9]{6}$') -- MNPS student IDs start with 190, followed by 6 digits, i.e., NOT MNPS staff or NPL patrons
+	and patronid not like '190999%' -- Exclude test student patronids
 EOT;
 		}
 
