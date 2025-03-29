@@ -92,8 +92,6 @@ with co as (
     from txlog_v2
 	where systemtimestamp >= to_date('$reportDate','YYYY-MM-DD') 
 	  and systemtimestamp < to_date('$reportDate','YYYY-MM-DD') + 1 -- DAILY REPORT
-	  	and patronid = '190248976'
-
 )
 , cos as (
     select
