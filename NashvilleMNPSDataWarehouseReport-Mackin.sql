@@ -1,7 +1,14 @@
+drop table if exists mackin_data;
+create table mackin_data (
+    mackinvia_account_id integer
+    , yearmonthday integer
+    , user_id text
+    , count_of_checkouts integer
+);
 .mode csv
-.import "../data/mackin_data.csv" mackin_data
+.import "../data/Nashville daily VIA report_DATEPLACEHOLDERMMDDYYYY.csv" mackin_data
 .headers on
-.output "../data/LibraryServices-Checkouts-MackinVIA-student-"`strftime('%Y-%m-%d', date('now', '-1 day'))`".csv"
+.output "../data/LibraryServices-Checkouts-MackinVIA-student-DATEPLACEHOLDERYYYYMMDD.csv"
 select
     ms.tn_school_code
      , md.yearmonthday
