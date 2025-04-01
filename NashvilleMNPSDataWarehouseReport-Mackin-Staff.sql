@@ -6,7 +6,7 @@ create table mackin_data (
     , count_of_checkouts integer
 );
 .mode csv
-skip 1
+.skip 1
 .import "../data/mackin/Nashville daily VIA report_staff_DATEPLACEHOLDERMMDDYYYY.csv" mackin_data
 .headers on
 .output "../data/LibraryServices-Checkouts-MackinVIA-staff-DATEPLACEHOLDERYYYYMMDD.csv"
