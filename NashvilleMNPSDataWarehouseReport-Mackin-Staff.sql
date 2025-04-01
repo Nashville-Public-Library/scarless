@@ -6,9 +6,9 @@ create table mackin_data (
     , count_of_checkouts integer
 );
 .mode csv
-.import "../data/mackin/Nashville daily VIA report_DATEPLACEHOLDERMMDDYYYY.csv" mackin_data
+.import "../data/mackin/Nashville daily VIA report_staff_DATEPLACEHOLDERMMDDYYYY.csv" mackin_data
 .headers on
-.output "../data/LibraryServices-Checkouts-MackinVIA-student-DATEPLACEHOLDERYYYYMMDD.csv"
+.output "../data/LibraryServices-Checkouts-MackinVIA-staff-DATEPLACEHOLDERYYYYMMDD.csv"
 select
     ms.tn_school_code
      , md.yearmonthday
