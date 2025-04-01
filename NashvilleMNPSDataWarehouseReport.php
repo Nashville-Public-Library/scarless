@@ -41,8 +41,8 @@ class nashvilleMNPSDataWarehouseReport {
 
 		$this->apiDebugMode = true;
 		$this->apiReportMode = false;
-		$this->mackinUsername = $configArray['Catalog']['mackinUsername'];
-		$this->mackinPassword = $configArray['Catalog']['mackinPassword'];
+		$this->mackinUsername = $configArray['Mackin']['mackinUsername'];
+		$this->mackinPassword = $configArray['Mackin']['mackinPassword'];
 	}
 
 	function getCarlXDataViaSQL($reportDate, $mnpsLimitlessCondition, $staffStudentCondition) {
