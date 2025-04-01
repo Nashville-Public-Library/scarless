@@ -8,6 +8,8 @@ create table mackin_data (
 .mode csv
 .skip 1
 .import "../data/mackin/Nashville daily VIA report_DATEPLACEHOLDERMMDDYYYY.csv" mackin_data
+-- Ensure the first row (headers) is not included in the data
+delete from mackin_data where rowid = 1;
 .headers on
 .output "../data/LibraryServices-Checkouts-MackinVIA-student-DATEPLACEHOLDERYYYYMMDD.csv"
 select
