@@ -6,7 +6,6 @@ create table mackin_data (
     , count_of_checkouts integer
 );
 .mode csv
-.skip 1
 .import "../data/mackin/Nashville daily VIA report_DATEPLACEHOLDERMMDDYYYY.csv" mackin_data
 -- Ensure the first row (headers) is not included in the data
 delete from mackin_data where rowid = 1;
