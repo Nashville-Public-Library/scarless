@@ -28,7 +28,7 @@
 
 # PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/home/scarless/.local/bin:/home/scarless/bin
 
-# MONTHLY REPORT
+# DAILY REPORT
 0 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport.sh;
 
 # RUN IC2CARLX MNPS
