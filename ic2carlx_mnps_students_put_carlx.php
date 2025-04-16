@@ -1,7 +1,4 @@
 <?php
-
-	ini_set('memory_limit', '1024M'); // or you could use 1G
-
 // echo 'SYNTAX: path/to/php ic2carlx.php, e.g., $ sudo /opt/rh/php55/root/usr/bin/php ic2carlx.php\n';
 //
 // TO DO: logging
