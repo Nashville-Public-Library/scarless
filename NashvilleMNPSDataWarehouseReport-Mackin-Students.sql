@@ -18,5 +18,5 @@ select
      , md.count_of_checkouts
 from mackin_data md
     left join mackinvia_school_lookup ms on md.mackinvia_account_id = ms.mackin_school_id
-    left join infinitecampus i on lower(md.user_id) = lower(i.emailaddress);
+    left join infinitecampus i on lower(md.user_id) = lower(i.emailaddress) and i.emailaddress IS NOT NULL AND i.emailaddress != '';
 .output stdout
