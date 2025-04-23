@@ -33,18 +33,34 @@ fi
 # Retrieve the STAFF AND STUDENT report files from Mackin
 sshpass -p "$mackinPassword" sftp "$mackinUser"@sftp.mackin.com:Reports/*"$date_mmddyyyy"* ../data/mackin/
 
-# Validate the USER_ID column in the retrieved file
-retrieved_file="../data/mackin/Nashville daily VIA report_$date_mmddyyyy.csv"
-if [ ! -f "$retrieved_file" ]; then
-    echo "Error: Retrieved file not found. Exiting."
+# Define the file paths
+retrieved_file_students="../data/mackin/Nashville daily VIA report_$date_mmddyyyy.csv"
+retrieved_file_staff="../data/mackin/Nashville daily VIA report_staff_$date_mmddyyyy.csv"
+
+# Check if both files exist
+if [ ! -f "$retrieved_file_students" ]; then
+    echo "Error: Student report file not found. Exiting."
     exit 1
 fi
 
-# Check for valid email addresses in USER_ID (3rd column)
-if awk -F, 'NR > 1 && $3 !~ /^[^@]+@[^@]+\.[^@]+$/ {exit 1}' "$retrieved_file"; then
-    echo "Data validation passed: All rows have a valid email address in USER_ID."
+if [ ! -f "$retrieved_file_staff" ]; then
+    echo "Error: Staff report file not found. Exiting."
+    exit 1
+fi
+
+# Validate the USER_ID column in the student report file
+if awk -F, 'NR > 1 && $3 !~ /^[^@]+@[^@]+\.[^@]+$/ {exit 1}' "$retrieved_file_students"; then
+    echo "Data validation passed: All rows in the student report have a valid email address in USER_ID."
 else
-    echo "Error: Invalid email address found in USER_ID column. Exiting."
+    echo "Error: Invalid email address found in USER_ID column of the student report. Exiting."
+    exit 1
+fi
+
+# Validate the USER_ID column in the staff report file
+if awk -F, 'NR > 1 && $3 !~ /^[^@]+@[^@]+\.[^@]+$/ {exit 1}' "$retrieved_file_staff"; then
+    echo "Data validation passed: All rows in the staff report have a valid email address in USER_ID."
+else
+    echo "Error: Invalid email address found in USER_ID column of the staff report. Exiting."
     exit 1
 fi
 
