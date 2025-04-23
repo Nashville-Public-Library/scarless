@@ -24,7 +24,7 @@ date_mmddyyyy=$(date -d "$date" +'%m_%d_%Y')
 date_yyyymmdd=$(date -d "$date" +'%Y-%m-%d')
 
 # Check if the file exists on the remote server
-sshpass -p "$mackinPassword" ssh "$mackinUser"@sftp.mackin.com "ls Reports/*$date_mmddyyyy*" >/dev/null 2>&1
+sshpass -p "$mackinPassword" sftp "$mackinUser"@sftp.mackin.com:Reports/*""$date_mmddyyyy"* >/dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "No file found for the date $date_mmddyyyy on the remote server. Exiting."
     exit 1
