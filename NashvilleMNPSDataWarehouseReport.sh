@@ -12,7 +12,7 @@ DEST_DIR="/home/mnps.org/data/"
 
 # Set file ownership and permissions
 chown :mnps.org $SOURCE_FILE
-chmod 644 $SOURCE_FILE
+chmod 660 $SOURCE_FILE
 
 # Move the files
 mv $SOURCE_FILE $DEST_DIR/
