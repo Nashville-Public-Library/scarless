@@ -23,6 +23,13 @@ date_mmddyyyy=$(date -d "$date" +'%m_%d_%Y')
 # set date for output filename
 date_yyyymmdd=$(date -d "$date" +'%Y-%m-%d')
 
+# Check if the file exists on the remote server
+sshpass -p "$mackinPassword" ssh "$mackinUser"@sftp.mackin.com "ls Reports/*$date_mmddyyyy*" >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "No file found for the date $date_mmddyyyy on the remote server. Exiting."
+    exit 1
+fi
+
 # Retrieve the STAFF AND STUDENT report files from Mackin
 sshpass -p "$mackinPassword" sftp "$mackinUser"@sftp.mackin.com:Reports/*"$date_mmddyyyy"* ../data/mackin/
 
@@ -45,3 +52,11 @@ sql=${sql//DATEPLACEHOLDERYYYYMMDD/$date_yyyymmdd}
 echo "$sql" > NashvilleMNPSDataWarehouseReport-Mackin-Students-Date-Specific.sql
 # STUDENTS: Run the modified SQL file through sqlite3
 sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-Mackin-Students-Date-Specific.sql
+
+SOURCE_FILE="../data/mackin/LibraryServices-Checkouts-MackinVIA-*"
+DEST_DIR="/home/mnps.org/data/"
+# Set permissions for the files
+chown :mnps.org $SOURCE_FILE
+chmod 660 $SOURCE_FILE
+# Move the files
+mv $SOURCE_FILE $DEST_DIR/
