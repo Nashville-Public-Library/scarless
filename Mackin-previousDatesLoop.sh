@@ -9,7 +9,7 @@ for month in 03 04; do
     # Check if the date is valid (to handle months with fewer than 31 days)
     if date -d "$date" >/dev/null 2>&1; then
       # Run the script with the date as an argument
-      ./NashvilleMNPSDataWarehouseReport-Mackin.sh "$date"
+      ./NashvilleMNPSDataWarehouseReport-Mackin.sh "$date" 2>&1 >/dev/null
     fi
   done
 done
