@@ -53,7 +53,7 @@ echo "$sql" > NashvilleMNPSDataWarehouseReport-Mackin-Students-Date-Specific.sql
 # STUDENTS: Run the modified SQL file through sqlite3
 sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-Mackin-Students-Date-Specific.sql
 
-SOURCE_FILE="../data/mackin/LibraryServices-Checkouts-MackinVIA-*"
+SOURCE_FILE="../data/LibraryServices-Checkouts-MackinVIA-*-$date_yyyymmdd"
 DEST_DIR="/home/mnps.org/data/"
 # Set permissions for the files
 chown :mnps.org $SOURCE_FILE
