@@ -33,6 +33,21 @@ fi
 # Retrieve the STAFF AND STUDENT report files from Mackin
 sshpass -p "$mackinPassword" sftp "$mackinUser"@sftp.mackin.com:Reports/*"$date_mmddyyyy"* ../data/mackin/
 
+# Validate the USER_ID column in the retrieved file
+retrieved_file="../data/mackin/Nashville daily VIA report_$date_mmddyyyy.csv"
+if [ ! -f "$retrieved_file" ]; then
+    echo "Error: Retrieved file not found. Exiting."
+    exit 1
+fi
+
+# Check for valid email addresses in USER_ID (3rd column)
+if awk -F, 'NR > 1 && $3 !~ /^[^@]+@[^@]+\.[^@]+$/ {exit 1}' "$retrieved_file"; then
+    echo "Data validation passed: All rows have a valid email address in USER_ID."
+else
+    echo "Error: Invalid email address found in USER_ID column. Exiting."
+    exit 1
+fi
+
 # STAFF: Read the SQL file
 sql=$(<NashvilleMNPSDataWarehouseReport-Mackin-Staff.sql)
 # STAFF: Replace placeholders with the actual date
