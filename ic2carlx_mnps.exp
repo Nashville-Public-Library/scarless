@@ -4,6 +4,16 @@
 # James Staub
 # Nashville Public Library
 
+# USAGE INSTRUCTIONS
+if {[lsearch -exact $argv "--help"] != -1 || [llength $argv] > 2} {
+    puts "Usage: ic2carlx_mnps.exp [--test] [--imagecleanup]"
+    puts "Options:"
+    puts "  --test          Run the script in test mode (no changes will be made to CarlX)."
+    puts "  --imagecleanup  Remove images of non-eligible MNPS staff and students."
+    puts "  --help          Display this help message."
+    exit 0
+}
+
 # READ CONFIG.PWD.INI
 source ic2carlx_read_config.exp
 
@@ -21,6 +31,9 @@ set testMode 0
 foreach {arg} $argv {
     if {$arg == "--test"} {
         set testMode 1
+    }
+    if {$arg == "--imagecleanup"} {
+        set imageCleanup 1
     }
 }
 
@@ -155,23 +168,25 @@ expect -re $prompt
 logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 
 # REMOVE IMAGES OF NONELIGIBLE MNPS STAFF AND STUDENTS
-set timeout 900
-logWrite $logFile "START clean up image files"
-send "bash ic2carlx_mnps_staff_imageCleanUp.sh"
-# IF staffSubDir IS IN CONFIG.PWD.INI, USE IT. THESE SHOULD LOOK LIKE "Staff", i.e., no leading or trailing slashes
-if {[info exists staffSubDir] && [string length $staffSubDir] > 0} {
-    send " $staffSubDir"
+if {$imageCleanup == 1} {
+    set timeout 900
+    logWrite $logFile "START clean up image files"
+    send "bash ic2carlx_mnps_staff_imageCleanUp.sh"
+    # IF staffSubDir IS IN CONFIG.PWD.INI, USE IT. THESE SHOULD LOOK LIKE "Staff", i.e., no leading or trailing slashes
+    if {[info exists staffSubDir] && [string length $staffSubDir] > 0} {
+        send " $staffSubDir"
+    }
+    send "\r"
+    expect -re $prompt
+    send "bash ic2carlx_mnps_students_imageCleanUp.sh"
+    # IF studentSubDir IS IN CONFIG.PWD.INI, USE IT. THESE SHOULD LOOK LIKE "Students", i.e., no leading or trailing slashes
+    if {[info exists studentSubDir] && [string length $studentSubDir] > 0} {
+        send " $studentSubDir"
+    }
+    send "\r"
+    expect -re $prompt
+    logWrite $logFile "COMPLETE clean up image files"
 }
-send "\r"
-expect -re $prompt
-send "bash ic2carlx_mnps_students_imageCleanUp.sh"
-# IF studentSubDir IS IN CONFIG.PWD.INI, USE IT. THESE SHOULD LOOK LIKE "Students", i.e., no leading or trailing slashes
-if {[info exists studentSubDir] && [string length $studentSubDir] > 0} {
-    send " $studentSubDir"
-}
-send "\r"
-expect -re $prompt
-logWrite $logFile "COMPLETE clean up image files"
 
 # ADD/UPDATE/REMOVE FROM CARLX
 # This is where I need to clobber the CarlX API service with multiple threads
