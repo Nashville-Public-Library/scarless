@@ -6,7 +6,7 @@
 
 # USAGE INSTRUCTIONS
 if {[lsearch -exact $argv "--help"] != -1 || [llength $argv] > 2} {
-    puts "Usage: expect ic2carlx_mnps.exp [--test] [--imagecleanup]"
+    puts "Usage: expect ic2carlx_mnps.exp \[--test\] \[--imagecleanup\]"
     puts "Options:"
     puts "  --test          Run the script in test mode (no changes will be made to CarlX)."
     puts "  --imagecleanup  Remove images of non-eligible MNPS staff and students."
