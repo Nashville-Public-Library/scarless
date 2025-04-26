@@ -1,4 +1,4 @@
-#!/bin/expect
+#!/bin/expect --
 
 # ic2carlx_mnps.exp
 # James Staub
