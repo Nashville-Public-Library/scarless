@@ -1,7 +1,10 @@
 <?php
 
 //////////////////// CREATE/UPDATE PATRON IMAGES FROM ID LIST ////////////////////
-// echo 'SYNTAX: $ sudo php NashvilleCarlXUpdatePatronImage.php\n';
+// echo 'SYNTAX: $ php NashvilleCarlXUpdatePatronImage.php\n';
+
+// To generate a CSV file of patron IDs whose images from a particular date (in this example March 1 2025) should be updated:
+// find ../data/images/Students/ -type f -newermt "2025-03-01" -printf "%T@ %p\n" | awk '{if ($1 >= mktime("2025 03 01 00 00 00")) print $2}' | xargs -n 1 basename | sed 's/\.[^.]*$//' > ../data/CARLX_MNPS_UPDATE_PATRON_IMAGE.CSV
 
 require_once 'ic2carlx_put_carlx.php';
 
