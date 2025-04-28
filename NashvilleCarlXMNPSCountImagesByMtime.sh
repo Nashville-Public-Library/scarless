@@ -17,12 +17,12 @@ if [ ! -d "$directory" ]; then
 fi
 
 # Find files modified in April 2025 and process their mtimes
-find "$directory" -type f -newermt "$target_year-$target_month-01" ! -newermt "$target_year-$((10#$target_month + 1))-01" -printf "%TY-%Tm-%Td\n" | while read -r date; do
+while IFS= read -r date; do
     # Extract the day from the date
     day=$(echo "$date" | awk -F'-' '{print $3}')
     # Increment the count for the day
     file_counts["$day"]=$((file_counts["$day"] + 1))
-done
+done < <(find "$directory" -type f -newermt "$target_year-$target_month-01" ! -newermt "$target_year-$((10#$target_month + 1))-01" -printf "%TY-%Tm-%Td\n")
 
 # Print the results
 if [ ${#file_counts[@]} -eq 0 ]; then
