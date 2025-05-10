@@ -18,5 +18,21 @@ select
      , md.count_of_checkouts
 from mackin_data md
     left join mackinvia_school_lookup ms on md.mackinvia_account_id = ms.mackin_school_id
-    left join infinitecampus i on lower(md.user_id) = lower(i.emailaddress);
+    -- as of 2025 05 10, we are getting email addresses from Mackin that look like jqdoe@mnps.org instead of John.Doe@mnps.org
+    -- the join below attempts to use the data we have on hand for a match
+    left join infinitecampus i on (
+      (
+          substr(upper(md.user_id), 1, 1) = substr(upper(i.patronfirstname), 1, 1)
+              and substr(upper(md.user_id), 2, instr(upper(md.user_id), '@') - 2) = upper(i.patronlastname)
+          )
+          or
+      (
+          substr(upper(md.user_id), 1, 1) = substr(upper(i.patronfirstname), 1, 1)
+              and substr(upper(md.user_id), 2, 1) = substr(upper(i.patronmiddlename), 1, 1)
+              and substr(upper(md.user_id), 3, instr(upper(md.user_id), '@') - 3) = upper(i.patronlastname)
+          )
+    )
+-- where i.borrowertypecode in (13, 40) -- unnecessary: we are looking at the staff (-only) database
+    where ms.carlx_branchcode = i.defaultbranch
+;
 .output stdout
