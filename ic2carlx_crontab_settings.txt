@@ -31,8 +31,8 @@
 # DAILY REPORTS
 ## MNPS Data Warehouse Report
 0 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport.sh;
-## MackinVIA files are placed at 5AM
-30 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-Mackin.sh;
+## MackinVIA files are placed at 5AM... but I'm not sure which timezone
+30 6 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-Mackin.sh;
 
 # RUN IC2CARLX MNPS
 #30 20 * * * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
