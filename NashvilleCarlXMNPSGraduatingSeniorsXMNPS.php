@@ -98,9 +98,6 @@ if (count($grade12Students) === 0) {
 
 //////////////////// RETRIEVE RECORDS FROM CARLX ////////////////////
 
-// Create a temporary SQL file to retrieve the CarlX records
-$sqlFile = $reportPath . 'ic2carlx_mnps_12thgrade_retrieval.sql';
-
 // Modified SQL approach to handle large sets of records
 // Instead of using IN clause with potentially thousands of IDs, we'll use a more efficient approach
 $sqlContent = "
@@ -125,9 +122,6 @@ WHERE (
 )
 ORDER BY patron_v2.patronid
 ";
-
-file_put_contents($sqlFile, $sqlContent);
-echo "Created SQL retrieval file.\n";
 
 // Define the output file for CarlX data
 $carlxDataFile = $reportPath . 'ic2carlx_mnps_12thgrade_carlx_data.csv';
