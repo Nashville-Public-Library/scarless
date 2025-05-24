@@ -8,7 +8,7 @@
 
 //////////////////// CONFIGURATION ////////////////////
 
-//require_once 'Log.php';
+require_once 'Log.php';
 
 date_default_timezone_set('America/Chicago');
 $startTime = microtime(true);
