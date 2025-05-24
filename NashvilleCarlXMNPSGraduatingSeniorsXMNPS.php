@@ -380,4 +380,7 @@ $elapsedTime = $endTime - $startTime;
 echo "Process completed in " . round($elapsedTime, 2) . " seconds.\n";
 file_put_contents($logFile, date('Y-m-d H:i:s') . " | Process completed in " . round($elapsedTime, 2) . " seconds\n", FILE_APPEND);
 
+// Print verification command
+echo "\nYou can check these numbers with a CarlX record BTY count of all 12th grade patronids from the Infinite Campus extract using a script like:\n";
+echo "awk -F'|' '\$2 == 34 {print \$1}' " . escapeshellarg($inputFile) . " | sort -u > grade12.tmp && awk -F, 'NR>1 {gsub(/\"/, \"\", \$1); gsub(/\"/, \"\", \$2); if (system(\"grep -q \\\"^\"\\$1\"\\$\\\" grade12.tmp\") == 0) bty[\$2]++} END {total=0; for (b in bty) {print \"BTY \" b \": \" bty[b] \" records\"; total += bty[b]}; print \"TOTAL: \" total \" records\"}' " . escapeshellarg($reportPath . 'ic2carlx_mnps_12thgrade_carlx_data.csv') . " && rm grade12.tmp\n";
 ?>
