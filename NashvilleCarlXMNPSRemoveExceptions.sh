@@ -19,9 +19,18 @@ elif [ $# -ne 0 ]; then
     exit 1
 fi
 
+# Ensure ../data directory exists
+if [ ! -d "../data" ]; then
+    mkdir -p "../data"
+fi
+
 # Create temporary files in ../data/ directory
 TEMP_FILE="../data/NashvilleCarlXMNPSRemoveExceptions_temp_file_$(date +%Y%m%d%H%M%S)_$$.txt"
 RECORDS_TO_DELETE_FILE="../data/NashvilleCarlXMNPSRemoveExceptions_records_to_delete_$(date +%Y%m%d%H%M%S)_$$.txt"
+
+# Create empty files to ensure they exist
+touch "$TEMP_FILE"
+touch "$RECORDS_TO_DELETE_FILE"
 
 # Check if files exist
 if [ ! -f "$FILE1" ]; then
@@ -77,7 +86,7 @@ while IFS= read -r line2; do
 done < "$FILE2"
 
 # Count the number of records to be deleted
-RECORDS_TO_DELETE_COUNT=$(wc -l < "$RECORDS_TO_DELETE_FILE")
+RECORDS_TO_DELETE_COUNT=$(wc -l < "$RECORDS_TO_DELETE_FILE" | tr -d ' ')
 
 # Show the user which records will be deleted and ask for confirmation
 if [ "$RECORDS_TO_DELETE_COUNT" -gt 0 ]; then
@@ -94,7 +103,7 @@ if [ "$RECORDS_TO_DELETE_COUNT" -gt 0 ]; then
     else
         echo "Operation aborted. No changes were made to $FILE2."
         # Clean up temporary files
-        rm "$TEMP_FILE"
+        rm -f "$TEMP_FILE"
     fi
 else
     echo "No records need to be deleted from $FILE2."
