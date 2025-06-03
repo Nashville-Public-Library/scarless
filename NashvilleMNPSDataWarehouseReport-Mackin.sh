@@ -24,14 +24,14 @@ date_mmddyyyy=$(date -d "$date" +'%m_%d_%Y')
 date_yyyymmdd=$(date -d "$date" +'%Y-%m-%d')
 
 # Check if the file exists on the remote server
-sshpass -p "$mackinPassword" sftp "$mackinUser"@sftp.mackin.com:Reports/*"$date_mmddyyyy"* >/dev/null 2>&1
+sshpass -p "$mackinPassword" sftp -q "$mackinUser"@sftp.mackin.com:Reports/*"$date_mmddyyyy"* >/dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "No file found for the date $date_mmddyyyy on the remote server. Exiting."
     exit 1
 fi
 
 # Retrieve the STAFF AND STUDENT report files from Mackin
-sshpass -p "$mackinPassword" sftp "$mackinUser"@sftp.mackin.com:Reports/*"$date_mmddyyyy"* ../data/mackin/
+sshpass -p "$mackinPassword" sftp -q "$mackinUser"@sftp.mackin.com:Reports/*"$date_mmddyyyy"* ../data/mackin/
 
 # Define the file paths
 retrieved_file_students="../data/mackin/Nashville daily VIA report_$date_mmddyyyy.csv"
