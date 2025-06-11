@@ -14,8 +14,8 @@ for row in *; do
 
   # If the 18th column value matches a unique branch value, set the new column value to it
   if [[ $unique_branches =~ $default_branch ]]; then
-    sed -i "s/|/$default_branch|/" ic2carlx_mnps_students_test.txt
+    sed -i "s/|/$default_branch|/" ../data/ic2carlx_mnps_students_test.txt
   else
-    sed -i "/$row/s/[^|]*$|/$row|promisingScholarsBranch/|/" ic2carlx_mnps_students_test.txt
+    sed -i "/$row/s/[^|]*$|/$row|promisingScholarsBranch/|/" ../data/ic2carlx_mnps_students_test.txt
   fi
 done
