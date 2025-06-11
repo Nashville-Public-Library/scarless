@@ -6,7 +6,7 @@ unique_branches=$(awk -F'|' '{print $20}' ../data/CARLX_INFINITECAMPUS_STUDENT.t
 input_file="../data/ic2carlx_mnps_students_test.txt"
 output_file="../data/ic2carlx_mnps_students_test_with_branch.txt"
 
-awk -F'|' -v OFS='|' -v branches="{$unique_branches}" '
+awk -F'|' -v OFS='|' -v branches="$unique_branches" '
   BEGIN {
     n = split(branches, arr, ",");
     print "DEBUG: Populating b with these keys:";
