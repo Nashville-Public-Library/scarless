@@ -44,7 +44,15 @@ from infinitecampus i
 left join patron_seen p on i.patronid = p.patronid 
 where p.patronid is null;
 
+-- Check for promising scholars flag
+SELECT CASE WHEN '$1' = '--promisingScholars' THEN 1 ELSE 0 END INTO @promising_scholars;
+
 -- "REMOVE" CARLX PATRON
+-- Skip this section if processing promising scholars
+SELECT CASE WHEN @promising_scholars = 0 THEN 1 ELSE 0 END INTO @process_remove;
+
+-- Only execute if not processing promising scholars
+SELECT CASE WHEN @process_remove = 1 THEN '
 drop table if exists carlx_remove;
 create table if not exists carlx_remove (patronid,patron_seen,emailaddress,collectionstatus,defaultbranch,borrowertypecode,primaryphonenumber,secondaryphonenumber,teacherid,teachername);
 delete 
@@ -76,6 +84,10 @@ from patron_seen
 where patron_seen < date('now','-7 days')
 or patron_seen is null
 ; 
+' ELSE '' END AS sql_to_execute;
+
+-- Execute the dynamic SQL
+.print @sql_to_execute
 
 -- CREATE CARLX PATRON
 -- drop table if exists carlx_create;
