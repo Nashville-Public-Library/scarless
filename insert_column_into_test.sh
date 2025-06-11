@@ -10,9 +10,9 @@ unique_branches=$(awk -F '|' '{print $20}' ../data/CARLX_INFINITECAMPUS_STUDENT.
 # Insert the new column into the original file
 for row in *; do
   IFS='|' read -r -a values <<< "$row"
-  default_branch=${values[17]}
+  default_branch=${values[18]}
 
-  # If the 18th column value matches a unique branch value, set the new column value to it
+  # If the 19th column value matches a unique branch value, set the new column value to it
   if [[ $unique_branches =~ $default_branch ]]; then
     sed -i "s/|/$default_branch|/" ../data/ic2carlx_mnps_students_test.txt
   else
