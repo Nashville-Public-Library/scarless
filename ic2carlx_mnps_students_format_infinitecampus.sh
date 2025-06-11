@@ -1,9 +1,13 @@
 # ic2carlx_mnps_students_format_infinitecampus.sh
 # James Staub
 # Nashville Public Library
-# Preprocess Infinite Campus patron data extract
+# Preprocess Infinite Campus patron data extract for STUDENTS
 
-# STUDENTS
+# Check for promising scholars flag
+PROMISING_SCHOLARS=0
+if [[ "$1" == "--promisingScholars" ]]; then
+    PROMISING_SCHOLARS=1
+fi
 
 # APPEND TEST PATRONS
 cat ../data/ic2carlx_mnps_students_test.txt ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/ic2carlx_mnps_students_infinitecampus.txt
@@ -16,6 +20,16 @@ sort -t\| -k1,1 -k7,7r -o ../data/ic2carlx_mnps_students_infinitecampus.txt ../d
 sort -t\| -k1,1 -u -o ../data/ic2carlx_mnps_students_infinitecampus.txt ../data/ic2carlx_mnps_students_infinitecampus.txt
 
 perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
+# Pass promising scholars flag to perl
+BEGIN {
+    $promising_scholars = '"$PROMISING_SCHOLARS"';
+}
+
+# If promising scholars flag is set, skip records without a value in promisingScholarsBranch field
+if ($promising_scholars && (!$F[19] || $F[19] eq "")) { next; }
+# If promising scholars flag is set, set default branch to promising scholars branch
+if ($promising_scholars) { $F[18] = $F[19]; }
+
 # SCRUB HEADERS AND RECORDS WITH WEIRD STUDENT IDS
 	if ($F[0] !~ m/^190\d{6}$/) { next; }
 # SCRUB NON-ASCII CHARACTERS
@@ -44,21 +58,21 @@ perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::
 	# Robertson Academy Gifted School
 	elsif ($F[18] =~ m/^86665/) { $F[18] = "7Z999"; }
 # SET BORROWER TYPE FOR LIMITLESS LIBRARIES OPT-OUT STUDENTS
-	if ($F[30] =~ m/^N/) {
+	if ($F[31] =~ m/^N/) {
 		if ($F[1] =~ m/^(21|22|23|24|25|26|27)$/) { $F[1] = 35; }
 		elsif ($F[1] =~ m/^(28|29|30)$/) { $F[1] = 36; }
 		elsif ($F[1] =~ m/^(31|32|33|34)$/) { $F[1] = 37; }
 	} 
 # IF STUDENT IS 18 YEARS OLD AND BTY IS 31-34, THEN BTY SHOULD BE 46
-        if ($F[1] =~ m/^(31|32|33|34)$/ && $F[26] =~ m/^\d{4}-\d{2}-\d{2}$/) {
-                $birdate        = $F[26];
+        if ($F[1] =~ m/^(31|32|33|34)$/ && $F[27] =~ m/^\d{4}-\d{2}-\d{2}$/) {
+                $birdate        = $F[27];
                 $birdt          = DateTime::Format::ISO8601->parse_datetime($birdate);
                 $tnratedrdt     = $birdt + DateTime::Duration->new( years => 18, days => -1 );
                 if (DateTime->compare($tnratedrdt,$todaydt) == -1) { $F[1] = 46; }
         }
 # IF STUDENT IS 18 YEARS OLD AND BTY IS 37, THEN BTY SHOULD BE 47
-        if ($F[1] =~ m/^37$/ && $F[26] =~ m/^\d{4}-\d{2}-\d{2}$/) {
-                $birdate        = $F[26];
+        if ($F[1] =~ m/^37$/ && $F[27] =~ m/^\d{4}-\d{2}-\d{2}$/) {
+                $birdate        = $F[27];
                 $birdt          = DateTime::Format::ISO8601->parse_datetime($birdate);
                 $tnratedrdt     = $birdt + DateTime::Duration->new( years => 18, days => -1 );
                 if (DateTime->compare($tnratedrdt,$todaydt) == -1) { $F[1] = 47; }
@@ -95,55 +109,55 @@ perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::
 # ELIMINATE NON-NUMERIC CHARACTERS FROM PHONE NUMBERS LONGER THAN 14 CHARACTERS, THE CARLX MAXIMUM. IF THE PHONE NUMBER IS STILL MORE THAN 14 DIGITS, TRUNCATE TO 10 DIGITS
 	if (length($F[14]) > 14) { $F[14] =~s/\D//g; if (length($F[14]) > 14) { $F[14] = substr($F[14],0,10); } }
 # SET LIMITLESS PERMISSION TO YES IF BLANK
-	elsif ($F[30] =~ m/^$/) { $F[30] = "Yes"; }
+	elsif ($F[31] =~ m/^$/) { $F[31] = "Yes"; }
 # CHANGE USER DEFINED FIELDS laptopCheckout limitlessLibrariesuse techOptout from N to No and Y to Yes
-	if ($F[29] eq "N") { $F[29] = "No"; }
-	if ($F[29] eq "Y") { $F[29] = "Yes"; }
 	if ($F[30] eq "N") { $F[30] = "No"; }
 	if ($F[30] eq "Y") { $F[30] = "Yes"; }
 	if ($F[31] eq "N") { $F[31] = "No"; }
 	if ($F[31] eq "Y") { $F[31] = "Yes"; }
+	if ($F[32] eq "N") { $F[32] = "No"; }
+	if ($F[32] eq "Y") { $F[32] = "Yes"; }
 # STATUS EMPTY; SHOULD NOT OVERWRITE CARL.X STATUS
-	$F[20] = "";
+	$F[21] = "";
 # CHANGE DATE VALUE FOR EXPIRATION TO 2025-10-01
-  $F[23] = "2025-10-01";
+  $F[24] = "2025-10-01";
 # GUARANTOR EFFECTIVE STOP DATE (GESD)
-	if ($F[27] ne "" && $F[26] =~ m/^\d{4}-\d{2}-\d{2}$/) {
+	if ($F[28] ne "" && $F[27] =~ m/^\d{4}-\d{2}-\d{2}$/) {
 		$todaydt	= DateTime->today();
-		$expdate 	= $F[23];
+		$expdate 	= $F[24];
 		$expdt   	= DateTime::Format::ISO8601->parse_datetime($expdate);
-		$birdate 	= $F[26];
+		$birdate 	= $F[27];
 		$birdt		= DateTime::Format::ISO8601->parse_datetime($birdate);
 		$gesdt		= $birdt + DateTime::Duration->new( years => 13, days => -1 );
 # GUARANTOR NOTE NOT INCLUDED IF PATRON IS 13+ YEARS OLD
 		if (DateTime->compare($gesdt,$todaydt) == -1) {
-			$F[27] = "";
+			$F[28] = "";
 # PREPEND GESD TO GUARANTOR FOR COMPARISON AGAINST CARL
 		} elsif (DateTime->compare($gesdt,$expdt) == 1) {
 			$gesdate = $expdt->date();
-			$F[27] = $gesdate . ": " . $F[27];
+			$F[28] = $gesdate . ": " . $F[28];
 # PREPEND GESD TO GUARANTOR FOR COMPARISON AGAINST CARL
 		} else {
 			$gesdate = $gesdt->date();
-			$F[27] = $gesdate . ": " . $F[27];
+			$F[28] = $gesdate . ": " . $F[28];
 		}
-	} elsif ($F[27] ne "") {
+	} elsif ($F[28] ne "") {
 # -- IF BIRTHDATE IS EMPTY OR INCORRECT FORMAT, SET GESD TO EXPIRATION DATE
 		$gesdate = $expdt->date();;
-		$F[27] = $gesdate . ": " . $F[27];
+		$F[28] = $gesdate . ": " . $F[28];
 	}
 # ADD EMAIL NOTICES VALUE 1 = SEND EMAIL NOTICES
-	$F[34] = "1";
+	$F[35] = "1";
 # ADD EMPTY FOR EXPIRED MNPS NOTE IDS
-	$F[35] = "";
-# ADD EMPTY FOR DELETE GUARANTOR NOTE IDS
 	$F[36] = "";
+# ADD EMPTY FOR DELETE GUARANTOR NOTE IDS
+	$F[37] = "";
 # COLLECTION STATUS = 78 (do not send)
-	$F[37] = "78";
+	$F[38] = "78";
 # ADD EMPTY FOR EDIT BRANCH
-	$F[38] = "";
-# ADD EMPTY FOR PRIMARY PHONE NUMBER
 	$F[39] = "";
+# ADD EMPTY FOR PRIMARY PHONE NUMBER
+	$F[40] = "";
 # FORMAT AS CSV
 	foreach (@F) {
 		# CHANGE QUOTATION MARK IN ALL FIELDS TO AN APOSTROPHE
@@ -154,6 +168,6 @@ perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
 # REPLACE PIPE DELIMITERS WITH COMMAS, ELIMINATE COLUMNS THAT WILL NOT BE COMPARED
-	print join q/,/, @F[0..9,14,18,23,24,26,27,29..39]' ../data/ic2carlx_mnps_students_infinitecampus.txt > ../data/ic2carlx_mnps_students_infinitecampus.csv;
+	print join q/,/, @F[0..9,14,19,24,25,27,28,30..40]' ../data/ic2carlx_mnps_students_infinitecampus.txt > ../data/ic2carlx_mnps_students_infinitecampus.csv;
 # REMOVE HEADERS
 #perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^patronid/i)' ../data/ic2carlx_mnps_students_infinitecampus.csv
