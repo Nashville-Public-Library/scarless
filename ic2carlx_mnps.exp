@@ -5,12 +5,13 @@
 # Nashville Public Library
 
 # USAGE INSTRUCTIONS
-if {[lsearch -exact $argv "--help"] != -1 || [llength $argv] > 2} {
-    puts "Usage: expect ic2carlx_mnps.exp \[--test\] \[--imagecleanup\]"
+if {[lsearch -exact $argv "--help"] != -1 || [llength $argv] > 3} {
+    puts "Usage: expect ic2carlx_mnps.exp \[--test\] \[--imageCleanup\] \[--promisingScholars\]"
     puts "Options:"
-    puts "  --test          Run the script in test mode (no changes will be made to CarlX)."
-    puts "  --imagecleanup  Remove images of non-eligible MNPS staff and students."
-    puts "  --help          Display this help message."
+    puts "  --test              Run the script in test mode (no changes will be made to CarlX)."
+    puts "  --imageCleanup      Remove images of non-eligible MNPS staff and students."
+    puts "  --promisingScholars Process only promising scholars records."
+    puts "  --help              Display this help message."
     exit 0
 }
 
@@ -29,12 +30,16 @@ set nowEpoch [clock seconds]
 # PARSE ARGUMENTS
 set testMode 0
 set imageCleanup 0
+set promisingScholars 0
 foreach {arg} $argv {
     if {$arg == "--test"} {
         set testMode 1
     }
-    if {$arg == "--imagecleanup"} {
+    if {$arg == "--imageCleanup"} {
         set imageCleanup 1
+    }
+    if {$arg == "--promisingScholars"} {
+        set promisingScholars 1
     }
 }
 
@@ -133,9 +138,14 @@ logWrite $logFile "COMPLETE get infinitecampus"
 # FORMAT INFINITECAMPUS 
 set timeout 600
 logWrite $logFile "START format infinitecampus"
-send "bash ic2carlx_mnps_staff_format_infinitecampus.sh\r"
-expect -re $prompt
-send "bash ic2carlx_mnps_students_format_infinitecampus.sh\r"
+if {$promisingScholars == 1} {
+    # do not run staff if promising scholars
+    send "bash ic2carlx_mnps_students_format_infinitecampus.sh --promisingScholars\r"
+} else {
+    send "bash ic2carlx_mnps_staff_format_infinitecampus.sh\r"
+    expect -re $prompt
+    send "bash ic2carlx_mnps_students_format_infinitecampus.sh\r"
+}
 expect -re $prompt
 logWrite $logFile "COMPLETE format infinitecampus"
 
@@ -149,9 +159,16 @@ logWrite $logFile "COMPLETE get carlx"
 # COMPARE CARLX VS INFINITECAMPUS
 set timeout 600
 logWrite $logFile "START compare carlx vs infinitecampus"
-send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
+if {$promisingScholars == 1} {
+    # do not run staff if promising scholars
+    send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql --promisingScholars\r"
+} else {
+    send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
+    expect -re $prompt
+    send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
+}
 expect -re $prompt
-send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
+logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 
 # ABORT IF CHANGE THRESHOLDS ARE EXCEEDED
 #set timeout 10
@@ -166,7 +183,6 @@ send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare
 set timeout 300
 send "chmod -R 700 ../data/*\r"
 expect -re $prompt
-logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 
 # REMOVE IMAGES OF NONELIGIBLE MNPS STAFF AND STUDENTS
 if {$imageCleanup == 1} {
@@ -202,13 +218,19 @@ if {$testMode == 1} {
 }
 
 set timeout 3600
-logWrite $logFile "START mnps staff put carlx"
-send "$phpPath ic2carlx_mnps_staff_put_carlx.php\r"
-expect -re $prompt
-logWrite $logFile "COMPLETE mnps staff put carlx"
-logWrite $logFile "START mnps students put carlx"
-send "$phpPath ic2carlx_mnps_students_put_carlx.php\r"
-expect -re $prompt
-logWrite $logFile "COMPLETE mnps students put carlx"
-
+if {$promisingScholars == 0} {
+    logWrite $logFile "START mnps staff put carlx"
+    send "$phpPath ic2carlx_mnps_staff_put_carlx.php\r"
+    expect -re $prompt
+    logWrite $logFile "COMPLETE mnps staff put carlx"
+    logWrite $logFile "START mnps students put carlx"
+    send "$phpPath ic2carlx_mnps_students_put_carlx.php\r"
+    expect -re $prompt
+    logWrite $logFile "COMPLETE mnps students put carlx"
+} else {
+    logWrite $logFile "START mnps students put carlx"
+    send "$phpPath ic2carlx_mnps_students_put_carlx.php --promisingScholars\r"
+    expect -re $prompt
+    logWrite $logFile "COMPLETE mnps students put carlx"
+}
 exit
