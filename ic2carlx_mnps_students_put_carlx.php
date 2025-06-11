@@ -6,6 +6,15 @@
 // TO DO: for patron data privacy, kill data files when actions are complete
 // TO DO: create IMAGE NOT AVAILABLE image
 
+// Check for promising scholars flag
+$promisingScholars = false;
+foreach ($argv as $arg) {
+	if ($arg === '--promisingScholars') {
+		$promisingScholars = true;
+		break;
+	}
+}
+
 //////////////////// CONFIGURATION ////////////////////
 
 date_default_timezone_set('America/Chicago');
@@ -31,7 +40,7 @@ $today					= DateTime::createFromFormat('Y-m-d', date('Y-m-d'));
 
 //////////////////// REMOVE CARLX PATRONS : HOMEROOM ////////////////////
 //// FROM STARTDATE UNTIL TWENTYDAY, REMOVES HOMEROOM FROM STUDENTS WHO WOULD OTHERWISE BE XMNPS ////
-if ($today >= $startDate && $today < $twentyDay) {
+if (!$promisingScholars && $today >= $startDate && $today < $twentyDay) {
 	$all_rows = array();
 	$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
 	if ($fhnd){
@@ -73,7 +82,7 @@ if ($today >= $startDate && $today < $twentyDay) {
 //////////////////// REMOVE CARLX PATRONS ////////////////////
 // See https://trello.com/c/lK7HgZgX for spec
 
-if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDATE, RUN XMNPS
+if (!$promisingScholars && $today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDATE, RUN XMNPS
 	$all_rows = array();
 	$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
 	if ($fhnd){
