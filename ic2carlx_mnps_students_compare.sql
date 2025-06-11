@@ -44,8 +44,8 @@ from infinitecampus i
 left join patron_seen p on i.patronid = p.patronid 
 where p.patronid is null;
 
--- Check for promising scholars flag
-SELECT CASE WHEN '$1' = '--promisingScholars' THEN 1 ELSE 0 END INTO @promising_scholars;
+-- Check for promising scholars flag using environment variable
+SELECT CASE WHEN $PROMISING_SCHOLARS = 1 THEN 1 ELSE 0 END INTO @promising_scholars;
 
 -- "REMOVE" CARLX PATRON
 -- Skip this section if processing promising scholars
