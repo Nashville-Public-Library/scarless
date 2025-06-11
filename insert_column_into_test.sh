@@ -1,7 +1,6 @@
 #!/bin/bash
 # insert_column_into_test.sh
 # James Staub, Nashville Public Library
-# Script to insert a new column into ic2carlx_mnps_students_test.txt based on unique default branch values from CARLX_INFINITECAMPUS_STUDENT.txt
 
 # Get unique default branch values
 declare -A unique_branches
@@ -12,23 +11,15 @@ done < <(awk -F'|' '{print $20}' ../data/CARLX_INFINITECAMPUS_STUDENT.txt | sort
 input_file="../data/ic2carlx_mnps_students_test.txt"
 output_file="../data/ic2carlx_mnps_students_test_with_branch.txt"
 
-{
-  # Read and process header
-  IFS='|' read -r -a header
-  header=( "${header[@]:0:19}" "promisingScholarsBranch" "${header[@]:19}" )
-  (IFS='|'; echo "${header[*]}")
-
-  # Process data rows
-  while IFS='|' read -r -a row; do
-    default_branch="${row[17]}"
-    col19="${row[18]}"
-    if [[ -n "${unique_branches[$default_branch]}" ]]; then
-      new_col="$col19"
-    else
-      new_col=""
-    fi
-    # Insert new column after 19th (index 18)
-    row=( "${row[@]:0:19}" "$new_col" "${row[@]:19}" )
-    (IFS='|'; echo "${row[*]}")
-  done
-} < "$input_file" > "$output_file"
+while IFS='|' read -r -a row; do
+  default_branch="${row[17]}"
+  col19="${row[18]}"
+  if [[ -n "${unique_branches[$default_branch]}" ]]; then
+    new_col="$col19"
+  else
+    new_col=""
+  fi
+  # Insert new column after 19th (index 18)
+  row=( "${row[@]:0:19}" "$new_col" "${row[@]:19}" )
+  (IFS='|'; echo "${row[*]}")
+done < "$input_file" > "$output_file"
