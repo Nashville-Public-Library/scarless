@@ -2,22 +2,23 @@
 # insert_column_into_test.sh
 # James Staub, Nashville Public Library
 
-# Create a temp file with unique branch values
-awk -F'|' '{print $20}' ../data/CARLX_INFINITECAMPUS_STUDENT.txt | sort | uniq > /tmp/unique_branches.txt
-
+unique_branches=$(awk -F'|' '{print $20}' ../data/CARLX_INFINITECAMPUS_STUDENT.txt | sort | uniq | awk '{print "\""$0"\""}' | paste -sd, -)
 input_file="../data/ic2carlx_mnps_students_test.txt"
 output_file="../data/ic2carlx_mnps_students_test_with_branch.txt"
 
-while IFS='|' read -r -a row; do
-  default_branch="${row[17]}"
-  col19="${row[18]}"
-  if grep -Fxq "$default_branch" /tmp/unique_branches.txt; then
-    new_col="$col19"
-  else
-    new_col=""
-  fi
-  row=( "${row[@]:0:19}" "$new_col" "${row[@]:19}" )
-  (IFS='|'; echo "${row[*]}")
-done < "$input_file" > "$output_file"
-
-rm /tmp/unique_branches.txt
+awk -F'|' -v OFS='|' -v branches="{$unique_branches}" '
+  BEGIN {
+    n = split(branches, arr, ",");
+    for (i = 1; i <= n; i++) {
+      gsub(/"/, "", arr[i]);
+      b[arr[i]] = 1;
+    }
+  }
+  {
+    newcol = (b[$19]) ? $19 : "";
+    for (i = 1; i <= 19; i++) printf "%s%s", $i, OFS;
+    printf "%s", newcol;
+    for (i = 20; i <= NF; i++) printf "%s%s", OFS, $i;
+    print "";
+  }
+' "$input_file" > "$output_file"
