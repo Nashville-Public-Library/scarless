@@ -44,18 +44,12 @@ from infinitecampus i
 left join patron_seen p on i.patronid = p.patronid 
 where p.patronid is null;
 
--- Check for promising scholars flag using environment variable
-SELECT CASE WHEN $PROMISING_SCHOLARS = 1 THEN 1 ELSE 0 END INTO @promising_scholars;
-
 -- "REMOVE" CARLX PATRON
--- Skip this section if processing promising scholars
-SELECT CASE WHEN @promising_scholars = 0 THEN 1 ELSE 0 END INTO @process_remove;
-
--- Only execute if not processing promising scholars
-SELECT CASE WHEN @process_remove = 1 THEN '
+-- Skip this section if processing promising scholars -- This comment is used by ic2carlx_mnps.exp -- DO NOT ALTER
+SELECT CASE WHEN 1 = 1 THEN ' -- Used by ic2carlx_mnps.exp -- DO NOT ALTER
 drop table if exists carlx_remove;
 create table if not exists carlx_remove (patronid,patron_seen,emailaddress,collectionstatus,defaultbranch,borrowertypecode,primaryphonenumber,secondaryphonenumber,teacherid,teachername);
-delete 
+delete
 from carlx_remove
 ;
 insert into carlx_remove select distinct p.patronid,
@@ -73,17 +67,17 @@ left join carlx c on p.patronid = c.PatronID
 where c.editbranch != 'XMNPS'
 and (patron_seen < date('now','-7 days') or patron_seen is null)
 order by p.patronid
-; 
+;
 .headers on
 .output ../data/ic2carlx_mnps_students_remove.csv
 select * from carlx_remove;
 .output stdout
 
 delete
-from patron_seen 
+from patron_seen
 where patron_seen < date('now','-7 days')
 or patron_seen is null
-; 
+;
 ' ELSE '' END AS sql_to_execute;
 
 -- Execute the dynamic SQL
