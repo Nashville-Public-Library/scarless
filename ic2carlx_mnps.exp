@@ -160,12 +160,40 @@ logWrite $logFile "COMPLETE get carlx"
 set timeout 600
 logWrite $logFile "START compare carlx vs infinitecampus"
 if {$promisingScholars == 1} {
-    # do not run staff if promising scholars
-    send "PROMISING_SCHOLARS=1 sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
-} else {
-    send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
+    # Create a temporary SQL file with promising scholars flag set
+    set sqlFile [open "ic2carlx_mnps_students_compare.sql" r]
+    set sqlContent [read $sqlFile]
+    close $sqlFile
+
+    # Replace the variable check with hardcoded values
+    set modifiedSql [string map {
+        "-- Skip this section if processing promising scholars -- This comment is used by ic2carlx_mnps.exp -- DO NOT ALTER"
+        "-- Promising scholars mode is enabled"
+    } $sqlContent]
+
+    set modifiedSql [string map {
+        "SELECT CASE WHEN @promising_scholars = 0 THEN 1 ELSE 0 END INTO @process_remove;"
+        "-- Skip removal process"
+    } $modifiedSql]
+
+    set modifiedSql [string map {
+        "SELECT CASE WHEN 1 = 1 THEN ' -- Used by ic2carlx_mnps.exp -- DO NOT ALTER"
+        "SELECT CASE WHEN 0 = 1 THEN '"
+    } $modifiedSql]
+
+    # Write to a temporary file
+    set tempSqlFile [open "ic2carlx_mnps_students_compare_temp.sql" w]
+    puts $tempSqlFile $modifiedSql
+    close $tempSqlFile
+
+    # Run the modified SQL file
+    send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare_temp.sql\r"
     expect -re $prompt
-    send "PROMISING_SCHOLARS=0 sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
+
+    # Clean up
+    send "rm -f ic2carlx_mnps_students_compare_temp.sql\r"
+} else {
+    send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
 }
 expect -re $prompt
 logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
