@@ -134,3 +134,6 @@
 30 04 * 04 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2025 05 MAY
 30 04 01-02 05 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+
+# 2025 06 JUNE # PROMISING SCHOLARS
+30 04 01-27 06 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp --promisingScholars;
