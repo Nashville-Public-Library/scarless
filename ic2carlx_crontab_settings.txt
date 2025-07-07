@@ -137,3 +137,24 @@
 
 # 2025 06 JUNE # PROMISING SCHOLARS
 30 04 01-27 06 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp --promisingScholars;
+
+# 2025 08 AUGUST
+30 04 * 08 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2025 09 SEPTEMBER
+30 04 * 09 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2025 10 OCTOBER
+30 04 01-09,20-31 10 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2025 11 NOVEMBER
+30 04 01-23 11 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2025 12 DECEMBER
+30 04 01-21 12 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2026 01 JANUARY
+30 04 07-31 01 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2026 02 FEBRUARY
+30 04 * 02 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2026 03 MARCH
+30 04 01-08,16-31 03 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2026 04 APRIL
+30 04 * 04 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+# 2026 05 MAY
+30 04 01-08 05 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
