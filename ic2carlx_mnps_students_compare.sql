@@ -64,8 +64,8 @@ insert into carlx_remove select distinct p.patronid,
     c.teachername
 from patron_seen p
 left join carlx c on p.patronid = c.PatronID
-where c.editbranch != 'XMNPS'
-and (patron_seen < date('now','-7 days') or patron_seen is null)
+where c.editbranch != ''XMNPS''
+and (patron_seen < date(''now'',''-7 days'') or patron_seen is null)
 order by p.patronid
 ;
 .headers on
@@ -75,7 +75,7 @@ select * from carlx_remove;
 
 delete
 from patron_seen
-where patron_seen < date('now','-7 days')
+where patron_seen < date(''now'',''-7 days'')
 or patron_seen is null
 ;
 ' ELSE '' END AS sql_to_execute;
