@@ -49,13 +49,37 @@ set prompt {\$ $}
 spawn bash
 expect -re $prompt
 
-# expect_before to watch for timeouts; placed after "spawn bash" to avoid an error when run from crontab: Tcl_RegisterChannel: duplicate channel names
+# expect_before to watch for timeouts and errors; placed after "spawn bash" to avoid an error when run from crontab: Tcl_RegisterChannel: duplicate channel names
 expect_before {
 	timeout { 
 		puts "timeout: aborting: [lindex [info level -1] 0]"
 		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: TIMEOUT" james.staub@nashville.gov kate.wingate@nashville.gov
 		logWrite $logFile "ABORTED: Infinite Campus error: TIMEOUT: [lindex [info level -1] 0]"
 		exit 2
+	}
+	-re {[Ee]rror} {
+		puts "Error detected: aborting: [lindex [info level -1] 0]"
+		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: ERROR DETECTED" james.staub@nashville.gov kate.wingate@nashville.gov
+		logWrite $logFile "ABORTED: Infinite Campus error: ERROR DETECTED: [lindex [info level -1] 0]"
+		exit 3
+	}
+	-re {[Ff]ailed} {
+		puts "Failure detected: aborting: [lindex [info level -1] 0]"
+		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: FAILURE DETECTED" james.staub@nashville.gov kate.wingate@nashville.gov
+		logWrite $logFile "ABORTED: Infinite Campus error: FAILURE DETECTED: [lindex [info level -1] 0]"
+		exit 4
+	}
+	-re {[Ff]atal} {
+		puts "Fatal error detected: aborting: [lindex [info level -1] 0]"
+		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: FATAL ERROR DETECTED" james.staub@nashville.gov kate.wingate@nashville.gov
+		logWrite $logFile "ABORTED: Infinite Campus error: FATAL ERROR DETECTED: [lindex [info level -1] 0]"
+		exit 5
+	}
+	-re {[Ee]xception} {
+		puts "Exception detected: aborting: [lindex [info level -1] 0]"
+		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: EXCEPTION DETECTED" james.staub@nashville.gov kate.wingate@nashville.gov
+		logWrite $logFile "ABORTED: Infinite Campus error: EXCEPTION DETECTED: [lindex [info level -1] 0]"
+		exit 6
 	}
 }
 
