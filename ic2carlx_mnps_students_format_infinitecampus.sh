@@ -119,8 +119,8 @@ if ($promising_scholars) { $F[18] = $F[19]; }
 	if ($F[32] eq "Y") { $F[32] = "Yes"; }
 # STATUS EMPTY; SHOULD NOT OVERWRITE CARL.X STATUS
 	$F[21] = "";
-# CHANGE DATE VALUE FOR EXPIRATION TO 2025-10-01
-  $F[24] = "2025-10-01";
+# CHANGE DATE VALUE FOR EXPIRATION TO 2026-10-01
+  $F[24] = "2026-10-01";
 # GUARANTOR EFFECTIVE STOP DATE (GESD)
 	if ($F[28] ne "" && $F[27] =~ m/^\d{4}-\d{2}-\d{2}$/) {
 		$todaydt	= DateTime->today();
