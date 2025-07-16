@@ -187,12 +187,16 @@ if {$promisingScholars == 1} {
     close $tempSqlFile
 
     # Run the modified SQL file
+    send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
+    expect -re $prompt
     send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare_temp.sql\r"
     expect -re $prompt
 
     # Clean up
     send "rm -f ic2carlx_mnps_students_compare_temp.sql\r"
 } else {
+    send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
+    expect -re $prompt
     send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
 }
 expect -re $prompt
