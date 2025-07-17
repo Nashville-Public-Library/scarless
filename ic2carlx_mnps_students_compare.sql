@@ -49,12 +49,22 @@ from infinitecampus i
 left join patron_seen p on i.patronid = p.patronid 
 where p.patronid is null;
 
--- Set default value for promising_scholars if not provided
-SELECT COALESCE(@promising_scholars, 0) INTO @promising_scholars;
-
+-- Get promising_scholars value from variables table
 -- "REMOVE" CARLX PATRON
 -- Skip this section if processing promising scholars
-SELECT CASE WHEN @promising_scholars = 0 THEN ' -- Used by ic2carlx_mnps.exp -- DO NOT ALTER
+-- Store SQL to execute in variables table based on promising_scholars value
+DELETE FROM variables WHERE name = 'sql_to_execute';
+
+-- If promising_scholars is 0, set sql_to_execute to the removal SQL, otherwise set it to empty string
+INSERT INTO variables (name, value) 
+SELECT 'sql_to_execute', 
+CASE WHEN (SELECT value FROM variables WHERE name = 'promising_scholars') = 0 
+THEN 1 ELSE 0 END;
+
+-- This is the SQL that will be executed if promising_scholars = 0
+CREATE TABLE IF NOT EXISTS sql_templates (id INTEGER PRIMARY KEY, sql_text TEXT);
+DELETE FROM sql_templates WHERE id = 1;
+INSERT INTO sql_templates (id, sql_text) VALUES (1, '
 drop table if exists carlx_remove;
 create table if not exists carlx_remove (patronid,patron_seen,emailaddress,collectionstatus,defaultbranch,borrowertypecode,primaryphonenumber,secondaryphonenumber,teacherid,teachername);
 delete
@@ -86,11 +96,16 @@ from patron_seen
 where patron_seen < date(''now'',''-7 days'')
 or patron_seen is null
 ;
-' ELSE '' END AS sql_to_execute;
+');
 
 -- Execute the dynamic SQL by writing to a temp file and then reading it
 .output temp_sql_to_execute.sql
-SELECT @sql_to_execute;
+-- If promising_scholars is 0, write the SQL from sql_templates, otherwise write an empty string
+SELECT CASE 
+    WHEN (SELECT value FROM variables WHERE name = 'sql_to_execute') = 1 
+    THEN (SELECT sql_text FROM sql_templates WHERE id = 1) 
+    ELSE '' 
+END;
 .output stdout
 .read temp_sql_to_execute.sql
 
