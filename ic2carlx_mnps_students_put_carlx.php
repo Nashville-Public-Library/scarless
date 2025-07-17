@@ -41,19 +41,8 @@ $today					= DateTime::createFromFormat('Y-m-d', date('Y-m-d'));
 //////////////////// REMOVE CARLX PATRONS : HOMEROOM ////////////////////
 //// FROM STARTDATE UNTIL TWENTYDAY, REMOVES HOMEROOM FROM STUDENTS WHO WOULD OTHERWISE BE XMNPS ////
 if (!$promisingScholars && $today >= $startDate && $today < $twentyDay) {
-	$all_rows = array();
-	$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
-	if ($fhnd){
-		$header = fgetcsv($fhnd);
-		while ($row = fgetcsv($fhnd)) {
-			$all_rows[] = array_combine($header, $row);
-		}
-	}
-	fclose($fhnd);
-
-	//print_r($all_rows);
 	$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-	foreach ($all_rows as $patron) {
+	foreach (getRecords('../data/ic2carlx_mnps_students_remove.csv') as $patron) {
 		// TESTING
 		//if ($patron['PatronID'] > 190999115) { break; }
 		if (!empty($patron['teacherid'] || !empty($patron['teachername']))) {
@@ -84,17 +73,9 @@ if (!$promisingScholars && $today >= $startDate && $today < $twentyDay) {
 
 if (!$promisingScholars && $today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDATE, RUN XMNPS
 	$all_rows = array();
-	$fhnd = fopen("../data/ic2carlx_mnps_students_remove.csv", "r");
-	if ($fhnd){
-		$header = fgetcsv($fhnd);
-		while ($row = fgetcsv($fhnd)) {
-			$all_rows[] = array_combine($header, $row);
-		}
-	}
-	fclose($fhnd);
-	//print_r($all_rows);
+
 	$client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-	foreach ($all_rows as $patron) {
+	foreach (getRecords('../data/ic2carlx_mnps_students_remove.csv') as $patron) {
 		// TESTING
 		//if ($patron['patronid'] > 190999115) { break; }
 		// CREATE REQUEST
@@ -164,17 +145,9 @@ if (!$promisingScholars && $today >= $twentyDay && $today < $stopDate) { // FROM
 
 //////////////////// CREATE CARLX PATRONS ////////////////////
 $all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_students_create.csv", "r");
-if ($fhnd){
-	$header = fgetcsv($fhnd);
-	while ($row = fgetcsv($fhnd)) {
-		$all_rows[] = array_combine($header, $row);
-	}
-}
-fclose($fhnd);
-//print_r($all_rows);
+
 $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-foreach ($all_rows as $patron) {
+foreach (getRecords('../data/ic2carlx_mnps_students_create.csv') as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
 
@@ -265,18 +238,8 @@ foreach ($all_rows as $patron) {
 
 //////////////////// UPDATE CARLX PATRONS ////////////////////
 
-$all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_students_update.csv", "r");
-if ($fhnd){
-	$header = fgetcsv($fhnd);
-	while ($row = fgetcsv($fhnd)) {
-		$all_rows[] = array_combine($header, $row);
-	}
-}
-fclose($fhnd);
-//print_r($all_rows);
 $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-foreach ($all_rows as $patron) {
+foreach (getRecords('../data/ic2carlx_mnps_students_update.csv') as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
@@ -339,18 +302,8 @@ foreach ($all_rows as $patron) {
 
 //////////////////// UPDATE EMAIL ADDRESS AND NOTICES ////////////////////
 
-$all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_students_updateEmail.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_updateEmail.csv");
-if ($fhnd){
-	$header = fgetcsv($fhnd);
-	while ($row = fgetcsv($fhnd)) {
-		$all_rows[] = array_combine($header, $row);
-	}
-}
-fclose($fhnd);
-//print_r($all_rows);
 $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-foreach ($all_rows as $patron) {
+foreach (getRecords('../data/ic2carlx_mnps_students_updateEmail.csv') as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
@@ -370,18 +323,8 @@ foreach ($all_rows as $patron) {
 
 //////////////////// CREATE GUARANTOR NOTES ////////////////////
 
-$all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_students_createNoteGuarantor.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_createNoteGuarantor.csv");
-if ($fhnd){
-	$header = fgetcsv($fhnd);
-	while ($row = fgetcsv($fhnd)) {
-		$all_rows[] = array_combine($header, $row);
-	}
-}
-fclose($fhnd);
-//print_r($all_rows);
 $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-foreach ($all_rows as $patron) {
+foreach (getRecords('../data/ic2carlx_mnps_students_createNoteGuarantor.csv') as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { break; }
 	// CREATE REQUEST
@@ -401,18 +344,8 @@ foreach ($all_rows as $patron) {
 
 //////////////////// REMOVE OBSOLETE MNPS PATRON EXPIRED NOTES ////////////////////
 
-$all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_students_deleteExpiredNotes.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_deleteExpiredNotes.csv");
-if ($fhnd){
-	$header = fgetcsv($fhnd);
-	while ($row = fgetcsv($fhnd)) {
-		$all_rows[] = array_combine($header, $row);
-	}
-}
-fclose($fhnd);
-//print_r($all_rows);
 $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-foreach ($all_rows as $patron) {
+foreach (getRecords('../data/ic2carlx_mnps_students_deleteExpiredNotes.csv') as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { continue; }
 	$noteIDs = explode(',', $patron['ExpiredNoteIDs']);
@@ -431,18 +364,8 @@ foreach ($all_rows as $patron) {
 
 //////////////////// REMOVE OBSOLETE "NPL: MNPS GUARANTOR EFFECTIVE" NOTES //////////////////// 
 
-$all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_students_deleteGuarantorNotes.csv", "r") or die("unable to open ../data/ic2carlx_mnps_students_deleteGuarantorNotes.csv");
-if ($fhnd){
-	$header = fgetcsv($fhnd);
-	while ($row = fgetcsv($fhnd)) {
-		$all_rows[] = array_combine($header, $row);
-	}
-}
-fclose($fhnd);
-//print_r($all_rows);
 $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-foreach ($all_rows as $patron) {
+foreach (getRecords('../data/ic2carlx_mnps_students_deleteGuarantorNotes.csv') as $patron) {
 	// TESTING
 	//if ($patron['PatronID'] > 190999115) { continue; }
 	$noteIDs = explode(',', $patron['DeleteGuarantorNoteIDs']);
