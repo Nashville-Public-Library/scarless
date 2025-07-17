@@ -49,28 +49,24 @@ from infinitecampus i
 left join patron_seen p on i.patronid = p.patronid 
 where p.patronid is null;
 
--- Get promising_scholars value from variables table
 -- "REMOVE" CARLX PATRON
--- Skip this section if processing promising scholars
--- Store SQL to execute in variables table based on promising_scholars value
-DELETE FROM variables WHERE name = 'sql_to_execute';
+-- Skip this section if processing promising scholars (value = 1)
 
--- If promising_scholars is 0, set sql_to_execute to the removal SQL, otherwise set it to empty string
-INSERT INTO variables (name, value) 
-SELECT 'sql_to_execute', 
-CASE WHEN (SELECT value FROM variables WHERE name = 'promising_scholars') = 0 
-THEN 1 ELSE 0 END;
+-- Check the promising_scholars value
+.print "Checking promising_scholars value..."
+SELECT value FROM variables WHERE name = 'promising_scholars';
 
--- This is the SQL that will be executed if promising_scholars = 0
-CREATE TABLE IF NOT EXISTS sql_templates (id INTEGER PRIMARY KEY, sql_text TEXT);
-DELETE FROM sql_templates WHERE id = 1;
-INSERT INTO sql_templates (id, sql_text) VALUES (1, '
+-- Only execute the remove section if promising_scholars = 0
+-- Use a direct CASE condition to determine whether to execute the SQL
+
+-- Create and populate carlx_remove table
 drop table if exists carlx_remove;
 create table if not exists carlx_remove (patronid,patron_seen,emailaddress,collectionstatus,defaultbranch,borrowertypecode,primaryphonenumber,secondaryphonenumber,teacherid,teachername);
-delete
-from carlx_remove
-;
-insert into carlx_remove select distinct p.patronid,
+delete from carlx_remove;
+
+-- Insert records only if promising_scholars = 0
+insert into carlx_remove 
+select distinct p.patronid,
 	p.patron_seen,
 	c.emailaddress,
 	c.collectionstatus,
@@ -82,32 +78,24 @@ insert into carlx_remove select distinct p.patronid,
     c.teachername
 from patron_seen p
 left join carlx c on p.patronid = c.PatronID
-where c.editbranch != ''XMNPS''
-and (patron_seen < date(''now'',''-7 days'') or patron_seen is null)
-order by p.patronid
-;
+where (SELECT value FROM variables WHERE name = 'promising_scholars') = 0
+and c.editbranch != 'XMNPS'
+and (patron_seen < date('now','-7 days') or patron_seen is null)
+order by p.patronid;
+
+-- Output the results to a CSV file
 .headers on
 .output ../data/ic2carlx_mnps_students_remove.csv
 select * from carlx_remove;
 .output stdout
 
-delete
-from patron_seen
-where patron_seen < date(''now'',''-7 days'')
-or patron_seen is null
-;
-');
-
--- Execute the dynamic SQL by writing to a temp file and then reading it
-.output temp_sql_to_execute.sql
--- If promising_scholars is 0, write the SQL from sql_templates, otherwise write an empty string
-SELECT CASE 
-    WHEN (SELECT value FROM variables WHERE name = 'sql_to_execute') = 1 
-    THEN (SELECT sql_text FROM sql_templates WHERE id = 1) 
-    ELSE '' 
-END;
-.output stdout
-.read temp_sql_to_execute.sql
+-- Delete from patron_seen only if promising_scholars = 0
+delete from patron_seen
+where (SELECT value FROM variables WHERE name = 'promising_scholars') = 0
+and (
+    patron_seen < date('now','-7 days')
+    or patron_seen is null
+);
 
 -- CREATE CARLX PATRON
 -- drop table if exists carlx_create;
@@ -444,7 +432,7 @@ select c.PatronID,
 	c.ExpiredNoteIDs 
 from infinitecampus i 
 inner join carlx c on i.patronid = c.patronid 
-where c.ExpiredNoteIDs != ""
+where c.ExpiredNoteIDs != ''
 order by c.PatronID
 ;
 .output stdout
@@ -455,7 +443,7 @@ order by c.PatronID
 select c.PatronID, 
 	c.DeleteGuarantorNoteIDs
 from carlx c
-where c.DeleteGuarantorNoteIDs != ""
+where c.DeleteGuarantorNoteIDs != ''
 order by c.PatronID
 ;
 .output stdout
