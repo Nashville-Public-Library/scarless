@@ -60,34 +60,17 @@ expect -re $prompt
 set working_on "Setting up expect_before"
 expect_before {
 	timeout { 
-		puts "timeout: aborting: [lindex [info level -1] 0]"
-		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: TIMEOUT" james.staub@nashville.gov kate.wingate@nashville.gov
-		logWrite $logFile "ABORTED: Infinite Campus error: TIMEOUT: [lindex [info level -1] 0]"
+		puts "scarless aborted: TIMEOUT during $working_on"
+		exec echo "EOM" | mail -s "scarless aborted: TIMEOUT during $working_on" james.staub@nashville.gov kate.wingate@nashville.gov
+		logWrite $logFile "ABORTED: TIMEOUT during $working_on"
 		exit 2
 	}
-	-re {[Ee]rror} {
-		puts "Error detected: aborting: [lindex [info level -1] 0]"
-		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: ERROR DETECTED" james.staub@nashville.gov kate.wingate@nashville.gov
-		logWrite $logFile "ABORTED: Infinite Campus error: ERROR DETECTED: [lindex [info level -1] 0]"
+	-re {(^.*([Ee]rror|[Ff]ail|[Ff]atal|[Ee]xception).*$)} {
+	    set errorMsg [lindex [split $expect_out(0,string) "\n"] 0]
+		puts "ABORTED: ERROR detected during $working_on: $errorMsg"
+		exec echo "scarless aborted: ERROR detected during $working_on: $errorMsg" | mail -s "scarless aborted: ERROR DETECTED" james.staub@nashville.gov kate.wingate@nashville.gov
+		logWrite $logFile "ABORTED: ERROR detected during $working_on: $errorMsg"
 		exit 3
-	}
-	-re {[Ff]ailed} {
-		puts "Failure detected: aborting: [lindex [info level -1] 0]"
-		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: FAILURE DETECTED" james.staub@nashville.gov kate.wingate@nashville.gov
-		logWrite $logFile "ABORTED: Infinite Campus error: FAILURE DETECTED: [lindex [info level -1] 0]"
-		exit 4
-	}
-	-re {[Ff]atal} {
-		puts "Fatal error detected: aborting: [lindex [info level -1] 0]"
-		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: FATAL ERROR DETECTED" james.staub@nashville.gov kate.wingate@nashville.gov
-		logWrite $logFile "ABORTED: Infinite Campus error: FATAL ERROR DETECTED: [lindex [info level -1] 0]"
-		exit 5
-	}
-	-re {[Ee]xception} {
-		puts "Exception detected: aborting: [lindex [info level -1] 0]"
-		exec echo "[lindex [info level -1] 0]" | mail -s "Infinite Campus error: EXCEPTION DETECTED" james.staub@nashville.gov kate.wingate@nashville.gov
-		logWrite $logFile "ABORTED: Infinite Campus error: EXCEPTION DETECTED: [lindex [info level -1] 0]"
-		exit 6
 	}
 }
 
