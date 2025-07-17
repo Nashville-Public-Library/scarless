@@ -90,3 +90,14 @@ function callAPI($wsdl, $requestName, $request, $tag, $client = null) {
 function createRandomPIN(): string {
 	return bin2hex(random_bytes(3));
 }
+
+function getRecords($filename) {
+	$fhnd = fopen($filename, 'r');
+	if ($fhnd) {
+		$header = fgetcsv($fhnd);
+		while ($row = fgetcsv($fhnd)) {
+			yield array_combine($header, $row);
+		}
+		fclose($fhnd);
+	}
+}
