@@ -15,19 +15,25 @@ if {[lsearch -exact $argv "--help"] != -1 || [llength $argv] > 3} {
     exit 0
 }
 
+set working_on "Initializing"
+
 # READ CONFIG.PWD.INI
+set working_on "Reading configuration"
 source ic2carlx_read_config.exp
 
 # SET UP LOG
 # TO WRITE TO THE LOG:
 # logWrite $logFile "log entry"
+set working_on "Setting up log"
 source ic2carlx_log.exp
 set logFile "$localPath$name.log"
 
 # CONFIG
+set working on "Set time"
 set nowEpoch [clock seconds]
 
-# PARSE ARGUMENTS
+# PARSE INPUT ARGUMENTS
+set working_on "Parsing input arguments"
 set testMode 0
 set imageCleanup 0
 set promisingScholars 0
@@ -44,12 +50,14 @@ foreach {arg} $argv {
 }
 
 # START BASH
+set working_on "Starting bash"
 set timeout 10
 set prompt {\$ $}
 spawn bash
 expect -re $prompt
 
 # expect_before to watch for timeouts and errors; placed after "spawn bash" to avoid an error when run from crontab: Tcl_RegisterChannel: duplicate channel names
+set working_on "Setting up expect_before"
 expect_before {
 	timeout { 
 		puts "timeout: aborting: [lindex [info level -1] 0]"
@@ -86,12 +94,14 @@ expect_before {
 logWrite $logFile "START get infinitecampus"
 
 # IF ICUSER IS IN CONFIG.PWD.INI, USE IT. ICUSER SHOULD LOOK LIKE "limitless@connected.library.nashville.org"
+set working_on "Setting up Infinite Campus user and path"
 if {[info exists icUser] && [string length $icUser] > 0} {
     # $icUser is not empty
     set icPath "$icUser:$icPath"
 }
 
 # RETRIEVE INFINITECAMPUS ZIP PACKAGE
+set working_on "Retrieving Infinite Campus ZIP package"
 set timeout 10
 send "rsync -a "
 send $icPath
@@ -106,6 +116,7 @@ if {[info exists icUser] && [string length $icUser] > 0} {
 expect -re $prompt
 
 # RETRIEVE IMAGES
+set working_on "Retrieving images"
 set timeout 1800
 send "rsync -a --delete "
 send $icPath
@@ -120,6 +131,7 @@ if {[info exists icUser] && [string length $icUser] > 0} {
 expect -re $prompt
 
 # UNZIP INFINITE CAMPUS PACKAGE
+set working_on "Unzipping Infinite Campus package"
 set timeout 10
 send "7za x -o"
 send $localPath
@@ -135,7 +147,8 @@ expect "Would you like to replace the existing file*uit?"
 send "y\r"
 expect -re $prompt
 
-# VERIFY EXTRACT TIME
+# VERIFY INFINITECAMPUS EXTRACT TIME
+set working_on "Verifying Infinite Campus extract time"
 set timeout 10
 send "stat -c %Y $localPath/CARLX_INFINITECAMPUS_STAFF.txt\r"
 expect -re "(\[0-9]{10})"
@@ -152,6 +165,7 @@ if {$nowEpoch - $staffModified > 86400 || $nowEpoch - $studentModified > 86400} 
 expect -re $prompt
 
 # SET FILE PERMISSIONS
+set working_on "Setting file permissions"
 set timeout 300
 send "chmod 700 $localPath/CARLX_INFINITECAMPUS*\r"
 expect -re $prompt
@@ -159,7 +173,8 @@ send "chmod -R 700 $localPath/images/\r"
 expect -re $prompt
 logWrite $logFile "COMPLETE get infinitecampus"
 
-# FORMAT INFINITECAMPUS 
+# FORMAT INFINITECAMPUS
+set working_on "Formatting Infinite Campus data"
 set timeout 600
 logWrite $logFile "START format infinitecampus"
 if {$promisingScholars == 1} {
@@ -174,6 +189,7 @@ expect -re $prompt
 logWrite $logFile "COMPLETE format infinitecampus"
 
 # RETRIEVE CARLX MNPS STAFF AND STUDENTS
+set working_on "Retrieving CARLX MNPS staff and students"
 set timeout 600
 logWrite $logFile "START get carlx"
 send "$phpPath ic2carlx_get_carlx.php\r"
@@ -181,13 +197,17 @@ expect -re $prompt
 logWrite $logFile "COMPLETE get carlx"
 
 # COMPARE CARLX VS INFINITECAMPUS
+set working_on "Comparing CARLX vs Infinite Campus"
 set timeout 600
 logWrite $logFile "START compare carlx vs infinitecampus"
 
 # Run staff comparison
+set working_on "Comparing CARLX vs Infinite Campus staff"
 send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
 expect -re $prompt
 
+# Run student comparison
+set working_on "Comparing CARLX vs Infinite Campus students"
 # For students, handle promising scholars mode
 if {$promisingScholars == 1} {
     # Set promising_scholars value in the database
@@ -198,13 +218,13 @@ if {$promisingScholars == 1} {
     send "sqlite3 ../data/ic2carlx_mnps_students.db \"UPDATE variables SET value = 0 WHERE name = 'promising_scholars';\"\r"
     expect -re $prompt
 }
-
-# Run the SQL command to execute the main SQL file
+# For students, run the SQL command to execute the main SQL file
 send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
 expect -re $prompt
 logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 
 # ABORT IF CHANGE THRESHOLDS ARE EXCEEDED
+#set working_on "Checking for change thresholds"
 #set timeout 10
 #expect -re $prompt
 #if (file_exists("../data/ic2carlx_mnps_staff_report_defaultbranch_ABORT.csv")||("../data/ic2carlx_mnps_students_report_defaultbranch_ABORT.csv")||("../data/ic2carlx_mnps_staff_report_borrowertype_ABORT.csv")||("../data/ic2carlx_mnps_students_report_borrowertype_ABORT.csv") {
@@ -214,11 +234,13 @@ logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 #expect -re $prompt
 
 # SET FILE PERMISSIONS AGAIN
+set working_on "Setting file permissions again"
 set timeout 300
 send "chmod -R 700 ../data/*\r"
 expect -re $prompt
 
 # REMOVE IMAGES OF NONELIGIBLE MNPS STAFF AND STUDENTS
+set working_on "Cleaning up image files"
 if {$imageCleanup == 1} {
     set timeout 900
     logWrite $logFile "START clean up image files"
@@ -246,6 +268,7 @@ if {$imageCleanup == 1} {
 # see also https://blog.ircmaxell.com/2012/07/what-generators-can-do-for-you.html#Other-Uses
 # but until then, the purely sequential way...
 
+set working_on "Putting CARLX MNPS staff and students"
 if {$testMode == 1} {
     logWrite $logFile "TEST MODE: skipping put carlx"
     exit
@@ -253,18 +276,22 @@ if {$testMode == 1} {
 
 set timeout 3600
 if {$promisingScholars == 0} {
+    set working_on "Putting CARLX MNPS staff"
     logWrite $logFile "START mnps staff put carlx"
     send "$phpPath ic2carlx_mnps_staff_put_carlx.php\r"
     expect -re $prompt
     logWrite $logFile "COMPLETE mnps staff put carlx"
+    set working_on "Putting CARLX MNPS students"
     logWrite $logFile "START mnps students put carlx"
     send "$phpPath ic2carlx_mnps_students_put_carlx.php\r"
     expect -re $prompt
     logWrite $logFile "COMPLETE mnps students put carlx"
 } else {
+    set working_on "Putting CARLX MNPS students: promising scholars"
     logWrite $logFile "START mnps students put carlx"
     send "$phpPath ic2carlx_mnps_students_put_carlx.php --promisingScholars\r"
     expect -re $prompt
     logWrite $logFile "COMPLETE mnps students put carlx"
 }
+set working_on "Turning off the lights and locking the door"
 exit
