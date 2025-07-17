@@ -29,7 +29,7 @@ source ic2carlx_log.exp
 set logFile "$localPath$name.log"
 
 # CONFIG
-set working on "Set time"
+set working_on "Set time"
 set nowEpoch [clock seconds]
 
 # PARSE INPUT ARGUMENTS
@@ -59,12 +59,16 @@ expect -re $prompt
 # expect_before to watch for timeouts and errors; placed after "spawn bash" to avoid an error when run from crontab: Tcl_RegisterChannel: duplicate channel names
 set working_on "Setting up expect_before"
 expect_before {
+    # If a timeout occurs, send an email and exit
 	timeout { 
 		puts "scarless aborted: TIMEOUT during $working_on"
 		exec echo "EOM" | mail -s "scarless aborted: TIMEOUT during $working_on" james.staub@nashville.gov kate.wingate@nashville.gov
 		logWrite $logFile "ABORTED: TIMEOUT during $working_on"
 		exit 2
 	}
+	# If an error is detected, send an email and exit
+	# N.B. Catches error phrases that are not all UPPERCASE. This script's own errors all print all UPPERCASE and will not trigger exit.
+	# TODO: Replace ERROR with WARNING or INFO in SOAP responses
 	-re {(^.*([Ee]rror|[Ff]ail|[Ff]atal|[Ee]xception).*$)} {
 	    set errorMsg [lindex [split $expect_out(0,string) "\n"] 0]
 		puts "ABORTED: ERROR detected during $working_on: $errorMsg"
