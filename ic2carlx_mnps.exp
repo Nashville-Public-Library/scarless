@@ -190,22 +190,17 @@ expect -re $prompt
 
 # For students, handle promising scholars mode
 if {$promisingScholars == 1} {
-    # Create a temporary SQL file with empty content (to skip the removal process)
-    set tempSqlFile [open "temp_sql_to_execute.sql" w]
-    puts $tempSqlFile ""
-    close $tempSqlFile
-
-    # Run the SQL command to execute the main SQL file
-    send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
+    # Set promising_scholars value in the database
+    send "sqlite3 ../data/ic2carlx_mnps_students.db \"UPDATE variables SET value = 1 WHERE name = 'promising_scholars';\"\r"
     expect -re $prompt
-
-    # Clean up
-    send "rm -f temp_sql_to_execute.sql\r"
 } else {
-    # Run the SQL command normally
-    send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
+    # Set promising_scholars value in the database
+    send "sqlite3 ../data/ic2carlx_mnps_students.db \"UPDATE variables SET value = 0 WHERE name = 'promising_scholars';\"\r"
     expect -re $prompt
 }
+
+# Run the SQL command to execute the main SQL file
+send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
 expect -re $prompt
 logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
 
