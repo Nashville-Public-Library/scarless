@@ -7,6 +7,11 @@
 -- TO DO: determine the benefit and method of using prepare()
 -- TO DO: for patron data privacy, kill this database when actions are complete
 
+-- Check if promising_scholars variable exists, if not set to 0
+.print "Checking for promising_scholars variable..."
+CREATE TABLE IF NOT EXISTS variables (name TEXT PRIMARY KEY, value INTEGER);
+INSERT OR IGNORE INTO variables (name, value) VALUES ('promising_scholars', 0);
+
 DROP TABLE IF EXISTS carlx;
 -- CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryStreetAddress,SecondaryCity,SecondaryState,SecondaryZipCode,PrimaryPhoneNumber,SecondaryPhoneNumber,AlternateID,NonvalidatedStats,DefaultBranch,ValidatedStatCodes,StatusCode,RegistrationDate,LastActionDate,ExpirationDate,EmailAddress,Notes,BirthDate,Guarantor,RacialorEthnicCategory,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName);
 CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,PrimaryStreetAddress,PrimaryCity,PrimaryState,PrimaryZipCode,SecondaryPhoneNumber,DefaultBranch,ExpirationDate,EmailAddress,BirthDate,Guarantor,LapTopCheckOut,LimitlessLibraryUse,TechOptOut,TeacherID,TeacherName,EmailNotices,ExpiredNoteIDs,DeleteGuarantorNoteIDs,CollectionStatus,EditBranch,PrimaryPhoneNumber);
@@ -44,9 +49,12 @@ from infinitecampus i
 left join patron_seen p on i.patronid = p.patronid 
 where p.patronid is null;
 
+-- Set default value for promising_scholars if not provided
+SELECT COALESCE(@promising_scholars, 0) INTO @promising_scholars;
+
 -- "REMOVE" CARLX PATRON
--- Skip this section if processing promising scholars -- This comment is used by ic2carlx_mnps.exp -- DO NOT ALTER
-SELECT CASE WHEN 1 = 1 THEN ' -- Used by ic2carlx_mnps.exp -- DO NOT ALTER
+-- Skip this section if processing promising scholars
+SELECT CASE WHEN @promising_scholars = 0 THEN ' -- Used by ic2carlx_mnps.exp -- DO NOT ALTER
 drop table if exists carlx_remove;
 create table if not exists carlx_remove (patronid,patron_seen,emailaddress,collectionstatus,defaultbranch,borrowertypecode,primaryphonenumber,secondaryphonenumber,teacherid,teachername);
 delete
@@ -80,8 +88,11 @@ or patron_seen is null
 ;
 ' ELSE '' END AS sql_to_execute;
 
--- Execute the dynamic SQL
-.print @sql_to_execute
+-- Execute the dynamic SQL by writing to a temp file and then reading it
+.output temp_sql_to_execute.sql
+SELECT @sql_to_execute;
+.output stdout
+.read temp_sql_to_execute.sql
 
 -- CREATE CARLX PATRON
 -- drop table if exists carlx_create;

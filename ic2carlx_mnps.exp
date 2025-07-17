@@ -183,45 +183,28 @@ logWrite $logFile "COMPLETE get carlx"
 # COMPARE CARLX VS INFINITECAMPUS
 set timeout 600
 logWrite $logFile "START compare carlx vs infinitecampus"
+
+# Run staff comparison
+send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
+expect -re $prompt
+
+# For students, handle promising scholars mode
 if {$promisingScholars == 1} {
-    # Create a temporary SQL file with promising scholars flag set
-    set sqlFile [open "ic2carlx_mnps_students_compare.sql" r]
-    set sqlContent [read $sqlFile]
-    close $sqlFile
-
-    # Replace the variable check with hardcoded values
-    set modifiedSql [string map {
-        "-- Skip this section if processing promising scholars -- This comment is used by ic2carlx_mnps.exp -- DO NOT ALTER"
-        "-- Promising scholars mode is enabled"
-    } $sqlContent]
-
-    set modifiedSql [string map {
-        "SELECT CASE WHEN @promising_scholars = 0 THEN 1 ELSE 0 END INTO @process_remove;"
-        "-- Skip removal process"
-    } $modifiedSql]
-
-    set modifiedSql [string map {
-        "SELECT CASE WHEN 1 = 1 THEN ' -- Used by ic2carlx_mnps.exp -- DO NOT ALTER"
-        "SELECT CASE WHEN 0 = 1 THEN '"
-    } $modifiedSql]
-
-    # Write to a temporary file
-    set tempSqlFile [open "ic2carlx_mnps_students_compare_temp.sql" w]
-    puts $tempSqlFile $modifiedSql
+    # Create a temporary SQL file with empty content (to skip the removal process)
+    set tempSqlFile [open "temp_sql_to_execute.sql" w]
+    puts $tempSqlFile ""
     close $tempSqlFile
 
-    # Run the modified SQL file
-    send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
-    expect -re $prompt
-    send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare_temp.sql\r"
+    # Run the SQL command to execute the main SQL file
+    send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
     expect -re $prompt
 
     # Clean up
-    send "rm -f ic2carlx_mnps_students_compare_temp.sql\r"
+    send "rm -f temp_sql_to_execute.sql\r"
 } else {
-    send "sqlite3 ../data/ic2carlx_mnps_staff.db < ic2carlx_mnps_staff_compare.sql\r"
-    expect -re $prompt
+    # Run the SQL command normally
     send "sqlite3 ../data/ic2carlx_mnps_students.db < ic2carlx_mnps_students_compare.sql\r"
+    expect -re $prompt
 }
 expect -re $prompt
 logWrite $logFile "COMPLETE compare carlx vs infinitecampus"
