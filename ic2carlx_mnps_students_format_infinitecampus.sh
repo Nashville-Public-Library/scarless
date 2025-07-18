@@ -168,6 +168,6 @@ if ($promising_scholars) { $F[18] = $F[19]; }
 		if ($_ =~ /[, ]/) {$_ = q/"/ . $_ . q/"/;}
 	}
 # REPLACE PIPE DELIMITERS WITH COMMAS, ELIMINATE COLUMNS THAT WILL NOT BE COMPARED
-	print join q/,/, @F[0..9,14,19,24,25,27,28,30..40]' ../data/ic2carlx_mnps_students_infinitecampus.txt > ../data/ic2carlx_mnps_students_infinitecampus.csv;
+	print join q/,/, @F[0..9,14,18,24,25,27,28,30..40]' ../data/ic2carlx_mnps_students_infinitecampus.txt > ../data/ic2carlx_mnps_students_infinitecampus.csv;
 # REMOVE HEADERS
 #perl -pi -e '$_ = "" if ( $. == 1 && $_ =~ /^patronid/i)' ../data/ic2carlx_mnps_students_infinitecampus.csv
