@@ -35,8 +35,9 @@ if [ $# -gt 1 ] && [[ "$2" == *"-localfile"* ]]; then
         exit 1
     fi
 
-    # Set date formats for filenames
+    # Set date format for -localfile filenames
     date_mackin=$(date -d "$date" +'%Y%m%d')
+    # set date for output filename
     date_connected=$(date -d "$date" +'%Y-%m-%d')
 
     # Define the file paths (assuming files are already local)
@@ -57,7 +58,7 @@ else
     fi
 
     # set date for Mackin filename
-    date_mackin=$(date -d "$date" +'%m_%d_%Y')
+    date_mackin=$(date -d "$date" +'%Y%m%d')
     # set date for output filename
     date_connected=$(date -d "$date" +'%Y-%m-%d')
 
