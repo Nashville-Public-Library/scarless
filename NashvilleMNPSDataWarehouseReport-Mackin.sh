@@ -17,12 +17,12 @@ if [ $# -gt 1 ] && [[ "$2" == *"-localfile"* ]]; then
     fi
 
     # Set date formats for filenames
-    date_mmddyyyy=$(date -d "$date" +'%m_%d_%Y')
-    date_yyyymmdd=$(date -d "$date" +'%Y-%m-%d')
+    date_mackin=$(date -d "$date" +'%Y%m%d')
+    date_connected=$(date -d "$date" +'%Y-%m-%d')
 
     # Define the file paths (assuming files are already local)
-    retrieved_file_students="../data/mackin/Nashville daily VIA report_$date_mmddyyyy.csv"
-    retrieved_file_staff="../data/mackin/Nashville daily VIA report_staff_$date_mmddyyyy.csv"
+    retrieved_file_students="../data/mackin/Nashville daily VIA report_$date_mackin.csv"
+    retrieved_file_staff="../data/mackin/Nashville daily VIA report_staff_$date_mackin.csv"
 else
     # Determine the date of the report record activity (either from arg1 or yesterday)
     if [ $# -gt 0 ]; then
@@ -37,23 +37,23 @@ else
     fi
 
     # set date for Mackin filename
-    date_mmddyyyy=$(date -d "$date" +'%m_%d_%Y')
+    date_mackin=$(date -d "$date" +'%m_%d_%Y')
     # set date for output filename
-    date_yyyymmdd=$(date -d "$date" +'%Y-%m-%d')
+    date_connected=$(date -d "$date" +'%Y-%m-%d')
 
     # Check if the file exists on the remote server
-    sshpass -p "$mackinPassword" sftp -q "$mackinUser"@sftp.mackin.com:Reports/*"$date_mmddyyyy"* >/dev/null 2>&1
+    sshpass -p "$mackinPassword" sftp -q "$mackinUser"@sftp.mackin.com:Reports/*"$date_mackin"* >/dev/null 2>&1
     if [ $? -ne 0 ]; then
-        echo "No file found for the date $date_mmddyyyy on the remote server. Exiting."
+        echo "No file found for the date $date_mackin on the remote server. Exiting."
         exit 1
     fi
 
     # Retrieve the STAFF AND STUDENT report files from Mackin
-    sshpass -p "$mackinPassword" sftp -q "$mackinUser"@sftp.mackin.com:Reports/*"$date_mmddyyyy"* ../data/mackin/
+    sshpass -p "$mackinPassword" sftp -q "$mackinUser"@sftp.mackin.com:Reports/*"$date_mackin"* ../data/mackin/
 
     # Define the file paths
-    retrieved_file_students="../data/mackin/Nashville daily VIA report_$date_mmddyyyy.csv"
-    retrieved_file_staff="../data/mackin/Nashville daily VIA report_staff_$date_mmddyyyy.csv"
+    retrieved_file_students="../data/mackin/Nashville daily VIA report_$date_mackin.csv"
+    retrieved_file_staff="../data/mackin/Nashville daily VIA report_staff_$date_mackin.csv"
 fi
 
 # Check if both files exist
@@ -86,8 +86,8 @@ fi
 # STAFF: Read the SQL file
 sql=$(<NashvilleMNPSDataWarehouseReport-Mackin-Staff.sql)
 # STAFF: Replace placeholders with the actual date
-sql=${sql//DATEPLACEHOLDERMMDDYYYY/$date_mmddyyyy}
-sql=${sql//DATEPLACEHOLDERYYYYMMDD/$date_yyyymmdd}
+sql=${sql//DATEPLACEHOLDERMMDDYYYY/$date_mackin}
+sql=${sql//DATEPLACEHOLDERYYYYMMDD/$date_connected}
 # STAFF: Write the modified SQL - incorporating custom date - to a new file
 echo "$sql" > NashvilleMNPSDataWarehouseReport-Mackin-Staff-Date-Specific.sql
 # STAFF: Run the modified SQL file through sqlite3
@@ -96,14 +96,14 @@ sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-Mackin
 # STUDENTS: Read the SQL file
 sql=$(<NashvilleMNPSDataWarehouseReport-Mackin-Students.sql)
 # STUDENTS: Replace placeholders with the actual date
-sql=${sql//DATEPLACEHOLDERMMDDYYYY/$date_mmddyyyy}
-sql=${sql//DATEPLACEHOLDERYYYYMMDD/$date_yyyymmdd}
+sql=${sql//DATEPLACEHOLDERMMDDYYYY/$date_mackin}
+sql=${sql//DATEPLACEHOLDERYYYYMMDD/$date_connected}
 # STUDENTS: Write the modified SQL - incorporating custom date - to a new file
 echo "$sql" > NashvilleMNPSDataWarehouseReport-Mackin-Students-Date-Specific.sql
 # STUDENTS: Run the modified SQL file through sqlite3
 sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-Mackin-Students-Date-Specific.sql
 
-SOURCE_FILE="../data/LibraryServices-Checkouts-MackinVIA-*-$date_yyyymmdd.csv"
+SOURCE_FILE="../data/LibraryServices-Checkouts-MackinVIA-*-$date_connected.csv"
 DEST_DIR="/home/mnps.org/data"
 # Set permissions for the files
 chown :mnps.org $SOURCE_FILE
