@@ -14,7 +14,7 @@ delete from mackin_data where rowid = 1;
 select
     ms.tn_school_code
      , md.yearmonthday
-     , i.patronid
+     , case when length(md.user_id) = 6 or length(md.user_id) = 7 then md.user_id else i.patronid end as patronid
      , md.count_of_checkouts
 from mackin_data md
     left join mackinvia_school_lookup ms on md.mackinvia_account_id = ms.mackin_school_id
