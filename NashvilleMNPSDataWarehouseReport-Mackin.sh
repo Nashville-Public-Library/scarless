@@ -93,13 +93,13 @@ fi
 
 # Check if both files exist
 if [ ! -f "$retrieved_file_students" ]; then
-    error_msg="Error: Student report file not found. Exiting."
+    error_msg="Error: Student report file not found at $retrieved_file_students . Exiting."
     send_error_email "$error_msg"
     exit 1
 fi
 
 if [ ! -f "$retrieved_file_staff" ]; then
-    error_msg="Error: Staff report file not found. Exiting."
+    error_msg="Error: Staff report file not found at $retrieved_file_staff . Exiting."
     send_error_email "$error_msg"
     exit 1
 fi
@@ -108,7 +108,7 @@ fi
 if awk -F, 'NR > 1 && $3 !~ /^[^@]+@[^@]+\.[^@]+$/ {exit 1}' "$retrieved_file_students"; then
     echo "Data validation passed: All rows in the student report have a valid email address in USER_ID."
 else
-    error_msg="Error: Invalid email address found in USER_ID column of the student report. Exiting."
+    error_msg="Error: Invalid email address found in USER_ID column of the student report at $retrieved_file_students . Exiting."
     send_error_email "$error_msg"
     exit 1
 fi
@@ -117,7 +117,7 @@ fi
 if awk -F, 'NR > 1 && $3 !~ /^[^@]+@[^@]+\.[^@]+$/ {exit 1}' "$retrieved_file_staff"; then
     echo "Data validation passed: All rows in the staff report have a valid email address in USER_ID."
 else
-    error_msg="Error: Invalid email address found in USER_ID column of the staff report. Exiting."
+    error_msg="Error: Invalid email address found in USER_ID column of the staff report at $retrieved_file_staff . Exiting."
     send_error_email "$error_msg"
     exit 1
 fi
@@ -147,13 +147,13 @@ STAFF_OUTPUT_FILE="../data/LibraryServices-Checkouts-MackinVIA-staff-$date_conne
 STUDENT_OUTPUT_FILE="../data/LibraryServices-Checkouts-MackinVIA-student-$date_connected.csv"
 
 if [ ! -f "$STAFF_OUTPUT_FILE" ]; then
-    error_msg="Error: Staff output file was not created. Exiting."
+    error_msg="Error: Staff output file was not created at $STAFF_OUTPUT_FILE . Exiting."
     send_error_email "$error_msg"
     exit 1
 fi
 
 if [ ! -f "$STUDENT_OUTPUT_FILE" ]; then
-    error_msg="Error: Student output file was not created. Exiting."
+    error_msg="Error: Student output file was not created at $STUDENT_OUTPUT_FILE . Exiting."
     send_error_email "$error_msg"
     exit 1
 fi
