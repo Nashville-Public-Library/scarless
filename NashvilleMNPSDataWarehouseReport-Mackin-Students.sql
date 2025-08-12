@@ -14,7 +14,7 @@ delete from mackin_data where rowid = 1;
 select
     ms.tn_school_code
      , md.yearmonthday
-     , coalesce(nullif(i.patronid, ''), md.user_id) as patronid
+     , case when md.user_id regexp '^190[0-9]{6}$' then md.user_id else coalesce(nullif(i.patronid, ''), md.user_id) as patronid
      , md.count_of_checkouts
 from mackin_data md
     left join mackinvia_school_lookup ms on md.mackinvia_account_id = ms.mackin_school_id
