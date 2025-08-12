@@ -104,20 +104,22 @@ if [ ! -f "$retrieved_file_staff" ]; then
     exit 1
 fi
 
-# Validate the USER_ID column in the student report file
-if awk -F, 'NR > 1 && $3 !~ /^[^@]+@[^@]+\.[^@]+$/ {exit 1}' "$retrieved_file_students"; then
+# Validate the USER_ID column in the student report file; can be email or student ID [the latter is very rare]
+invalid_record=$(awk -F, 'NR > 1 && ($3 !~ /^[^@]+@[^@]+\.[^@]+$/ && $3 !~ /^190[0-9]{6}$/) {print "Invalid record at line " NR ": " $0; exit 1}' "$retrieved_file_students")
+if [ -z "$invalid_record" ]; then
     echo "Data validation passed: All rows in the student report have a valid email address in USER_ID."
 else
-    error_msg="Error: Invalid email address found in USER_ID column of the student report at $retrieved_file_students . Exiting."
+    error_msg="Error: Invalid email address or ID found in USER_ID column of the student report at $retrieved_file_students. Problematic record: $invalid_record"
     send_error_email "$error_msg"
     exit 1
 fi
 
-# Validate the USER_ID column in the staff report file
-if awk -F, 'NR > 1 && $3 !~ /^[^@]+@[^@]+\.[^@]+$/ {exit 1}' "$retrieved_file_staff"; then
+# Validate the USER_ID column in the staff report file; can be email or staff ID [the latter is very rare]
+invalid_record=$(awk -F, 'NR > 1 && ($3 !~ /^[^@]+@[^@]+\.[^@]+$/ && $3 !~ /^[0-9]{6,7}$/) {print "Invalid record at line " NR ": " $0; exit 1}' "$retrieved_file_staff")
+if [ -z "$invalid_record" ]; then
     echo "Data validation passed: All rows in the staff report have a valid email address in USER_ID."
 else
-    error_msg="Error: Invalid email address found in USER_ID column of the staff report at $retrieved_file_staff . Exiting."
+    error_msg="Error: Invalid email address or ID found in USER_ID column of the staff report at $retrieved_file_staff. Problematic record: $invalid_record"
     send_error_email "$error_msg"
     exit 1
 fi
