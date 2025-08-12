@@ -24,12 +24,12 @@ send_error_email() {
     echo "$error_message" | mail -s "$subject" "$mackinErrorEmailRecipients"
 }
 
-# Function to format date_mackin based on date - before or after Aug 1 2025 which is APPROXIMATELY when Mackin switched filename scheme
+# Function to format date_mackin based on date - before or after Aug 5 2025 which is when Mackin switched filename scheme
 format_date_mackin() {
     local input_date="$1"
     local formatted_date
-    # If date is on or after August 1, 2025, use %Y%m%d format, otherwise use %m_%d_%Y
-    if [[ "$input_date" > "2025-07-31" ]]; then
+    # If date is on or after August 5, 2025, use %Y%m%d format, otherwise use %m_%d_%Y
+    if [[ "$input_date" > "2025-08-04" ]]; then
         formatted_date=$(date -d "$input_date" +'%Y%m%d')
     else
         formatted_date=$(date -d "$input_date" +'%m_%d_%Y')
