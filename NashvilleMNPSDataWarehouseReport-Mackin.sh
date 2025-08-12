@@ -24,6 +24,19 @@ send_error_email() {
     echo "$error_message" | mail -s "$subject" "$mackinErrorEmailRecipients"
 }
 
+# Function to format date_mackin based on date - before or after Aug 1 2025 which is APPROXIMATELY when Mackin switched filename scheme
+format_date_mackin() {
+    local input_date="$1"
+    local formatted_date
+    # If date is on or after August 1, 2025, use %Y%m%d format, otherwise use %m_%d_%Y
+    if [[ "$input_date" > "2025-07-31" ]]; then
+        formatted_date=$(date -d "$input_date" +'%Y%m%d')
+    else
+        formatted_date=$(date -d "$input_date" +'%m_%d_%Y')
+    fi
+    echo "$formatted_date"
+}
+
 # Check if second argument includes -localfile flag
 if [ $# -gt 1 ] && [[ "$2" == *"-localfile"* ]]; then
     # If -localfile flag is present, use the first argument as the date
@@ -36,7 +49,7 @@ if [ $# -gt 1 ] && [[ "$2" == *"-localfile"* ]]; then
     fi
 
     # Set date format for -localfile filenames
-    date_mackin=$(date -d "$date" +'%Y%m%d')
+    date_mackin=$(format_date_mackin "$date")
     # set date for output filename
     date_connected=$(date -d "$date" +'%Y-%m-%d')
 
@@ -58,7 +71,7 @@ else
     fi
 
     # set date for Mackin filename
-    date_mackin=$(date -d "$date" +'%Y%m%d')
+    date_mackin=$(format_date_mackin "$date")
     # set date for output filename
     date_connected=$(date -d "$date" +'%Y-%m-%d')
 
