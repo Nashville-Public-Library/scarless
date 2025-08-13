@@ -42,7 +42,6 @@ function getDataFromCarlX() {
 			)
 	order by
 			iv.item asc
-	fetch first 10000 rows only
 	EOT;
 
 	$stid = oci_parse($conn, $sql);
