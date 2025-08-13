@@ -28,6 +28,10 @@
 
 # PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/home/scarless/.local/bin:/home/scarless/bin
 
+# DAILY MAINTENANCE
+## Update items: round prices
+0 4 * * * cd ~/scarless; bash NashvilleMNPSUpdateItemsRoundPrices.sh;
+
 # DAILY REPORTS
 ## MNPS Data Warehouse Report
 0 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport.sh;
