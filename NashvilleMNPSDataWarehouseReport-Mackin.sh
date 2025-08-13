@@ -1,6 +1,28 @@
 #!/bin/bash
-# NashvilleMNPSDataWarehouseReport.sh
+# NashvilleMNPSDataWarehouseReport-Mackin.sh
 # James Staub, Nashville Public Library
+#
+# USAGE:
+# ./NashvilleMNPSDataWarehouseReport-Mackin.sh [date] [-localfile]
+#
+# DESCRIPTION:
+#   This script processes MackinVIA usage reports for Nashville MNPS students and staff.
+#   It retrieves reports from Mackin's SFTP server, validates the data, transforms it replacing
+#   Mackin school IDs with MNPS IDs and replacing email addresses with MNPS student/staff IDs,
+#   and outputs CSV files to the specified destination for pickup by MNPS.
+#
+# PARAMETERS:
+#   [date]       Optional. The date for which to process reports in YYYY-MM-DD format.
+#                If not provided, defaults to yesterday's date.
+#
+#   [-localfile] Optional. Flag indicating that the files are already downloaded locally
+#                and should not be retrieved from the SFTP server. Must be used with [date].
+#
+# EXAMPLES:
+#   ./NashvilleMNPSDataWarehouseReport-Mackin.sh                    # Process yesterday's reports
+#   ./NashvilleMNPSDataWarehouseReport-Mackin.sh 2025-08-12         # Process reports for Aug 12, 2025
+#   ./NashvilleMNPSDataWarehouseReport-Mackin.sh 2025-08-12 -localfile  # Process local files for Aug 12, 2025
+#
 
 # Read the configuration file
 mackinUser=$(awk -F "=" '/mackinUser/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
@@ -75,16 +97,13 @@ else
     # set date for output filename
     date_connected=$(date -d "$date" +'%Y-%m-%d')
 
-    # Check if the file exists on the remote server
-    sshpass -p "$mackinPassword" sftp -q "$mackinUser"@sftp.mackin.com:Reports/*"$date_mackin"* >/dev/null 2>&1
+    # Check if the STAFF and STUDENT report files exist on the remote server and download them
+    sshpass -p "$mackinPassword" sftp -q "$mackinUser"@sftp.mackin.com:Reports/*"$date_mackin"* ../data/mackin/ 2>&1
     if [ $? -ne 0 ]; then
         error_msg="No file found for the date $date_mackin on the remote server. Exiting."
         send_error_email "$error_msg"
         exit 1
     fi
-
-    # Retrieve the STAFF AND STUDENT report files from Mackin
-    sshpass -p "$mackinPassword" sftp -q "$mackinUser"@sftp.mackin.com:Reports/*"$date_mackin"* ../data/mackin/
 
     # Define the file paths
     retrieved_file_students="../data/mackin/Nashville daily VIA report_$date_mackin.csv"
