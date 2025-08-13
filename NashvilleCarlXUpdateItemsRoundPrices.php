@@ -48,7 +48,7 @@ function getDataFromCarlX() {
 	oci_set_prefetch($stid, 10000);
 	oci_execute($stid);
 	// start a new file for the CarlX item extract
-	$df = fopen($reportPath . "CARLX_UPDATE_ITEMS.CSV", 'w');
+	$df = fopen($reportPath . "NashvilleCarlXUpdateItemsRoundPrices.data.csv", 'w');
 
 	while (($row = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS)) != false) {
 		// CSV OUTPUT
@@ -63,19 +63,18 @@ function getDataFromCarlX() {
 function updateItems() {
 	date_default_timezone_set('America/Chicago');
 	$startTime = microtime(true);
-
 	require_once 'ic2carlx_put_carlx.php';
-
 	$configArray = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
 	$itemApiWsdl = $configArray['Catalog']['itemApiWsdl'];
-
-	$errors = array();
+	$emailRecipients = $configArray['Email Recipients']['NashvilleCarlX'];
+	$reportPath = '../data/';
+	$errorFile = $reportPath . "NashvilleCarlXUpdateItemsRoundPrices.error.log." . date('YmdHis');
+	$ferror = fopen($errorFile, "a");
 
 	$callcount = 0;
 	getDataFromCarlX();
 	$client = new SOAPClient($itemApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-	$reportPath = '../data/';
-	$fhnd = fopen($reportPath . "CARLX_UPDATE_ITEMS.CSV", "r");
+	$fhnd = fopen($reportPath . "NashvilleCarlXUpdateItemsRoundPrices.data.csv", "r");
 	if ($fhnd) {
 		while (($item = fgetcsv($fhnd)) !== FALSE) {
 			// CREATE ITEM UPDATE REQUEST
@@ -89,9 +88,27 @@ function updateItems() {
 			$request->Item = new stdClass();
 			$request->Item->Price = trim($item[2]);
 			$result = callAPI($itemApiWsdl, $requestName, $request, $tag, $client);
+			if (isset($result->error)) {
+				fwrite($ferror, $result->error . "\n");
+				if (strpos($result->error, 'EXCEPTION') !== false) {
+					sendEmail('EXCEPTION NashvilleCarlXUpdateItemsRoundPrices.php', $result->error, $emailRecipients);
+					exit();
+				}
+			}
 			$callcount++;
 		}
 		fclose($fhnd);
+	}
+	fclose($ferror);
+	if (file_exists($errorFile) && filesize($errorFile) > 0) {
+		$maxBodySize = 100 * 1024; // 100KB
+		if (filesize($errorFile) <= $maxBodySize) {
+			$body = file_get_contents($errorFile);
+			sendEmail('NashvilleCarlXUpdateItemsRoundPrices Errors', $body, $emailRecipients);
+		} else {
+			$body = "Error log too large for email body. See attached file.";
+			sendEmail('NashvilleCarlXUpdateItemsRoundPrices Errors', $body, $emailRecipients, $errorFile);
+		}
 	}
 }
 

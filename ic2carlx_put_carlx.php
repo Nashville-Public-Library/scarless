@@ -21,23 +21,8 @@ $reportPath		= '../data/';
 
 //////////////////// FUNCTIONS ////////////////////
 
-// Custom error handler function
-// As of 2025 03 01, this custom error handler does NOT work
-function customErrorHandler($errno, $errstr, $errfile, $errline) {
-	if (strpos($errstr, 'Failed to open stream: Too many open files in') !== false) {
-		// Handle the specific warning here
-		echo "Custom Warning: $errstr in $errfile on line $errline\n";
-		// Optionally, you can log this warning to a file or take other actions
-		exit(1);
-	}
-	// Ensure the default error handler is still called
-	return false;
-}
-
 // Set error reporting to include warnings
 error_reporting(E_ALL);
-// Set the custom error handler
-set_error_handler('customErrorHandler');
 
 function callAPI($wsdl, $requestName, $request, $tag, $client = null) {
 //	$logger = Log::singleton('file', $reportPath . 'ic2carlx.log');
@@ -101,3 +86,29 @@ function getRecords($filename) {
 		fclose($fhnd);
 	}
 }
+
+function sendEmail($subject, $body, $recipients, $attachmentPath = null) {
+	$to = is_array($recipients) ? implode(',', $recipients) : $recipients;
+	$headers = "From: noreply-connected@nashville.gov\r\n";
+	if ($attachmentPath && file_exists($attachmentPath)) {
+		$file = file_get_contents($attachmentPath);
+		$filename = basename($attachmentPath);
+		$boundary = md5(time());
+		$headers .= "MIME-Version: 1.0\r\n";
+		$headers .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
+		$message = "--{$boundary}\r\n";
+		$message .= "Content-Type: text/plain; charset=\"utf-8\"\r\n";
+		$message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+		$message .= $body . "\r\n";
+		$message .= "--{$boundary}\r\n";
+		$message .= "Content-Type: text/plain; name=\"{$filename}\"\r\n";
+		$message .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n";
+		$message .= "Content-Transfer-Encoding: base64\r\n\r\n";
+		$message .= chunk_split(base64_encode($file)) . "\r\n";
+		$message .= "--{$boundary}--";
+		mail($to, $subject, $message, $headers);
+	} else {
+		mail($to, $subject, $body, $headers);
+	}
+}
+
