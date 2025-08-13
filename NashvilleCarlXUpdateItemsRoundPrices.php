@@ -30,7 +30,7 @@ function getDataFromCarlX() {
 	where
 			substr(iv.price, -2) != '00'
 			and iv.owningbranch != 28
-			and iv.item like '35192%'
+			-- and iv.item like '35192%' -- commented out to include all school items 2025 08 13
 			and iv.status not in ('sw', 'sc')
 			and iv.item not in (
 				select
