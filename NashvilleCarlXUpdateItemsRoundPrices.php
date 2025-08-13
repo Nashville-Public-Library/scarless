@@ -60,19 +60,6 @@ function getDataFromCarlX() {
 	oci_close($conn);
 }
 
-function getDataFromCSV() {
-	$reportPath		= '../data/';
-	$records = array();
-	$fhnd = fopen($reportPath . "CARLX_UPDATE_ITEMS.CSV", "r");
-	if ($fhnd) {
-		while (($data = fgetcsv($fhnd)) !== FALSE) {
-			$records[] = $data;
-		}
-	}
-	fclose($fhnd);
-	return $records;
-}
-
 function updateItems() {
 	date_default_timezone_set('America/Chicago');
 	$startTime = microtime(true);
@@ -86,28 +73,25 @@ function updateItems() {
 
 	$callcount = 0;
 	getDataFromCarlX();
-	$records = getDataFromCSV();
 	$client = new SOAPClient($itemApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
-	foreach ($records as $item) {
-		// CREATE ITEM UPDATE REQUEST
-		$requestName = 'updateItem';
-		$tag = $item[0] . ' : ' . $requestName . ' : ' . $item[1] . ' -> ' . $item[2];
-		$request = new stdClass();
-		$request->Modifiers = new stdClass();
-		$request->Modifiers->DebugMode = false;
-		$request->Modifiers->ReportMode = false;
-		$request->ItemID = $item[0];
-		$request->Item = new stdClass();
-		$request->Item->Price = trim($item[2]);
-
-		$result = callAPI($itemApiWsdl, $requestName, $request, $tag, $client);
-		$callcount++;
-	//	var_dump($result);
-	//	if (isset($result->Fault)) {
-	//		echo "$result->Fault\n";
-	//		$errors[] = $result->Fault;
-	//	}
+	$reportPath = '../data/';
+	$fhnd = fopen($reportPath . "CARLX_UPDATE_ITEMS.CSV", "r");
+	if ($fhnd) {
+		while (($item = fgetcsv($fhnd)) !== FALSE) {
+			// CREATE ITEM UPDATE REQUEST
+			$requestName = 'updateItem';
+			$tag = $item[0] . ' : ' . $requestName . ' : ' . $item[1] . ' -> ' . $item[2];
+			$request = new stdClass();
+			$request->Modifiers = new stdClass();
+			$request->Modifiers->DebugMode = false;
+			$request->Modifiers->ReportMode = false;
+			$request->ItemID = $item[0];
+			$request->Item = new stdClass();
+			$request->Item->Price = trim($item[2]);
+			$result = callAPI($itemApiWsdl, $requestName, $request, $tag, $client);
+			$callcount++;
 	}
+	fclose($fhnd);
 }
 
 updateItems();
