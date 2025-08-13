@@ -55,6 +55,15 @@ $sql = <<<EOT
 -- LANE IS CLEANING HOUSE
 select patronid
 from patron_v2
+--where expdate > '31-DEC-37'
+--and bty != 9
+--and regdate < '01-JUL-25'
+--where expdate < (sysdate -180)
+--and bty not in (43,44,45,3,4,14,15,16,17,11,12,42, 9,8)
+--where bty in (43,44,45)
+--and patronid like '42%'
+--and actdate is null
+--and expdate < (sysdate)
 --where bty in (49, 50)
 --and regdate < (sysdate -90)
 --and email not like 'james.staub%'
@@ -73,7 +82,7 @@ and patronid not like '190%'
 and editdate < (sysdate -14)
 --and editdate < (sysdate -90)
 --and actdate < (sysdate -30)
---and (sactdate < (sysdate -30) or sactdate is null)
+--and (actdate < (sysdate -30) or actdate is null)
 and name not like '%TEST%'
 and name not like '%Test%'
 and patronid not in (select tr.patronid from transitem_v2 tr)
