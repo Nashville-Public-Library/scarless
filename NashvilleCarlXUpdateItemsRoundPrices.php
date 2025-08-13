@@ -66,8 +66,8 @@ function updateItems() {
 
 	require_once 'ic2carlx_put_carlx.php';
 
-	$configArray		= parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
-	$itemApiWsdl		= $configArray['Catalog']['itemApiWsdl'];
+	$configArray = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
+	$itemApiWsdl = $configArray['Catalog']['itemApiWsdl'];
 
 	$errors = array();
 
@@ -90,8 +90,9 @@ function updateItems() {
 			$request->Item->Price = trim($item[2]);
 			$result = callAPI($itemApiWsdl, $requestName, $request, $tag, $client);
 			$callcount++;
+		}
+		fclose($fhnd);
 	}
-	fclose($fhnd);
 }
 
 updateItems();
