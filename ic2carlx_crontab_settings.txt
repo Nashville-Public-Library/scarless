@@ -30,7 +30,7 @@
 
 # DAILY MAINTENANCE
 ## Update items: round prices
-0 4 * * * cd ~/scarless; bash NashvilleMNPSUpdateItemsRoundPrices.sh;
+0 4 * * * cd ~/scarless; php NashvilleCarlXUpdateItemsRoundPrices.sh;
 
 # DAILY REPORTS
 ## MNPS Data Warehouse Report
