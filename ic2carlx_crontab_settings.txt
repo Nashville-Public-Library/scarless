@@ -54,7 +54,7 @@
 # 2025 12 DECEMBER
 30 04 01-21 12 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2026 01 JANUARY
-30 04 07-31 01 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+30 04 06-31 01 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2026 02 FEBRUARY
 30 04 * 02 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2026 03 MARCH
