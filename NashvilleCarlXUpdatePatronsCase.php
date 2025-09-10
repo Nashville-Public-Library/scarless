@@ -52,7 +52,6 @@ $sql = <<<EOT
         or not regexp_like (zip1, '^[0-9]{5}$')
     )    
     order by patronid
-    fetch first 30000 rows only -- php has problems on server and desktop running large update sets, see https://trello.com/c/2eN74bgA/3992-update-mnps-expiration-date#comment-6637a417529f6f83bc704ddd
 EOT;
 $stid = oci_parse($conn, $sql);
 oci_set_prefetch($stid, 10000);
