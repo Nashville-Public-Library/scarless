@@ -32,7 +32,7 @@
 ## Update items: round prices
 0 4 * * * cd ~/scarless; php NashvilleCarlXUpdateItemsRoundPrices.php;
 ## Update patrons: Title Case
-30 4 * * * cd ~/scarless; php NashvilleCarlXUpdatePatronsCase2.sh;
+30 4 * * * cd ~/scarless; php NashvilleCarlXUpdatePatronsCase2.php;
 
 # DAILY REPORTS
 ## MNPS Data Warehouse Report
