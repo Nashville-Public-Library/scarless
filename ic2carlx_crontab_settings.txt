@@ -37,6 +37,8 @@
 # DAILY REPORTS
 ## MNPS Data Warehouse Report
 0 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport.sh;
+## MNPS Data Warehouse Report - In house circulation
+15 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-InHouseCirc.sh;
 ## MackinVIA files are generated at ~3AM... but not made available in the SFTP server until ~7AM
 30 7 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-Mackin.sh;
 
