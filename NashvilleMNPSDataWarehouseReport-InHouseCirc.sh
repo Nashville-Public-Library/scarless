@@ -11,7 +11,6 @@ else
   php NashvilleMNPSDataWarehouseReport-InHouseCirc.php "$1"
 fi
 
- Check if the correct number of arguments is provided
 # Check the number of arguments
 if [ "$#" -eq 0 ]; then
   # No arguments: run the PHP script without arguments
