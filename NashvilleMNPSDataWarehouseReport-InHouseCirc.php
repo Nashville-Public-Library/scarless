@@ -31,14 +31,14 @@ with osr as (
       and itemstatusbefore = 'S'
 )
 select
-    b.branchnumber
+    substr(b.branchcode,3,3) as schoolCode
     , count(*) as inHouseCirc
     from osr
 left join branch_v2 b on osr.itembranch = b.branchnumber
 where b.branchgroup = 2 -- MNPS
 and regexp_like(b.branchcode, '^[0-9]') -- exclude Limitless branches
-group by b.branchnumber
-order by b.branchnumber
+group by b.branchcode
+order by substr(b.branchcode,3,3) asc
 EOT;
 
         // connect to carlx oracle db
