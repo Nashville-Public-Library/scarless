@@ -33,7 +33,8 @@ with osr as (
 select
     substr(b.branchcode,3,3) as schoolCode
     , count(*) as inHouseCirc
-    from osr
+	, '$reportDate' as inHouseCircDate
+from osr
 left join branch_v2 b on osr.itembranch = b.branchnumber
 where b.branchgroup = 2 -- MNPS
 and regexp_like(b.branchcode, '^[0-9]') -- exclude Limitless branches
@@ -62,7 +63,7 @@ EOT;
     function writeData($rows, $reportDate) {
         $filename = $this->reportPath . 'LibraryServices-InHouseCirc-MNPS-' . $reportDate . '.txt';
         $fp = fopen($filename, 'w');
-        $header = array('branchnumber', 'inHouseCirc');
+        $header = array('branchnumber', 'inHouseCirc', 'inHouseCircDate');
         fputcsv($fp, $header, "\t");
         foreach ($rows as $row) {
             fputcsv($fp, $row, "\t");
