@@ -23,37 +23,36 @@ class nashvilleMNPSInHouseCircReport {
         $sql = <<<EOT
 -- In-house circulation by MNPS branch for the previous day
 with txp as ( -- Transaction, plus the Previous one
-    select t.*,
-           lag(transactiontype) over (partition by item order by systemtimestamp)  as prev_transactiontype,
-           lag(itemstatusbefore) over (partition by item order by systemtimestamp) as prev_statusbefore,
-           lag(itemstatusafter) over (partition by item order by systemtimestamp)  as prev_statusafter,
-           lag(systemtimestamp) over (partition by item order by systemtimestamp)  as prev_time,
-            (systemtimestamp - lag(systemtimestamp) over (partition by item order by systemtimestamp))*24 as time_diff -- in hours
-    from txlog_v2 t
-    where systemtimestamp >= to_date('2025-09-25','YYYY-MM-DD')
-      and systemtimestamp < to_date('2025-09-25','YYYY-MM-DD') + 1 -- DAILY REPORT
+	select t.*,
+		lag(transactiontype) over (partition by item order by systemtimestamp)  as prev_transactiontype,
+		lag(itemstatusbefore) over (partition by item order by systemtimestamp) as prev_statusbefore,
+		lag(itemstatusafter) over (partition by item order by systemtimestamp)  as prev_statusafter,
+		lag(systemtimestamp) over (partition by item order by systemtimestamp)  as prev_time,
+		(systemtimestamp - lag(systemtimestamp) over (partition by item order by systemtimestamp))*24 as time_diff -- in hours
+	from txlog_v2 t
+	where systemtimestamp >= to_date('$reportDate','YYYY-MM-DD')
+		and systemtimestamp < to_date('$reportDate','YYYY-MM-DD') + 1 -- DAILY REPORT
 )
 , osr as ( -- on-shelf returns
-    select
-    	txp.item,
+	select
+		txp.item,
 		b.branchcode
-    from txp
-    left join branch_v2 b on txp.itembranch = b.branchnumber
-    where b.branchgroup = 2                   -- MNPS
-      and regexp_like(b.branchcode, '^[0-9]') -- exclude Limitless branches
-      and transactiontype = 'DS'
-      and itemstatusbefore = 'S'
-      and (time_diff > 2 -- more than 2 hours since previous transaction
-        or time_diff is null) -- or no previous transaction within the report day
+	from txp
+	left join branch_v2 b on txp.itembranch = b.branchnumber
+	where b.branchgroup = 2                   -- MNPS
+		and regexp_like(b.branchcode, '^[0-9]') -- exclude Limitless branches
+		and transactiontype = 'DS'
+		and itemstatusbefore = 'S'
+		and (time_diff > 2 -- more than 2 hours since previous transaction
+			or time_diff is null) -- or no previous transaction within the report day
 )
 select
-    substr(b.branchcode,3,3) as schoolCode
-    , count(*) as inHouseCirc
+	substr(osr.branchcode,3,3) as schoolCode
+	, count(*) as inHouseCirc
 	, '$reportDate' as inHouseCircDate
 from osr
-where regexp_like(b.branchcode, '^[0-9]') -- exclude Limitless branches
-group by b.branchcode
-order by substr(b.branchcode,3,3) asc
+group by osr.branchcode
+order by substr(osr.branchcode,3,3) asc
 EOT;
 
         // connect to carlx oracle db
