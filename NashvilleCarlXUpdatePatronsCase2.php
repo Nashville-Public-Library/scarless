@@ -298,13 +298,14 @@ function standardizeStreet($value) {
  * @return string The standardized name
  */
 function standardizeName($value, $fieldType) {
-    // Handle special case for last names with # prefix
-    if ($fieldType === 'lastname' && str_starts_with($value, '#')) {
-        $name = preg_replace('/^#+\s*/', '', $value);
-        return '##' . Formatter::nameCase($name);
-    }
-    
-    return Formatter::nameCase($value);
+	if ($fieldType === 'lastname') {
+		// Fast regex: match up to two leading #s and optional whitespace
+		if (preg_match('/^(#{1,2})#*\s*(.*)$/', $value, $matches)) {
+			// $matches[1] = octothorpes, $matches[2] = rest of name
+			return $matches[1] . Formatter::nameCase($matches[2]);
+		}
+	}
+	return Formatter::nameCase($value);
 }
 
 /**
