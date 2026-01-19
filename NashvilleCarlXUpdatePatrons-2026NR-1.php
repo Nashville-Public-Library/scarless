@@ -157,14 +157,14 @@ foreach ($records as $patron) {
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	// CREATE URGENT 'DO NOT RENEW' NOTE
 	$requestName = 'addPatronNote';
-	$tag = $patron['patronid'] . ' : addPatronRemoveNote';
+	$tag = $patron[0] . ' : addPatronRemoveNote';
 	$request = new stdClass();
 	$request->Modifiers = new stdClass();
 	$request->Modifiers->DebugMode = $patronApiDebugMode;
 	$request->Modifiers->ReportMode = $patronApiReportMode;
 	$request->Modifiers->StaffID = 'PIK'; // Pika Patron Loader
 	$request->Note = new stdClass();
-	$request->Note->PatronID = $patron['patronid']; // Patron ID
+	$request->Note->PatronID = $patron[0]; // Patron ID
 	$request->Note->NoteType = '800';
 	$request->Note->NoteText = 'DO NOT RENEW';
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
