@@ -25,7 +25,9 @@ if (!$conn) {
 }
 $sql = <<<EOT
 --identifies accounts that are outside of our service area (or vice versa) by zip code
-select patronid
+select 
+	patronid
+	, to_char(expdate, 'YYYY-MM-DD')
 from patron_v2
 where bty in (3,14,15,43,44,45)
 and zip1 not in (
@@ -146,6 +148,7 @@ foreach ($records as $patron) {
 	// CREATE PATRON UPDATE REQUEST
 	$requestName = 'updatePatron';
 	$tag = $patron[0] . ' : ' . $requestName;
+	$PatronExpirationDate = date('Y-m-d', strtotime($patron[1])); // Patron Expiration Date set to patron record "input" expiration date, overriding hard set exp date of 2026 01 20 by BTY in CarlX
 	$request = new stdClass();
 	$request->Modifiers = new stdClass();
 	$request->Modifiers->DebugMode = $patronApiDebugMode;
@@ -153,7 +156,8 @@ foreach ($records as $patron) {
 	$request->SearchType = 'Patron ID';
 	$request->SearchID = $patron[0]; // Patron ID
 	$request->Patron = new stdClass();
-	$request->Patron->PatronType					= '52'; // Out of Serv Area - No Renewal
+	$request->Patron->PatronType				= '52'; // Out of Serv Area - No Renewal
+	$request->Patron->ExpirationDate			= $PatronExpirationDate;
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	// CREATE URGENT 'DO NOT RENEW' NOTE
 	$requestName = 'addPatronNote';
