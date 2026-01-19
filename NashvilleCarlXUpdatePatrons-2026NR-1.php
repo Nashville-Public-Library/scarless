@@ -148,7 +148,13 @@ foreach ($records as $patron) {
 	// CREATE PATRON UPDATE REQUEST
 	$requestName = 'updatePatron';
 	$tag = $patron[0] . ' : ' . $requestName;
-	$PatronExpirationDate = date('Y-m-d', strtotime($patron[1])); // Patron Expiration Date set to patron record "input" expiration date, overriding hard set exp date of 2026 01 20 by BTY in CarlX
+	$PatronExpirationDate = date_create_from_format('Y-m-d', $patron[1]->format('c')); // Patron Expiration Date set to patron record "input" expiration date, overriding hard set exp date of 2026 01 20 by BTY in CarlX
+	$PatronExpirationDate = null;
+	if (!empty($patron[1])) {
+		$dt = DateTime::createFromFormat('Y-m-d', $patron[1], new DateTimeZone('America/Chicago'));
+		$dt->setTime(23, 59, 59);               // end of day (common for expiration)
+		$PatronExpirationDate = $dt->format('c'); // e.g. 2024-01-13T23:59:59-06:00
+	}
 	$request = new stdClass();
 	$request->Modifiers = new stdClass();
 	$request->Modifiers->DebugMode = $patronApiDebugMode;
