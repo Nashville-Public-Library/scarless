@@ -17,6 +17,8 @@ $carlx_db_php			= $configArray['Catalog']['carlx_db_php'];
 $carlx_db_php_user		= $configArray['Catalog']['carlx_db_php_user'];
 $carlx_db_php_password	= $configArray['Catalog']['carlx_db_php_password'];
 $patronApiWsdl          = $configArray['Catalog']['patronApiWsdl'];
+$patronApiDebugMode             = $configArray['Catalog']['patronApiDebugMode'];
+$patronApiReportMode    = $configArray['Catalog']['patronApiReportMode'];
 $reportPath             = '../data/';
 
 // connect to carlx oracle db
@@ -59,17 +61,19 @@ if ($fhnd){
         }
 }
 
-$i = 0;
+$count = 0;
+$limit = 3000;
 $errors = array();
 $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($records as $patron) {
+	if ($count > $limit) { break; }
 	// CREATE PATRON UPDATE REQUEST
 	$requestName = 'updatePatron';
 	$tag = $patron[0] . ' : ' . $requestName;
 	$request = new stdClass();
 	$request->Modifiers = new stdClass();
-	$request->Modifiers->DebugMode = false;
-	$request->Modifiers->ReportMode = false;
+	$request->Modifiers->DebugMode = $patronApiDebugMode;
+	$request->Modifiers->ReportMode = $patronApiReportMode;
 	$request->SearchType = 'Patron ID';
 	$request->SearchID = $patron[0]; // Patron ID
 	$request->Patron = new stdClass();
@@ -80,13 +84,22 @@ foreach ($records as $patron) {
 	} elseif ($patron[1] == '15') {
 		$request->Patron->PatronType	= '43'; // Change from Child Non-Resident Full Fee to Child Non-Resident Limited
 	}
-	if ($patron[2] > strtotime('-100 days')) { // iF Exp Date is greater than 100 days BEFORE today (should only be put into use the very first run)
-		$PatronExpirationDate = date('Y-m-d', strtotime('+2 years')); // Patron Expiration Date set to 2 years from now
+	if (date_create_from_format('Y-m-d',$patron[2])->getTimestamp() > strtotime('-100 days')) { // if Exp Date is greater than 100 days BEFORE today (should only be put into use the very first run)
+		$PatronExpirationDate = date('c', strtotime('+2 years')); // Patron Expiration Date set to 2 years from now
 	} else {
-		$PatronExpirationDate = date('Y-m-d', $patron[2]); // Patron Expiration Date remains the same
+		$PatronExpirationDate = date_create_from_format('Y-m-d', $patron[2])->format('c'); // Patron Expiration Date remains the same
 	}
 	$request->Patron->ExpirationDate	= $PatronExpirationDate;
 
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
+/*
+print_r('Count: ' . $count . "\n");
+print_r('Orig Patron Exp Date: ' . $patron[2] . "\n");
+print_r('-100 days: ' . date('Y-m-d', strtotime('-100 days')) . "\n");
+print_r('Put Patron Exp Date: ' . $PatronExpirationDate . "\n");
+print_r($request);
+print_r($result);
+*/
+	$count++;
 }
 ?>

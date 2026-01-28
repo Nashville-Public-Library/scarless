@@ -135,26 +135,19 @@ oci_close($conn);
 
 $records = array();
 $fhnd = fopen($reportPath . "CARLX_MNPS_UPDATE_PATRONS_2026NR-1.CSV", "r");
-if ($fhnd){
-        while (($data = fgetcsv($fhnd)) !== FALSE){
-                $records[] = $data;
-        }
+if ($fhnd) {
+    while (($data = fgetcsv($fhnd)) !== false) {
+        $records[] = $data;
+    }
+    fclose($fhnd);
 }
 
-$i = 0;
 $errors = array();
 $client = new SOAPClient($patronApiWsdl, array('connection_timeout' => 1, 'features' => SOAP_WAIT_ONE_WAY_CALLS, 'trace' => 1));
 foreach ($records as $patron) {
 	// CREATE PATRON UPDATE REQUEST
 	$requestName = 'updatePatron';
 	$tag = $patron[0] . ' : ' . $requestName;
-	$PatronExpirationDate = date_create_from_format('Y-m-d', $patron[1]->format('c')); // Patron Expiration Date set to patron record "input" expiration date, overriding hard set exp date of 2026 01 20 by BTY in CarlX
-	$PatronExpirationDate = null;
-	if (!empty($patron[1])) {
-		$dt = DateTime::createFromFormat('Y-m-d', $patron[1], new DateTimeZone('America/Chicago'));
-		$dt->setTime(23, 59, 59);               // end of day (common for expiration)
-		$PatronExpirationDate = $dt->format('c'); // e.g. 2024-01-13T23:59:59-06:00
-	}
 	$request = new stdClass();
 	$request->Modifiers = new stdClass();
 	$request->Modifiers->DebugMode = $patronApiDebugMode;
@@ -163,6 +156,8 @@ foreach ($records as $patron) {
 	$request->SearchID = $patron[0]; // Patron ID
 	$request->Patron = new stdClass();
 	$request->Patron->PatronType				= '52'; // Out of Serv Area - No Renewal
+	$PatronExpirationDate = null;
+	$PatronExpirationDate = date_create_from_format('Y-m-d', $patron[1])->format('c');
 	$request->Patron->ExpirationDate			= $PatronExpirationDate;
 	$result = callAPI($patronApiWsdl, $requestName, $request, $tag, $client);
 	// CREATE URGENT 'DO NOT RENEW' NOTE
