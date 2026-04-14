@@ -152,13 +152,14 @@ foreach (getRecords('../data/ic2carlx_mnps_students_create.csv') as $patron) {
 	//if ($patron['PatronID'] > 190999115) { break; }
 
 	// SENIOR SLIDE
-	// IF 1. date is April 17 2023 to May 26 2023 AND 2. patron school is Hume-Fogg or Nashville School for the Arts AND 3. patron type is 12th grade, High school no-delivery, MNPS 18+, MNPS 18+ no delivery
-	// THEN SKIP. See https://trello.com/c/AXK9CIfj
-	$seniorSlideStart = date_create_from_format('Y-m-d','2023-04-16')->format('U');
-	$seniorSlideStop = date_create_from_format('Y-m-d','2023-05-27')->format('U');
+	// Originally created in 2023 to facilitate converting MNPS seniors to NPL cardholders at Hume-Fogg and Nashville School for the Arts
+	// The problem to avoid: when 25192 numbers are assigned, the 190 account will be recreated by scarless
+	// See https://trello.com/c/AXK9CIfj
+	$seniorSlideStart = date_create_from_format('Y-m-d','2026-05-06')->format('U');
+	$seniorSlideStop = date_create_from_format('Y-m-d','2026-05-08')->format('U'); // 2026-05-08 is the last day scarless is set to run 2025-2026
 	$today = date_create('today')->format('U');
-	if ($today > $seniorSlideStart && $today < $seniorSlideStop) {
-		if ($patron['DefaultBranch'] == '69450' || $patron['DefaultBranch'] == '62242') { // Hume-Fogg or Nashville School for the Arts
+	if ($today >= $seniorSlideStart && $today <= $seniorSlideStop) {
+		if ($patron['DefaultBranch'] == '6D532') { // 6D532 = McGavock High
 			if ($patron['Borrowertypecode'] == '34' || $patron['Borrowertypecode'] == '37' || $patron['Borrowertypecode'] == '46' || $patron['Borrowertypecode'] == '47') { // 12th grade, High school no-delivery, MNPS 18+, MNPS 18+ no delivery
 				continue; // skip
 			}
