@@ -230,8 +230,17 @@ tail -n +2 "$COMBINED_FILE" | cut -d',' -f3 | tr -d '"' | cut -d'@' -f1 | sort -
 
 LOOKUP_FILE="../data/comicsplus/ComicsPlus_School_Lookup_$date_safe.csv"
 PHP_VERBOSE=""
-if [ "$verbose" = true ]; then PHP_VERBOSE="--verbose"; fi
+if [ "$verbose" = true ]; then 
+    PHP_VERBOSE="--verbose"
+    echo "Running Carl.X lookup with patron IDs:"
+    cat "$PATRON_LIST_FILE"
+fi
 php ComicsPlusSchoolLookup.php "$PATRON_LIST_FILE" $PHP_VERBOSE > "$LOOKUP_FILE"
+
+if [ "$verbose" = true ]; then
+    echo "Lookup results:"
+    cat "$LOOKUP_FILE"
+fi
 
 # Run SQL transformations
 # STUDENTS
