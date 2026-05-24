@@ -246,12 +246,19 @@ fi
 if [ "$verbose" = true ]; then
     echo "Combined records to process: $(tail -n +2 "$COMBINED_FILE" | wc -l)"
     echo "Lookup records available: $(tail -n +2 "$LOOKUP_FILE" | wc -l)"
+    echo "First 5 lines of Combined File:"
+    head -n 6 "$COMBINED_FILE"
+    echo "First 5 lines of Lookup File:"
+    head -n 6 "$LOOKUP_FILE"
 fi
 
 # STUDENTS
 sql_student=$(<NashvilleMNPSDataWarehouseReport-ComicsPlus-Students.sql)
 sql_student=${sql_student//DATEPLACEHOLDER/$date_safe}
 sql_student=${sql_student//DATEPLACEHOLDERYYYYMMDD/$date_output}
+if [ "$verbose" = true ]; then
+    sql_student=$(echo -e ".echo on\n.mode csv\n$sql_student\nselect 'IMPORT CHECK - comicsplus_data:', count(*) from comicsplus_data;\nselect 'IMPORT CHECK - carlx_school_lookup:', count(*) from carlx_school_lookup;\nselect * from carlx_school_lookup limit 5;")
+fi
 echo "$sql_student" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
 if [ "$verbose" = true ]; then echo "Running Student Transformation..."; fi
 sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql 2>&1 | (grep -v "Empty input" || true)
@@ -260,6 +267,9 @@ sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-Com
 sql_staff=$(<NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff.sql)
 sql_staff=${sql_staff//DATEPLACEHOLDER/$date_safe}
 sql_staff=${sql_staff//DATEPLACEHOLDERYYYYMMDD/$date_output}
+if [ "$verbose" = true ]; then
+    sql_staff=$(echo -e ".echo on\n.mode csv\n$sql_staff\nselect 'IMPORT CHECK - comicsplus_data:', count(*) from comicsplus_data;\nselect 'IMPORT CHECK - carlx_school_lookup:', count(*) from carlx_school_lookup;\nselect * from carlx_school_lookup limit 5;")
+fi
 echo "$sql_staff" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
 if [ "$verbose" = true ]; then echo "Running Staff Transformation..."; fi
 sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql 2>&1 | (grep -v "Empty input" || true)
