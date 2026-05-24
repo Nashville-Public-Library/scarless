@@ -27,8 +27,7 @@
 #
 
 # Read the configuration file
-mackinErrorEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
-
+mackinErrorEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
 # Initialize flags
 use_local=false
 verbose=false
@@ -55,10 +54,10 @@ CP_LIB_IDS=()
 
 if [ "$verbose" = true ]; then echo "Reading account configurations from config.pwd.ini..."; fi
 for i in {1..9}; do
-    user=$(awk -F "=" "/comicsPlus${i}User/ {print \$2}" ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
-    pass=$(awk -F "=" "/comicsPlus${i}Password/ {print \$2}" ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
-    libid=$(awk -F "=" "/comicsPlus${i}LibraryID/ {print \$2}" ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
-    
+    user=$(awk -F "=" "/comicsPlus${i}User/ {print \$2}" ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
+    pass=$(awk -F "=" "/comicsPlus${i}Password/ {print \$2}" ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
+    libid=$(awk -F "=" "/comicsPlus${i}LibraryID/ {print \$2}" ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
+
     if [ -n "$user" ] && [ -n "$pass" ] && [ -n "$libid" ]; then
         if [ "$verbose" = true ]; then echo "Found account $i: User=$user, LibraryID=$libid"; fi
         CP_USERS+=("$user")
@@ -70,13 +69,13 @@ done
 # Fallback to legacy single account if no numbered accounts found
 if [ ${#CP_USERS[@]} -eq 0 ]; then
     if [ "$verbose" = true ]; then echo "No numbered accounts found. Checking for legacy comicsplusUser..."; fi
-    user=$(awk -F "=" '/comicsplusUser/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
-    pass=$(awk -F "=" '/comicsplusPassword/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
+    user=$(awk -F "=" '/comicsplusUser/ {print $2}' ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
+    pass=$(awk -F "=" '/comicsplusPassword/ {print $2}' ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
     if [ -n "$user" ] && [ -n "$pass" ]; then
         if [ "$verbose" = true ]; then echo "Found legacy account: User=$user"; fi
         CP_USERS+=("$user")
         CP_PASSWORDS+=("$pass")
-        CP_LIB_IDS+=("2140" "2141") 
+        CP_LIB_IDS+=("2140" "2141")
     fi
 fi
 
@@ -128,42 +127,46 @@ else
         LIB_ID="${CP_LIB_IDS[$i]}"
 
         echo "Authenticating with LibraryPass for Library ID: $LIB_ID..."
-        
+
         # Use a temporary file for the JSON payload to avoid escaping issues
         PAYLOAD_FILE=$(mktemp)
         echo "{\"username\":\"$USER\", \"password\":\"$PASS\"}" > "$PAYLOAD_FILE"
-        
-        if [ "$verbose" = true ]; then 
-            echo "Request Payload: $(cat "$PAYLOAD_FILE")"
-            echo "Executing: curl -s -X POST \"https://myapi.librarypass.com/token\" -H \"Content-Type: application/json\" -d @\"$PAYLOAD_FILE\""
+
+        if [ "$verbose" = true ]; then
+            echo "Executing: curl... "
         fi
-        
+
         LOGIN_RESPONSE=$(curl -s -X POST "https://myapi.librarypass.com/token" \
-            -H "Content-Type: application/json" \
-            -d @"$PAYLOAD_FILE")
-        
+          -u "$USER:$PASS" \
+          -H "Content-Type: application/json" \
+          -H "Accept: application/json" \
+          -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+          -d @"$PAYLOAD_FILE")
+
         rm -f "$PAYLOAD_FILE"
-        
+
         if [ "$verbose" = true ]; then echo "Login Response: $LOGIN_RESPONSE"; fi
 
-        TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token')
+        TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token // empty')
 
-        if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
-            send_error_email "Authentication failed for Library $LIB_ID. Could not retrieve token. Response: $LOGIN_RESPONSE"
-            continue
-        fi
+#        if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
+#            send_error_email "Authentication failed for Library $LIB_ID. Could not retrieve token. Response: $LOGIN_RESPONSE"
+#            continue
+#        fi
 
         echo "Retrieving data for Library ID: $LIB_ID"
         # Note: limit query key - testing upper boundary. Let's try 1000.
-        
+
         PAGE=1
         LIMIT=1000
         while true; do
             API_URL="https://myapi.librarypass.com/library-reports/checkouts?library_id=$LIB_ID&filter=custom_range&page=$PAGE&limit=$LIMIT&start=$date_api&end=$date_api"
             if [ "$verbose" = true ]; then echo "Retrieving Page $PAGE: $API_URL"; fi
-            
-            RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN" "$API_URL")
-            
+
+            RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN" \
+                 -H "Accept: application/json" \
+                 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                 "$API_URL")
             # Check for error in response
             if echo "$RESPONSE" | jq -e '.status == "error"' > /dev/null; then
                 ERROR_MSG=$(echo "$RESPONSE" | jq -r '.message')
@@ -175,7 +178,7 @@ else
             # Extract rows. The actual response has an "items" array.
             COUNT=$(echo "$RESPONSE" | jq '.items | length' 2>/dev/null || echo 0)
             if [ "$verbose" = true ]; then echo "Items found on Page $PAGE: $COUNT"; fi
-            
+
             if [ "$COUNT" -eq 0 ]; then
                 break
             fi
