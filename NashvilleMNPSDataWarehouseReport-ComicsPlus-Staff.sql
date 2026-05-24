@@ -12,6 +12,12 @@ create table carlx_school_lookup (
     , tn_school_code text
 );
 
+-- Ensure the comicsplus_school_lookup table exists to avoid errors
+create table if not exists comicsplus_school_lookup (
+    comicsplus_library_id integer
+    , tn_school_code text
+);
+
 .mode csv
 .import "../data/comicsplus/ComicsPlus_Report_DATEPLACEHOLDER.csv" comicsplus_data
 .import "../data/comicsplus/ComicsPlus_School_Lookup_DATEPLACEHOLDER.csv" carlx_school_lookup
