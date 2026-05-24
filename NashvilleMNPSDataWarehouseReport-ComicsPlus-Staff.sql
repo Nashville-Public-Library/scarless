@@ -46,3 +46,4 @@ from comicsplus_data cd
 where coalesce(csl.tn_school_code, ms.tn_school_code) is not null
 group by 1, 2, 3;
 .output stdout
+.headers off
