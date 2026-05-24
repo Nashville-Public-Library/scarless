@@ -257,22 +257,38 @@ sql_student=$(<NashvilleMNPSDataWarehouseReport-ComicsPlus-Students.sql)
 sql_student=${sql_student//DATEPLACEHOLDERYYYYMMDD/$date_output}
 sql_student=${sql_student//DATEPLACEHOLDER/$date_safe}
 if [ "$verbose" = true ]; then
-    sql_student=$(echo -e ".echo on\n.mode csv\n$sql_student\nselect 'IMPORT CHECK - comicsplus_data:', count(*) from comicsplus_data;\nselect 'IMPORT CHECK - carlx_school_lookup:', count(*) from carlx_school_lookup;\nselect * from carlx_school_lookup limit 5;")
+    # Create a debug version of the script that echoes but outputs to file
+    echo ".echo on" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
+    echo ".mode csv" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
+    echo "$sql_student" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
+    echo "select 'IMPORT CHECK - comicsplus_data:', count(*) from comicsplus_data;" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
+    echo "select 'IMPORT CHECK - carlx_school_lookup:', count(*) from carlx_school_lookup;" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
+    echo "select * from carlx_school_lookup limit 5;" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
+    if [ "$verbose" = true ]; then echo "Running Student Transformation..."; fi
+    sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql 2>&1 | (grep -v "Empty input" || true)
+else
+    echo "$sql_student" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
+    sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql > /dev/null 2>&1
 fi
-echo "$sql_student" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
-if [ "$verbose" = true ]; then echo "Running Student Transformation..."; fi
-sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql 2>&1 | (grep -v "Empty input" || true)
 
 # STAFF
 sql_staff=$(<NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff.sql)
 sql_staff=${sql_staff//DATEPLACEHOLDERYYYYMMDD/$date_output}
 sql_staff=${sql_staff//DATEPLACEHOLDER/$date_safe}
 if [ "$verbose" = true ]; then
-    sql_staff=$(echo -e ".echo on\n.mode csv\n$sql_staff\nselect 'IMPORT CHECK - comicsplus_data:', count(*) from comicsplus_data;\nselect 'IMPORT CHECK - carlx_school_lookup:', count(*) from carlx_school_lookup;\nselect * from carlx_school_lookup limit 5;")
+    # Create a debug version of the script that echoes but outputs to file
+    echo ".echo on" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
+    echo ".mode csv" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
+    echo "$sql_staff" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
+    echo "select 'IMPORT CHECK - comicsplus_data:', count(*) from comicsplus_data;" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
+    echo "select 'IMPORT CHECK - carlx_school_lookup:', count(*) from carlx_school_lookup;" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
+    echo "select * from carlx_school_lookup limit 5;" >> NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
+    if [ "$verbose" = true ]; then echo "Running Staff Transformation..."; fi
+    sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql 2>&1 | (grep -v "Empty input" || true)
+else
+    echo "$sql_staff" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
+    sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql > /dev/null 2>&1
 fi
-echo "$sql_staff" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
-if [ "$verbose" = true ]; then echo "Running Staff Transformation..."; fi
-sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql 2>&1 | (grep -v "Empty input" || true)
 
 # Output and move files
 STAFF_OUTPUT_FILE="../data/LibraryServices-Checkouts-ComicsPlus-staff-$date_output.csv"
