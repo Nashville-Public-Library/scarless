@@ -53,6 +53,13 @@ if (!$conn) {
 $chunks = array_chunk($patronIds, 1000);
 $results = array();
 
+$verbose = false;
+foreach ($argv as $arg) {
+    if ($arg === '--verbose') {
+        $verbose = true;
+    }
+}
+
 foreach ($chunks as $chunk) {
     $idList = "'" . implode("','", array_map(function($id) { return str_replace("'", "''", $id); }, $chunk)) . "'";
     $sql = "select p.patronid, substr(b.branchcode, -3) as tn_school_code 
@@ -61,12 +68,23 @@ foreach ($chunks as $chunk) {
             where p.patronid in ($idList)
             and b.branchgroup = 2";
     
+    if ($verbose) {
+        fwrite(STDERR, "Executing Carl.X Query:\n$sql\n");
+    }
+
     $stid = oci_parse($conn, $sql);
     oci_execute($stid);
     
+    $rowCount = 0;
     while (($row = oci_fetch_array($stid, OCI_ASSOC)) != false) {
         $results[$row['PATRONID']] = $row['TN_SCHOOL_CODE'];
+        $rowCount++;
     }
+
+    if ($verbose) {
+        fwrite(STDERR, "Query returned $rowCount rows.\n");
+    }
+
     oci_free_statement($stid);
 }
 
