@@ -128,10 +128,22 @@ else
         LIB_ID="${CP_LIB_IDS[$i]}"
 
         echo "Authenticating with LibraryPass for Library ID: $LIB_ID..."
-        CURL_CMD="curl -s -X POST \"https://myapi.librarypass.com/token\" -H \"Content-Type: application/json\" -d \"{\\\"username\\\":\\\"$USER\\\", \\\"password\\\":\\\"$PASS\\\"}\""
-        if [ "$verbose" = true ]; then echo "Executing: $CURL_CMD"; fi
         
-        LOGIN_RESPONSE=$(eval "$CURL_CMD")
+        # Use a temporary file for the JSON payload to avoid escaping issues
+        PAYLOAD_FILE=$(mktemp)
+        echo "{\"username\":\"$USER\", \"password\":\"$PASS\"}" > "$PAYLOAD_FILE"
+        
+        if [ "$verbose" = true ]; then 
+            echo "Request Payload: $(cat "$PAYLOAD_FILE")"
+            echo "Executing: curl -s -X POST \"https://myapi.librarypass.com/token\" -H \"Content-Type: application/json\" -d @\"$PAYLOAD_FILE\""
+        fi
+        
+        LOGIN_RESPONSE=$(curl -s -X POST "https://myapi.librarypass.com/token" \
+            -H "Content-Type: application/json" \
+            -d @"$PAYLOAD_FILE")
+        
+        rm -f "$PAYLOAD_FILE"
+        
         if [ "$verbose" = true ]; then echo "Login Response: $LOGIN_RESPONSE"; fi
 
         TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token')
