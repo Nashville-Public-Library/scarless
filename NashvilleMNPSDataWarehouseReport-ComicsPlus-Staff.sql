@@ -31,17 +31,18 @@ delete from carlx_school_lookup where patronid = 'patronid';
 select
     coalesce(csl.tn_school_code, ms.tn_school_code) as tn_school_code
      , substr(cd.activity_date, 1, 10) as yearmonthday
-     , case 
+     , trim(case 
          when instr(cd.patron_full, '@') > 0 then substr(cd.patron_full, 1, instr(cd.patron_full, '@') - 1)
          else cd.patron_full
-       end as patronid
+       end, '" ') as patronid
      , sum(cd.checkouts) as count_of_checkouts
 from comicsplus_data cd
     left join comicsplus_school_lookup ms on cd.library_id = ms.comicsplus_library_id
     left join carlx_school_lookup csl on 
-        (case 
+        trim(case 
             when instr(cd.patron_full, '@') > 0 then substr(cd.patron_full, 1, instr(cd.patron_full, '@') - 1)
             else cd.patron_full
-         end) = csl.patronid
+         end, '" ') = trim(csl.patronid, '" ')
+where coalesce(csl.tn_school_code, ms.tn_school_code) is not null
 group by 1, 2, 3;
 .output stdout
