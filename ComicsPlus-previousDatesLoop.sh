@@ -6,8 +6,8 @@
 # for each date in the range.
 
 # Display usage information if incorrect arguments are provided
-if [ $# -ne 2 ]; then
-  echo "Usage: $0 <start_date> <stop_date>"
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 <start_date> <stop_date> [-no-email] [-verbose]"
   echo "Both dates must be in YYYY-MM-DD format"
   echo "Example: $0 2026-05-01 2026-05-30"
   exit 1
@@ -15,6 +15,12 @@ fi
 
 start_date=$1
 stop_date=$2
+shift 2
+
+extra_args=""
+for arg in "$@"; do
+    extra_args="$extra_args $arg"
+done
 
 # Validate date formats
 if ! date -d "$start_date" >/dev/null 2>&1; then
@@ -46,7 +52,7 @@ while [ $current_seconds -le $stop_seconds ]; do
   echo "Processing date: $current_date"
 
   # Run the script with the date as an argument
-  ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh "$current_date" 2>&1 >/dev/null
+  ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh "$current_date" $extra_args 2>&1 >/dev/null
 
   # Move to the next day (add 86400 seconds = 24 hours)
   current_seconds=$((current_seconds + 86400))

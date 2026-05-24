@@ -3,7 +3,7 @@
 # James Staub, Nashville Public Library with significant assistance from JetBrains Junie
 #
 # USAGE:
-# ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh [date] [-localfile] [-verbose]
+# ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh [date] [-localfile] [-verbose] [-no-email]
 #
 # DESCRIPTION:
 #   This script retrieves ComicsPlus usage reports via API for Nashville MNPS.
@@ -19,11 +19,14 @@
 #
 #   [-verbose]   Optional. Flag to enable verbose output for debugging.
 #
+#   [-no-email]  Optional. Flag to suppress sending error emails during testing.
+#
 # EXAMPLES:
 #   ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh                    # Process yesterday's reports
 #   ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh 2026-05-23         # Process reports for May 23, 2026
 #   ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh 2026-05-23 -localfile  # Process local files for May 23, 2026
 #   ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh -verbose           # Process yesterday with verbose output
+#   ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh -no-email          # Process without sending error emails
 #
 
 # Read the configuration file
@@ -32,6 +35,7 @@ mackinErrorEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.p
 # Initialize flags
 use_local=false
 verbose=false
+no_email=false
 
 # Simple argument parsing
 for arg in "$@"; do
@@ -39,6 +43,8 @@ for arg in "$@"; do
         use_local=true
     elif [[ "$arg" == "-verbose" ]]; then
         verbose=true
+    elif [[ "$arg" == "-no-email" ]]; then
+        no_email=true
     elif [[ "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
         date_str="$arg"
     fi
@@ -85,6 +91,10 @@ send_error_email() {
     local error_message="$1"
     local subject="MNPS ComicsPlus Report Error: $error_message"
     echo "$error_message"
+    if [ "$no_email" = true ]; then
+        if [ "$verbose" = true ]; then echo "Email suppressed (-no-email): $error_message"; fi
+        return
+    fi
     if [ -n "$mackinErrorEmailRecipients" ]; then
         echo "$error_message" | mail -s "$subject" "$mackinErrorEmailRecipients"
     fi
