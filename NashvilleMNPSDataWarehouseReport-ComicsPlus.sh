@@ -254,8 +254,8 @@ fi
 
 # STUDENTS
 sql_student=$(<NashvilleMNPSDataWarehouseReport-ComicsPlus-Students.sql)
-sql_student=${sql_student//DATEPLACEHOLDER/$date_safe}
 sql_student=${sql_student//DATEPLACEHOLDERYYYYMMDD/$date_output}
+sql_student=${sql_student//DATEPLACEHOLDER/$date_safe}
 if [ "$verbose" = true ]; then
     sql_student=$(echo -e ".echo on\n.mode csv\n$sql_student\nselect 'IMPORT CHECK - comicsplus_data:', count(*) from comicsplus_data;\nselect 'IMPORT CHECK - carlx_school_lookup:', count(*) from carlx_school_lookup;\nselect * from carlx_school_lookup limit 5;")
 fi
@@ -265,8 +265,8 @@ sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-Com
 
 # STAFF
 sql_staff=$(<NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff.sql)
-sql_staff=${sql_staff//DATEPLACEHOLDER/$date_safe}
 sql_staff=${sql_staff//DATEPLACEHOLDERYYYYMMDD/$date_output}
+sql_staff=${sql_staff//DATEPLACEHOLDER/$date_safe}
 if [ "$verbose" = true ]; then
     sql_staff=$(echo -e ".echo on\n.mode csv\n$sql_staff\nselect 'IMPORT CHECK - comicsplus_data:', count(*) from comicsplus_data;\nselect 'IMPORT CHECK - carlx_school_lookup:', count(*) from carlx_school_lookup;\nselect * from carlx_school_lookup limit 5;")
 fi
