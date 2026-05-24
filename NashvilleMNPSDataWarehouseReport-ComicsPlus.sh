@@ -229,7 +229,9 @@ PATRON_LIST_FILE="../data/comicsplus/Patron_List_$date_safe.txt"
 tail -n +2 "$COMBINED_FILE" | cut -d',' -f3 | tr -d '"' | cut -d'@' -f1 | sort -u > "$PATRON_LIST_FILE"
 
 LOOKUP_FILE="../data/comicsplus/ComicsPlus_School_Lookup_$date_safe.csv"
-php ComicsPlusSchoolLookup.php "$PATRON_LIST_FILE" > "$LOOKUP_FILE"
+PHP_VERBOSE=""
+if [ "$verbose" = true ]; then PHP_VERBOSE="--verbose"; fi
+php ComicsPlusSchoolLookup.php "$PATRON_LIST_FILE" $PHP_VERBOSE > "$LOOKUP_FILE"
 
 # Run SQL transformations
 # STUDENTS
@@ -250,15 +252,27 @@ sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-Comics
 STAFF_OUTPUT_FILE="../data/LibraryServices-Checkouts-ComicsPlus-staff-$date_output.csv"
 STUDENT_OUTPUT_FILE="../data/LibraryServices-Checkouts-ComicsPlus-student-$date_output.csv"
 
-if [ -f "$STAFF_OUTPUT_FILE" ] && [ -f "$STUDENT_OUTPUT_FILE" ]; then
-    SOURCE_FILES="../data/LibraryServices-Checkouts-ComicsPlus-*-$date_output.csv"
-    DEST_DIR="/home/mnps.org/data"
+# Ensure output files exist even if queries returned 0 results
+for f in "$STAFF_OUTPUT_FILE" "$STUDENT_OUTPUT_FILE"; do
+    if [ ! -f "$f" ]; then
+        if [ "$verbose" = true ]; then echo "Creating empty output file with headers: $f"; fi
+        echo "tn_school_code,yearmonthday,patronid,count_of_checkouts" > "$f"
+    fi
+done
+
+SOURCE_FILES="../data/LibraryServices-Checkouts-ComicsPlus-*-$date_output.csv"
+DEST_DIR="/home/mnps.org/data"
+
+# Count how many files we have to move
+FILE_COUNT=$(ls $SOURCE_FILES 2>/dev/null | wc -l)
+
+if [ "$FILE_COUNT" -gt 0 ]; then
     # Set permissions for the files
-    chown :mnps.org $SOURCE_FILES
-    chmod 660 $SOURCE_FILES
+    chown :mnps.org $SOURCE_FILES 2>/dev/null
+    chmod 660 $SOURCE_FILES 2>/dev/null
     # Move the files
     mv $SOURCE_FILES $DEST_DIR/
-    echo "Process completed. Files moved to $DEST_DIR"
+    echo "Process completed. $FILE_COUNT files moved to $DEST_DIR"
 else
     send_error_email "Output files were not created."
     exit 1

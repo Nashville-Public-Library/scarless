@@ -20,6 +20,7 @@ create table if not exists comicsplus_school_lookup (
 
 .mode csv
 .import "../data/comicsplus/ComicsPlus_Report_DATEPLACEHOLDER.csv" comicsplus_data
+-- Handle potential empty lookup file
 .import "../data/comicsplus/ComicsPlus_School_Lookup_DATEPLACEHOLDER.csv" carlx_school_lookup
 
 delete from comicsplus_data where typeof(library_id) = 'text' and library_id = 'library_id';
