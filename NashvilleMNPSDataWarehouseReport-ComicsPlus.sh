@@ -243,19 +243,26 @@ if [ "$verbose" = true ]; then
 fi
 
 # Run SQL transformations
+if [ "$verbose" = true ]; then
+    echo "Combined records to process: $(tail -n +2 "$COMBINED_FILE" | wc -l)"
+    echo "Lookup records available: $(tail -n +2 "$LOOKUP_FILE" | wc -l)"
+fi
+
 # STUDENTS
 sql_student=$(<NashvilleMNPSDataWarehouseReport-ComicsPlus-Students.sql)
 sql_student=${sql_student//DATEPLACEHOLDER/$date_safe}
 sql_student=${sql_student//DATEPLACEHOLDERYYYYMMDD/$date_output}
 echo "$sql_student" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
-sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql
+if [ "$verbose" = true ]; then echo "Running Student Transformation..."; fi
+sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Students-Date-Specific.sql 2>&1 | (grep -v "Empty input" || true)
 
 # STAFF
 sql_staff=$(<NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff.sql)
 sql_staff=${sql_staff//DATEPLACEHOLDER/$date_safe}
 sql_staff=${sql_staff//DATEPLACEHOLDERYYYYMMDD/$date_output}
 echo "$sql_staff" > NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
-sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql
+if [ "$verbose" = true ]; then echo "Running Staff Transformation..."; fi
+sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-ComicsPlus-Staff-Date-Specific.sql 2>&1 | (grep -v "Empty input" || true)
 
 # Output and move files
 STAFF_OUTPUT_FILE="../data/LibraryServices-Checkouts-ComicsPlus-staff-$date_output.csv"
@@ -263,7 +270,7 @@ STUDENT_OUTPUT_FILE="../data/LibraryServices-Checkouts-ComicsPlus-student-$date_
 
 # Ensure output files exist even if queries returned 0 results
 for f in "$STAFF_OUTPUT_FILE" "$STUDENT_OUTPUT_FILE"; do
-    if [ ! -f "$f" ]; then
+    if [ ! -f "$f" ] || [ ! -s "$f" ]; then
         if [ "$verbose" = true ]; then echo "Creating empty output file with headers: $f"; fi
         echo "tn_school_code,yearmonthday,patronid,count_of_checkouts" > "$f"
     fi
