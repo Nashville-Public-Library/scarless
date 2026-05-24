@@ -3,7 +3,7 @@
 # James Staub, Nashville Public Library with significant assistance from JetBrains Junie
 #
 # USAGE:
-# ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh [date] [-localfile]
+# ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh [date] [-localfile] [-verbose]
 #
 # DESCRIPTION:
 #   This script retrieves ComicsPlus usage reports via API for Nashville MNPS.
@@ -17,26 +17,50 @@
 #   [-localfile] Optional. Flag indicating that the files are already downloaded locally
 #                and should not be retrieved from the API. Must be used with [date].
 #
+#   [-verbose]   Optional. Flag to enable verbose output for debugging.
+#
 # EXAMPLES:
 #   ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh                    # Process yesterday's reports
 #   ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh 2026-05-23         # Process reports for May 23, 2026
 #   ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh 2026-05-23 -localfile  # Process local files for May 23, 2026
+#   ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh -verbose           # Process yesterday with verbose output
 #
 
 # Read the configuration file
 mackinErrorEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
+
+# Initialize flags
+use_local=false
+verbose=false
+
+# Simple argument parsing
+for arg in "$@"; do
+    if [[ "$arg" == "-localfile" ]]; then
+        use_local=true
+    elif [[ "$arg" == "-verbose" ]]; then
+        verbose=true
+    elif [[ "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        date_str="$arg"
+    fi
+done
+
+if [ "$verbose" = true ]; then
+    echo "Verbose mode enabled."
+fi
 
 # Read up to 9 ComicsPlus account configurations
 CP_USERS=()
 CP_PASSWORDS=()
 CP_LIB_IDS=()
 
+if [ "$verbose" = true ]; then echo "Reading account configurations from config.pwd.ini..."; fi
 for i in {1..9}; do
     user=$(awk -F "=" "/comicsPlus${i}User/ {print \$2}" ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
     pass=$(awk -F "=" "/comicsPlus${i}Password/ {print \$2}" ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
     libid=$(awk -F "=" "/comicsPlus${i}LibraryID/ {print \$2}" ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
     
     if [ -n "$user" ] && [ -n "$pass" ] && [ -n "$libid" ]; then
+        if [ "$verbose" = true ]; then echo "Found account $i: User=$user, LibraryID=$libid"; fi
         CP_USERS+=("$user")
         CP_PASSWORDS+=("$pass")
         CP_LIB_IDS+=("$libid")
@@ -45,14 +69,13 @@ done
 
 # Fallback to legacy single account if no numbered accounts found
 if [ ${#CP_USERS[@]} -eq 0 ]; then
+    if [ "$verbose" = true ]; then echo "No numbered accounts found. Checking for legacy comicsplusUser..."; fi
     user=$(awk -F "=" '/comicsplusUser/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
     pass=$(awk -F "=" '/comicsplusPassword/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
-    # For legacy, we might still need library IDs from somewhere, but the user asked to refactor this specifically.
-    # We'll assume for now that if they switch to numbered, they'll use them.
     if [ -n "$user" ] && [ -n "$pass" ]; then
+        if [ "$verbose" = true ]; then echo "Found legacy account: User=$user"; fi
         CP_USERS+=("$user")
         CP_PASSWORDS+=("$pass")
-        # Legacy fallback might still use the hardcoded IDs if not in config
         CP_LIB_IDS+=("2140" "2141") 
     fi
 fi
@@ -67,28 +90,18 @@ send_error_email() {
     fi
 }
 
-# Determine the date and whether to use local files
-if [ $# -gt 1 ] && [[ "$2" == *"-localfile"* ]]; then
-    # If -localfile flag is present, use the first argument as the date
-    date_str=$1
+# Determine the date
+if [ -n "$date_str" ]; then
     date=$(date -d "$date_str" +'%Y-%m-%d' 2>/dev/null)
     if [ $? -ne 0 ]; then
-        send_error_email "Invalid date format. Use YYYY-MM-DD."
+        send_error_email "Invalid date format: $date_str. Use YYYY-MM-DD."
         exit 1
     fi
-    use_local=true
-elif [ $# -gt 0 ]; then
-    date_str=$1
-    date=$(date -d "$date_str" +'%Y-%m-%d' 2>/dev/null)
-    if [ $? -ne 0 ]; then
-        send_error_email "Invalid date format. Use YYYY-MM-DD."
-        exit 1
-    fi
-    use_local=false
 else
     date=$(date -d "yesterday" +'%Y-%m-%d')
-    use_local=false
 fi
+
+if [ "$verbose" = true ]; then echo "Processing data for date: $date (Local files: $use_local)"; fi
 
 # Format dates
 date_api=$(date -d "$date" +'%m-%d-%Y' | sed 's/^0//; s/-0/-/g')
@@ -115,9 +128,11 @@ else
         LIB_ID="${CP_LIB_IDS[$i]}"
 
         echo "Authenticating with LibraryPass for Library ID: $LIB_ID..."
-        LOGIN_RESPONSE=$(curl -s -X POST "https://myapi.librarypass.com/token" \
-            -H "Content-Type: application/json" \
-            -d "{\"username\":\"$USER\", \"password\":\"$PASS\"}")
+        CURL_CMD="curl -s -X POST \"https://myapi.librarypass.com/token\" -H \"Content-Type: application/json\" -d \"{\\\"username\\\":\\\"$USER\\\", \\\"password\\\":\\\"$PASS\\\"}\""
+        if [ "$verbose" = true ]; then echo "Executing: $CURL_CMD"; fi
+        
+        LOGIN_RESPONSE=$(eval "$CURL_CMD")
+        if [ "$verbose" = true ]; then echo "Login Response: $LOGIN_RESPONSE"; fi
 
         TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token')
 
@@ -132,17 +147,23 @@ else
         PAGE=1
         LIMIT=1000
         while true; do
-            RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN" \
-                "https://myapi.librarypass.com/library-reports/checkouts?library_id=$LIB_ID&filter=custom_range&page=$PAGE&limit=$LIMIT&start=$date_api&end=$date_api")
+            API_URL="https://myapi.librarypass.com/library-reports/checkouts?library_id=$LIB_ID&filter=custom_range&page=$PAGE&limit=$LIMIT&start=$date_api&end=$date_api"
+            if [ "$verbose" = true ]; then echo "Retrieving Page $PAGE: $API_URL"; fi
+            
+            RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN" "$API_URL")
             
             # Check for error in response
             if echo "$RESPONSE" | jq -e '.status == "error"' > /dev/null; then
-                send_error_email "API Error for Library $LIB_ID: $(echo "$RESPONSE" | jq -r '.message')"
+                ERROR_MSG=$(echo "$RESPONSE" | jq -r '.message')
+                if [ "$verbose" = true ]; then echo "API Error: $ERROR_MSG"; fi
+                send_error_email "API Error for Library $LIB_ID: $ERROR_MSG"
                 break
             fi
 
             # Extract rows. The actual response has an "items" array.
             COUNT=$(echo "$RESPONSE" | jq '.items | length' 2>/dev/null || echo 0)
+            if [ "$verbose" = true ]; then echo "Items found on Page $PAGE: $COUNT"; fi
+            
             if [ "$COUNT" -eq 0 ]; then
                 break
             fi
