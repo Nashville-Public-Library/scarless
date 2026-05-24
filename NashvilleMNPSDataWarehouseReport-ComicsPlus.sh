@@ -24,9 +24,38 @@
 #
 
 # Read the configuration file
-comicsplusUser=$(awk -F "=" '/comicsplusUser/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
-comicsplusPassword=$(awk -F "=" '/comicsplusPassword/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
 mackinErrorEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
+
+# Read up to 9 ComicsPlus account configurations
+CP_USERS=()
+CP_PASSWORDS=()
+CP_LIB_IDS=()
+
+for i in {1..9}; do
+    user=$(awk -F "=" "/comicsPlus${i}User/ {print \$2}" ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
+    pass=$(awk -F "=" "/comicsPlus${i}Password/ {print \$2}" ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
+    libid=$(awk -F "=" "/comicsPlus${i}LibraryID/ {print \$2}" ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
+    
+    if [ -n "$user" ] && [ -n "$pass" ] && [ -n "$libid" ]; then
+        CP_USERS+=("$user")
+        CP_PASSWORDS+=("$pass")
+        CP_LIB_IDS+=("$libid")
+    fi
+done
+
+# Fallback to legacy single account if no numbered accounts found
+if [ ${#CP_USERS[@]} -eq 0 ]; then
+    user=$(awk -F "=" '/comicsplusUser/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
+    pass=$(awk -F "=" '/comicsplusPassword/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
+    # For legacy, we might still need library IDs from somewhere, but the user asked to refactor this specifically.
+    # We'll assume for now that if they switch to numbered, they'll use them.
+    if [ -n "$user" ] && [ -n "$pass" ]; then
+        CP_USERS+=("$user")
+        CP_PASSWORDS+=("$pass")
+        # Legacy fallback might still use the hardcoded IDs if not in config
+        CP_LIB_IDS+=("2140" "2141") 
+    fi
+fi
 
 # Function to send error emails
 send_error_email() {
@@ -78,24 +107,25 @@ if [ "$use_local" = true ]; then
         exit 1
     fi
 else
-    # Authenticate
-    echo "Authenticating with LibraryPass..."
-    LOGIN_RESPONSE=$(curl -s -X POST "https://myapi.librarypass.com/token" \
-        -H "Content-Type: application/json" \
-        -d "{\"username\":\"$comicsplusUser\", \"password\":\"$comicsplusPassword\"}")
-
-    TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token')
-
-    if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
-        send_error_email "Authentication failed. Could not retrieve token. Response: $LOGIN_RESPONSE"
-        exit 1
-    fi
-
-    # Retrieval for both library IDs: 2140 and 2141
-    LIBRARY_IDS=("2140" "2141")
     echo "library_id,activity_date,patron_full,checkouts" > "$COMBINED_FILE"
 
-    for LIB_ID in "${LIBRARY_IDS[@]}"; do
+    for i in "${!CP_USERS[@]}"; do
+        USER="${CP_USERS[$i]}"
+        PASS="${CP_PASSWORDS[$i]}"
+        LIB_ID="${CP_LIB_IDS[$i]}"
+
+        echo "Authenticating with LibraryPass for Library ID: $LIB_ID..."
+        LOGIN_RESPONSE=$(curl -s -X POST "https://myapi.librarypass.com/token" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"$USER\", \"password\":\"$PASS\"}")
+
+        TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.token')
+
+        if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
+            send_error_email "Authentication failed for Library $LIB_ID. Could not retrieve token. Response: $LOGIN_RESPONSE"
+            continue
+        fi
+
         echo "Retrieving data for Library ID: $LIB_ID"
         # Note: limit query key - testing upper boundary. Let's try 1000.
         
