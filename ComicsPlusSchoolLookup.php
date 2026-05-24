@@ -66,7 +66,8 @@ foreach ($chunks as $chunk) {
             from patron_v2 p 
             left join branch_v2 b on p.regbranch = b.branchnumber 
             where p.patronid in ($idList)
-            and b.branchgroup = 2";
+            and b.branchgroup = 2
+            and b.branchcode != 'XMNPS'";
     
     if ($verbose) {
         fwrite(STDERR, "Executing Carl.X Query:\n$sql\n");
