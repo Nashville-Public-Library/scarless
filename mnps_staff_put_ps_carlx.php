@@ -18,7 +18,7 @@ $reportPath				= '../data/';
 //////////////////// CREATE CARLX PATRONS ////////////////////
 
 $all_rows = array();
-$fhnd = fopen("../data/ic2carlx_mnps_staff_ps_create.csv", "r"); // N.B. `ps` for Promising Scholars
+$fhnd = fopen("../data/ic2carlx_mnps_staff_PS_create.csv", "r"); // N.B. `ps` for Promising Scholars
 if ($fhnd){
 	$header = fgetcsv($fhnd);
 	while ($row = fgetcsv($fhnd)) {
