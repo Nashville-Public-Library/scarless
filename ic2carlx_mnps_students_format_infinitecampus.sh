@@ -27,8 +27,14 @@ BEGIN {
 
 # If promising scholars flag is set, skip records without a value in promisingScholarsBranch field
 if ($promising_scholars && (!$F[19] || $F[19] eq "")) { next; }
-# If promising scholars flag is set, set default branch to promising scholars branch
-if ($promising_scholars) { $F[18] = $F[19]; }
+# If promising scholars flag is set and student is enrolled:
+if ($promising_scholars) {
+# 1. set default branch to promising scholars branch
+  $F[18] = $F[19];
+# 2. set homeroom to "Promising Scholars"
+  $F[33] = "998" . substr($F[19],-3);
+  $F[34] = "Promising Scholars 2026";
+}
 
 # SCRUB HEADERS AND RECORDS WITH WEIRD STUDENT IDS
 	if ($F[0] !~ m/^190\d{6}$/) { next; }
