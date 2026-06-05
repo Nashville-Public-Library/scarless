@@ -284,7 +284,7 @@ foreach (getRecords('../data/ic2carlx_mnps_students_update.csv') as $patron) {
 	if (stripos($patron['PatronID'],'190999') === 0) {
 		$request->Patron->PatronPIN				= '7357';
 	}
-	elseif ($today >= $startDate && $today <= $twentyDay) { // From startDate until twentyDay, reset PIN to default
+	elseif ($today >= $startDate && $today < $twentyDay) { // From startDate until twentyDay, reset PIN to default
 		$request->Patron->PatronPIN				= substr($patron['BirthDate'],5,2) . substr($patron['BirthDate'],8,2);
 	}
 
