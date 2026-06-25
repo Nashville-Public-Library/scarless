@@ -150,29 +150,34 @@ EOT;
             'Accept: */*'
         ]);
 
-        $fileData = curl_exec($ch);
+        $tempFile = tempnam(sys_get_temp_dir(), 'ODReport');
+        $fp = fopen($tempFile, 'w+');
+        curl_setopt($ch, CURLOPT_FILE, $fp);
+
+        curl_exec($ch);
         $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        fclose($fp);
 
         if (strpos($contentType, 'text/csv') !== false || 
             strpos($contentType, 'application/vnd.ms-excel') !== false || 
             strpos($contentType, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') !== false) {
             
-            $tempFile = tempnam(sys_get_temp_dir(), 'ODReport');
-            file_put_contents($tempFile, $fileData);
             echo "Report downloaded to temporary file: $tempFile\n";
             
             curl_close($ch);
             @unlink($cookieFile);
-            return $this->parseOverDriveReport($tempFile, $contentType);
+            return ['file' => $tempFile, 'contentType' => $contentType];
         } else {
             // Log the error and content type for troubleshooting
             echo "Error: Unexpected content type received: $contentType\n";
             if (strpos($contentType, 'text/html') !== false) {
                 // If it's HTML, it might be an error page or a redirect to login
+                $fileData = file_get_contents($tempFile);
                 echo "Received HTML content instead of CSV/Excel. This might indicate a session timeout or an application error.\n";
             }
             curl_close($ch);
             @unlink($cookieFile);
+            @unlink($tempFile);
             throw new Exception("Failed to download report. Received content type: $contentType");
         }
     }
@@ -214,6 +219,8 @@ EOT;
     }
 
     public function run() {
+        // Increase memory limit for processing large datasets
+        ini_set('memory_limit', '256M');
         try {
             $this->getConfig();
             echo "Retrieving ineligible patrons from Carl.X...\n";
@@ -221,39 +228,68 @@ EOT;
             echo "Found " . count($ineligiblePatrons) . " ineligible patrons in Carl.X.\n";
 
             echo "Retrieving OverDrive holds report...\n";
-            $odHolds = $this->downloadOverDriveHoldsReport();
-            echo "Found " . count($odHolds) . " records in OverDrive report.\n";
+            $odReportInfo = $this->downloadOverDriveHoldsReport();
+            $tempFile = $odReportInfo['file'];
+            $contentType = $odReportInfo['contentType'];
 
-            $finalReport = [];
+            $outputFile = $this->reportPath . 'Ineligible_OverDrive_Holds_' . date('Y-m-d') . '.csv';
+            $outFp = fopen($outputFile, 'w');
             $matchCount = 0;
+            $recordCount = 0;
 
-            foreach ($odHolds as $hold) {
-                $odUserId = null;
-				if (isset($hold['User ID'])) {
-					$odUserId = strtolower(trim($hold['User ID']));
-					break;
-				}
-
-                if ($odUserId && isset($ineligiblePatrons[$odUserId])) {
-                    // Match found! Include all columns from OverDrive report.
-                    $finalReport[] = $hold;
-                    $matchCount++;
+            if (($handle = fopen($tempFile, "r")) !== FALSE) {
+                $delimiter = ",";
+                if (strpos($contentType, 'text/csv') === false) {
+                    echo "Warning: Report is likely in Excel/Tab format. Detecting delimiter...\n";
+                    $headerLine = fgets($handle);
+                    if (strpos($headerLine, "\t") !== false && strpos($headerLine, ",") === false) {
+                        $delimiter = "\t";
+                    }
+                    rewind($handle);
                 }
-            }
 
-            echo "Found $matchCount matches between OverDrive holds and ineligible Carl.X patrons.\n";
+                $header = fgetcsv($handle, 0, $delimiter);
+                if ($header) {
+                    fputcsv($outFp, $header);
+
+                    while (($data = fgetcsv($handle, 0, $delimiter)) !== FALSE) {
+                        $recordCount++;
+                        if (count($header) !== count($data)) continue;
+
+                        $hold = array_combine($header, $data);
+                        $odUserId = null;
+                        
+                        // Find User ID column - OverDrive might use 'User ID', 'user id', 'UserID', 'Patron ID'
+                        foreach (['User ID', 'user id', 'UserID', 'Patron ID'] as $key) {
+                            if (isset($hold[$key])) {
+                                $odUserId = strtolower(trim($hold[$key]));
+                                break;
+                            }
+                        }
+
+                        if ($odUserId && isset($ineligiblePatrons[$odUserId])) {
+                            // Match found! Write directly to output file
+                            fputcsv($outFp, $data);
+                            $matchCount++;
+                        }
+                        
+                        if ($recordCount % 10000 == 0) {
+                            echo "Processed $recordCount records...\n";
+                        }
+                    }
+                }
+                fclose($handle);
+            }
+            fclose($outFp);
+            @unlink($tempFile);
+
+            echo "Found $matchCount matches out of $recordCount records in OverDrive report.\n";
 
             if ($matchCount > 0) {
-                $outputFile = $this->reportPath . 'Ineligible_OverDrive_Holds_' . date('Y-m-d') . '.csv';
-                $fp = fopen($outputFile, 'w');
-                fputcsv($fp, array_keys($finalReport[0]));
-                foreach ($finalReport as $row) {
-                    fputcsv($fp, $row);
-                }
-                fclose($fp);
                 echo "Final report saved to: $outputFile\n";
             } else {
-                echo "No matches found. No report generated.\n";
+                echo "No matches found. Empty report generated.\n";
+                @unlink($outputFile);
             }
             
         } catch (Exception $e) {
