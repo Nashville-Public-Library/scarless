@@ -311,8 +311,21 @@ EOT;
                     
                     echo "OverDrive Report Headers: " . implode(', ', $header) . "\n";
                     
+                    // Identify columns to keep (filter out empty/whitespace-only headers)
+                    $keepColumns = [];
+                    foreach ($header as $index => $colName) {
+                        if (trim($colName) !== '') {
+                            $keepColumns[] = $index;
+                        }
+                    }
+
+                    $filteredHeader = [];
+                    foreach ($keepColumns as $index) {
+                        $filteredHeader[] = $header[$index];
+                    }
+                    
                     // Add Carl.X columns to header
-                    $finalHeader = array_merge($header, ['patronid', 'bty']);
+                    $finalHeader = array_merge($filteredHeader, ['patronid', 'bty']);
                     fputcsv($outFp, $finalHeader);
 
                     $sampleOdIds = [];
@@ -342,7 +355,13 @@ EOT;
                             $patronid = isset($carlxData['PATRONID']) ? $carlxData['PATRONID'] : (isset($carlxData['patronid']) ? $carlxData['patronid'] : '');
                             $bty = isset($carlxData['BTY']) ? $carlxData['BTY'] : (isset($carlxData['bty']) ? $carlxData['bty'] : '');
                             
-                            $finalData = array_merge($data, [$patronid, $bty]);
+                            // Filter data to match filtered header
+                            $filteredData = [];
+                            foreach ($keepColumns as $index) {
+                                $filteredData[] = $data[$index];
+                            }
+
+                            $finalData = array_merge($filteredData, [$patronid, $bty]);
                             fputcsv($outFp, $finalData);
                             $matchCount++;
                         }
