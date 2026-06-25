@@ -317,8 +317,11 @@ EOT;
         }
     }
 
-    private function processHoldCancellations($userIds) {
+    private function processHoldCancellations($userIds, $testBatchLimit = null) {
         echo "Starting hold cancellation process...\n";
+        if ($testBatchLimit !== null) {
+            echo "Test batch mode enabled. Limit: $testBatchLimit patrons.\n";
+        }
         
         $cookieFile = tempnam(sys_get_temp_dir(), 'ODCookie');
         $ch = curl_init();
@@ -364,14 +367,21 @@ EOT;
         }
         echo "Login successful for cancellation.\n";
 
+        $processedCount = 0;
         foreach ($userIds as $id) {
+            if ($testBatchLimit !== null && $processedCount >= $testBatchLimit) {
+                echo "Test batch limit reached ($testBatchLimit). Stopping.\n";
+                break;
+            }
+
             if (strlen($id) !== 15) {
                 echo "Skipping User ID $id (not 15 digits).\n";
                 continue;
             }
 
-            echo "Canceling holds for User ID: $id\n";
+            echo "[$processedCount] Processing User ID: $id\n";
             $this->cancelHoldsForUser($ch, $id);
+            $processedCount++;
         }
 
         curl_close($ch);
@@ -418,8 +428,10 @@ EOT;
         $searchResults = curl_exec($ch);
         $resultsArr = json_decode($searchResults, true);
         
+        $totalHolds = isset($resultsArr['total']) ? $resultsArr['total'] : (isset($resultsArr['items']) ? count($resultsArr['items']) : 0);
+        echo "User ID $userId has $totalHolds active holds.\n";
+
         if (empty($resultsArr['items'])) {
-            echo "No holds found for User ID $userId.\n";
             return;
         }
 
@@ -462,7 +474,7 @@ EOT;
         }
     }
 
-    public function run($useLocal = false, $sendEmail = true, $cancelHolds = false) {
+    public function run($useLocal = false, $sendEmail = true, $cancelHolds = false, $testBatchLimit = null) {
         $this->cancelHolds = $cancelHolds;
         // Increase memory limit for processing large datasets
         ini_set('memory_limit', '256M');
@@ -554,7 +566,7 @@ EOT;
                 echo "Final report saved to: $outputFile\n";
 
                 if ($this->cancelHolds) {
-                    $this->processHoldCancellations($matchedUserIds);
+                    $this->processHoldCancellations($matchedUserIds, $testBatchLimit);
                 }
 
                 if ($sendEmail) {
@@ -591,5 +603,13 @@ $useLocal = in_array('-localfile', $argv);
 $sendEmail = !in_array('-no-email', $argv);
 $cancelHolds = in_array('-cancel-holds', $argv);
 
+$testBatchLimit = null;
+foreach ($argv as $arg) {
+    if (preg_match('/^-test-batch=(\d+)$/', $arg, $matches)) {
+        $testBatchLimit = (int)$matches[1];
+        break;
+    }
+}
+
 $report = new IneligibleOverDriveReport();
-$report->run($useLocal, $sendEmail, $cancelHolds);
+$report->run($useLocal, $sendEmail, $cancelHolds, $testBatchLimit);
