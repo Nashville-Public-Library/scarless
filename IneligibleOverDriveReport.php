@@ -446,21 +446,36 @@ EOT;
         
         // Step A: Search API call
         $searchApiUrl = $baseUrl . '/api/EndUserManagement/SearchHolds';
+        $searchPayload = ['inputJson' => json_encode($searchData)];
+        
+        echo "   [Diagnostic] Searching holds for $userId at $searchApiUrl\n";
+        echo "   [Diagnostic] Payload: " . $searchPayload['inputJson'] . "\n";
+        
         curl_setopt($ch, CURLOPT_URL, $searchApiUrl);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => json_encode($searchData)]));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($searchPayload));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'X-Requested-With: XMLHttpRequest',
             'Accept: application/json'
         ]);
         
         $searchResults = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        echo "   [Diagnostic] HTTP Code: $httpCode\n";
+        
+        if ($searchResults === false) {
+            echo "   [Diagnostic] cURL Error: " . curl_error($ch) . "\n";
+        } else {
+            echo "   [Diagnostic] Raw Response (first 500 chars): " . substr($searchResults, 0, 500) . "\n";
+        }
+        
         $resultsArr = json_decode($searchResults, true);
         
         $totalHolds = isset($resultsArr['total']) ? $resultsArr['total'] : (isset($resultsArr['items']) ? count($resultsArr['items']) : 0);
         echo "User ID $userId has $totalHolds active/suspended holds.\n";
 
         if (empty($resultsArr['items'])) {
+            echo "   [Diagnostic] No items found in response for $userId.\n";
             return;
         }
 
