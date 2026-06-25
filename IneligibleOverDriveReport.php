@@ -7,6 +7,7 @@ class IneligibleOverDriveReport {
     private $od_username;
     private $od_password;
     private $reportPath = '../data/';
+    private $emailRecipients;
 
     public function getConfig() {
         if (!file_exists('../config.pwd.ini')) {
@@ -21,6 +22,7 @@ class IneligibleOverDriveReport {
         if (isset($configArray['OverDrive'])) {
             $this->od_username = $configArray['OverDrive']['UserName'];
             $this->od_password = $configArray['OverDrive']['Password'];
+            $this->emailRecipients = $configArray['OverDrive']['IneligibleOverDriveEmailRecipients'] ?? null;
         } else {
             throw new Exception("[OverDrive] section missing in config.pwd.ini");
         }
@@ -272,7 +274,49 @@ EOT;
         return $rows;
     }
 
-    public function run($useLocal = false) {
+    private function sendEmail($subject, $body, $attachmentPath = null) {
+        if (empty($this->emailRecipients)) {
+            echo "No email recipients found in config. Skipping email.\n";
+            return;
+        }
+
+        $to = $this->emailRecipients;
+        $headers = "From: noreply-connected@nashville.gov\r\n";
+        
+        if ($attachmentPath && file_exists($attachmentPath)) {
+            $file = file_get_contents($attachmentPath);
+            $filename = basename($attachmentPath);
+            $boundary = md5(time());
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
+            
+            $message = "--{$boundary}\r\n";
+            $message .= "Content-Type: text/plain; charset=\"utf-8\"\r\n";
+            $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+            $message .= $body . "\r\n";
+            
+            $message .= "--{$boundary}\r\n";
+            $message .= "Content-Type: text/plain; name=\"{$filename}\"\r\n";
+            $message .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n";
+            $message .= "Content-Transfer-Encoding: base64\r\n\r\n";
+            $message .= chunk_split(base64_encode($file)) . "\r\n";
+            $message .= "--{$boundary}--";
+            
+            if (mail($to, $subject, $message, $headers)) {
+                echo "Email sent successfully to: $to\n";
+            } else {
+                echo "Failed to send email to: $to\n";
+            }
+        } else {
+            if (mail($to, $subject, $body, $headers)) {
+                echo "Email sent successfully to: $to\n";
+            } else {
+                echo "Failed to send email to: $to\n";
+            }
+        }
+    }
+
+    public function run($useLocal = false, $sendEmail = true) {
         // Increase memory limit for processing large datasets
         ini_set('memory_limit', '256M');
         try {
@@ -361,6 +405,17 @@ EOT;
                 }
                 fclose($outFp);
                 echo "Final report saved to: $outputFile\n";
+
+                if ($sendEmail) {
+                    echo "Sending report via email...\n";
+                    $this->sendEmail(
+                        "Ineligible OverDrive Holds Report",
+                        "Please find attached the Ineligible OverDrive Holds Report generated on " . date('Y-m-d H:i:s') . ".\n\nTotal matches found: $matchCount",
+                        $outputFile
+                    );
+                } else {
+                    echo "Email suppressed by -no-email flag.\n";
+                }
             } else {
                 echo "No matches found. No report generated.\n";
                 if (file_exists($outputFile)) {
@@ -382,5 +437,7 @@ EOT;
 }
 
 $useLocal = in_array('-localfile', $argv);
+$sendEmail = !in_array('-no-email', $argv);
+
 $report = new IneligibleOverDriveReport();
-$report->run($useLocal);
+$report->run($useLocal, $sendEmail);
