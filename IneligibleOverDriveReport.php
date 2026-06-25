@@ -26,7 +26,25 @@ class IneligibleOverDriveReport {
         }
     }
 
-    public function getIneligiblePatronsFromCarlX() {
+    public function getIneligiblePatronsFromCarlX($useLocal = false) {
+        $carlxFile = $this->reportPath . 'IneligibleOverDrive_Holds_CarlX.csv';
+
+        if ($useLocal && file_exists($carlxFile)) {
+            echo "Reading Carl.X data from local file: $carlxFile\n";
+            $patrons = [];
+            if (($handle = fopen($carlxFile, "r")) !== FALSE) {
+                $header = fgetcsv($handle);
+                while (($data = fgetcsv($handle)) !== FALSE) {
+                    $row = array_combine($header, $data);
+                    if ($row['patronguid']) {
+                        $patrons[strtolower(trim($row['patronguid']))] = $row;
+                    }
+                }
+                fclose($handle);
+            }
+            return $patrons;
+        }
+
         $sql = <<<EOT
 select
     patronid
@@ -50,7 +68,16 @@ EOT;
 
         $patrons = [];
         $sampleGuids = [];
+        $fp = fopen($carlxFile, 'w');
+        $headerWritten = false;
+
         while (($row = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS)) != false) {
+            if (!$headerWritten) {
+                fputcsv($fp, array_keys($row));
+                $headerWritten = true;
+            }
+            fputcsv($fp, $row);
+
             // Store by patronguid for easy lookup
             if ($row['PATRONGUID']) {
                 $guid = strtolower(trim($row['PATRONGUID']));
@@ -60,16 +87,25 @@ EOT;
                 }
             }
         }
+        fclose($fp);
 
         oci_free_statement($stid);
         oci_close($conn);
 
+        echo "Carl.X data saved to: $carlxFile\n";
         echo "Carl.X Sample PATRONGUIDs: " . implode(', ', $sampleGuids) . "\n";
 
         return $patrons;
     }
 
-    public function downloadOverDriveHoldsReport() {
+    public function downloadOverDriveHoldsReport($useLocal = false) {
+        $odFile = $this->reportPath . 'IneligibleOverDrive_Holds_OverDrive.csv';
+
+        if ($useLocal && file_exists($odFile)) {
+            echo "Using local OverDrive report: $odFile\n";
+            return ['file' => $odFile, 'contentType' => 'text/csv'];
+        }
+
         $cookieFile = tempnam(sys_get_temp_dir(), 'ODCookie');
         $baseUrl = 'https://marketplace.overdrive.com';
         $loginUrl = $baseUrl . '/Account/Login';
@@ -169,10 +205,9 @@ EOT;
             strpos($contentType, 'application/vnd.ms-excel') !== false || 
             strpos($contentType, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') !== false) {
             
-            $savedReport = $this->reportPath . 'OverDrive_Full_Report_' . date('Ymd_His') . '.csv';
-            copy($tempFile, $savedReport);
+            copy($tempFile, $odFile);
             echo "Report downloaded to temporary file: $tempFile\n";
-            echo "Complete OverDrive report saved for diagnostics: $savedReport\n";
+            echo "OverDrive report saved to: $odFile\n";
             
             curl_close($ch);
             @unlink($cookieFile);
@@ -228,21 +263,21 @@ EOT;
         return $rows;
     }
 
-    public function run() {
+    public function run($useLocal = false) {
         // Increase memory limit for processing large datasets
         ini_set('memory_limit', '256M');
         try {
             $this->getConfig();
             echo "Retrieving ineligible patrons from Carl.X...\n";
-            $ineligiblePatrons = $this->getIneligiblePatronsFromCarlX();
+            $ineligiblePatrons = $this->getIneligiblePatronsFromCarlX($useLocal);
             echo "Found " . count($ineligiblePatrons) . " ineligible patrons in Carl.X.\n";
 
             echo "Retrieving OverDrive holds report...\n";
-            $odReportInfo = $this->downloadOverDriveHoldsReport();
+            $odReportInfo = $this->downloadOverDriveHoldsReport($useLocal);
             $tempFile = $odReportInfo['file'];
             $contentType = $odReportInfo['contentType'];
 
-            $outputFile = $this->reportPath . 'Ineligible_OverDrive_Holds_' . date('Y-m-d') . '.csv';
+            $outputFile = $this->reportPath . 'IneligibleOverDrive_Holds.csv';
             $outFp = fopen($outputFile, 'w');
             $matchCount = 0;
             $recordCount = 0;
@@ -266,7 +301,10 @@ EOT;
                     }
                     
                     echo "OverDrive Report Headers: " . implode(', ', $header) . "\n";
-                    fputcsv($outFp, $header);
+                    
+                    // Add Carl.X columns to header
+                    $finalHeader = array_merge($header, ['patronid', 'bty']);
+                    fputcsv($outFp, $finalHeader);
 
                     $sampleOdIds = [];
                     while (($data = fgetcsv($handle, 0, $delimiter)) !== FALSE) {
@@ -289,8 +327,14 @@ EOT;
                         }
 
                         if ($odUserId && isset($ineligiblePatrons[$odUserId])) {
-                            // Match found! Write directly to output file
-                            fputcsv($outFp, $data);
+                            // Match found! 
+                            $carlxData = $ineligiblePatrons[$odUserId];
+                            // Carl.X columns are returned in uppercase from OCI
+                            $patronid = isset($carlxData['PATRONID']) ? $carlxData['PATRONID'] : (isset($carlxData['patronid']) ? $carlxData['patronid'] : '');
+                            $bty = isset($carlxData['BTY']) ? $carlxData['BTY'] : (isset($carlxData['bty']) ? $carlxData['bty'] : '');
+                            
+                            $finalData = array_merge($data, [$patronid, $bty]);
+                            fputcsv($outFp, $finalData);
                             $matchCount++;
                         }
                         
@@ -303,7 +347,10 @@ EOT;
                 fclose($handle);
             }
             fclose($outFp);
-            @unlink($tempFile);
+            // Only unlink if it's a temporary file (not when using local)
+            if (!$useLocal) {
+                @unlink($tempFile);
+            }
 
             echo "Found $matchCount matches out of $recordCount records in OverDrive report.\n";
 
@@ -320,5 +367,6 @@ EOT;
     }
 }
 
+$useLocal = in_array('-localfile', $argv);
 $report = new IneligibleOverDriveReport();
-$report->run();
+$report->run($useLocal);
