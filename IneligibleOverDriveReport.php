@@ -49,15 +49,22 @@ EOT;
         oci_execute($stid);
 
         $patrons = [];
+        $sampleGuids = [];
         while (($row = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS)) != false) {
             // Store by patronguid for easy lookup
             if ($row['PATRONGUID']) {
-                $patrons[strtolower($row['PATRONGUID'])] = $row;
+                $guid = strtolower(trim($row['PATRONGUID']));
+                $patrons[$guid] = $row;
+                if (count($sampleGuids) < 5) {
+                    $sampleGuids[] = $guid;
+                }
             }
         }
 
         oci_free_statement($stid);
         oci_close($conn);
+
+        echo "Carl.X Sample PATRONGUIDs: " . implode(', ', $sampleGuids) . "\n";
 
         return $patrons;
     }
@@ -162,7 +169,10 @@ EOT;
             strpos($contentType, 'application/vnd.ms-excel') !== false || 
             strpos($contentType, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') !== false) {
             
+            $savedReport = $this->reportPath . 'OverDrive_Full_Report_' . date('Ymd_His') . '.csv';
+            copy($tempFile, $savedReport);
             echo "Report downloaded to temporary file: $tempFile\n";
+            echo "Complete OverDrive report saved for diagnostics: $savedReport\n";
             
             curl_close($ch);
             @unlink($cookieFile);
@@ -250,8 +260,15 @@ EOT;
 
                 $header = fgetcsv($handle, 0, $delimiter);
                 if ($header) {
+                    // Remove UTF-8 BOM if present on the first header field
+                    if (isset($header[0])) {
+                        $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+                    }
+                    
+                    echo "OverDrive Report Headers: " . implode(', ', $header) . "\n";
                     fputcsv($outFp, $header);
 
+                    $sampleOdIds = [];
                     while (($data = fgetcsv($handle, 0, $delimiter)) !== FALSE) {
                         $recordCount++;
                         if (count($header) !== count($data)) continue;
@@ -267,6 +284,10 @@ EOT;
                             }
                         }
 
+                        if ($recordCount <= 5 && $odUserId) {
+                            $sampleOdIds[] = $odUserId;
+                        }
+
                         if ($odUserId && isset($ineligiblePatrons[$odUserId])) {
                             // Match found! Write directly to output file
                             fputcsv($outFp, $data);
@@ -277,6 +298,7 @@ EOT;
                             echo "Processed $recordCount records...\n";
                         }
                     }
+                    echo "OverDrive Sample User IDs: " . implode(', ', $sampleOdIds) . "\n";
                 }
                 fclose($handle);
             }
