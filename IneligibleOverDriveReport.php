@@ -287,9 +287,9 @@ EOT;
             $contentType = $odReportInfo['contentType'];
 
             $outputFile = $this->reportPath . 'IneligibleOverDrive_Holds.csv';
-            $outFp = fopen($outputFile, 'w');
             $matchCount = 0;
             $recordCount = 0;
+            $matchedUserIds = [];
 
             if (($handle = fopen($tempFile, "r")) !== FALSE) {
                 $delimiter = ",";
@@ -311,23 +311,6 @@ EOT;
                     
                     echo "OverDrive Report Headers: " . implode(', ', $header) . "\n";
                     
-                    // Identify columns to keep (filter out empty/whitespace-only headers)
-                    $keepColumns = [];
-                    foreach ($header as $index => $colName) {
-                        if (trim($colName) !== '') {
-                            $keepColumns[] = $index;
-                        }
-                    }
-
-                    $filteredHeader = [];
-                    foreach ($keepColumns as $index) {
-                        $filteredHeader[] = $header[$index];
-                    }
-                    
-                    // Add Carl.X columns to header
-                    $finalHeader = array_merge($filteredHeader, ['patronid', 'bty']);
-                    fputcsv($outFp, $finalHeader);
-
                     $sampleOdIds = [];
                     while (($data = fgetcsv($handle, 0, $delimiter)) !== FALSE) {
                         $recordCount++;
@@ -337,9 +320,11 @@ EOT;
                         $odUserId = null;
                         
                         // Find User ID column - OverDrive might use 'User ID', 'user id', 'UserID', 'Patron ID'
+                        $foundKey = null;
                         foreach (['User ID', 'user id', 'UserID', 'Patron ID'] as $key) {
                             if (isset($hold[$key])) {
                                 $odUserId = strtolower(trim($hold[$key]));
+                                $foundKey = $key;
                                 break;
                             }
                         }
@@ -350,19 +335,9 @@ EOT;
 
                         if ($odUserId && isset($ineligiblePatrons[$odUserId])) {
                             // Match found! 
-                            $carlxData = $ineligiblePatrons[$odUserId];
-                            // Carl.X columns are returned in uppercase from OCI
-                            $patronid = isset($carlxData['PATRONID']) ? $carlxData['PATRONID'] : (isset($carlxData['patronid']) ? $carlxData['patronid'] : '');
-                            $bty = isset($carlxData['BTY']) ? $carlxData['BTY'] : (isset($carlxData['bty']) ? $carlxData['bty'] : '');
-                            
-                            // Filter data to match filtered header
-                            $filteredData = [];
-                            foreach ($keepColumns as $index) {
-                                $filteredData[] = $data[$index];
-                            }
-
-                            $finalData = array_merge($filteredData, [$patronid, $bty]);
-                            fputcsv($outFp, $finalData);
+                            // Requirements: single column "User ID", sorted numerically.
+                            // Use the original value from the CSV for output
+                            $matchedUserIds[] = trim($hold[$foundKey]);
                             $matchCount++;
                         }
                         
@@ -374,20 +349,31 @@ EOT;
                 }
                 fclose($handle);
             }
-            fclose($outFp);
+
+            if ($matchCount > 0) {
+                echo "Sorting $matchCount matched User IDs numerically...\n";
+                sort($matchedUserIds, SORT_NUMERIC);
+
+                $outFp = fopen($outputFile, 'w');
+                fputcsv($outFp, ['User ID']);
+                foreach ($matchedUserIds as $id) {
+                    fputcsv($outFp, [$id]);
+                }
+                fclose($outFp);
+                echo "Final report saved to: $outputFile\n";
+            } else {
+                echo "No matches found. No report generated.\n";
+                if (file_exists($outputFile)) {
+                    @unlink($outputFile);
+                }
+            }
+            
             // Only unlink if it's a temporary file (not when using local)
             if (!$useLocal) {
                 @unlink($tempFile);
             }
 
             echo "Found $matchCount matches out of $recordCount records in OverDrive report.\n";
-
-            if ($matchCount > 0) {
-                echo "Final report saved to: $outputFile\n";
-            } else {
-                echo "No matches found. Empty report generated.\n";
-                @unlink($outputFile);
-            }
             
         } catch (Exception $e) {
             echo "Error: " . $e->getMessage() . "\n";
