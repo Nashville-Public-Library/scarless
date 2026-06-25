@@ -1,4 +1,34 @@
 <?php
+/**
+ * IneligibleOverDriveReport.php
+ * 
+ * Purpose:
+ * This script identifies patrons who are ineligible for OverDrive services based on their 
+ * Carl.X status and have active holds in OverDrive Marketplace. It generates a report, 
+ * optionally emails it, and can automate the cancellation of holds for these patrons.
+ * 
+ * Usage:
+ * php IneligibleOverDriveReport.php [options]
+ * 
+ * Arguments:
+ *   -localfile      Optional. Skip live data retrieval and use previously downloaded CSV files 
+ *                   from the ../data/ directory:
+ *                   - IneligibleOverDrive_Holds_CarlX.csv
+ *                   - IneligibleOverDrive_Holds_OverDrive.csv
+ * 
+ *   -no-email       Optional. Suppress the automated email notification. By default, the script 
+ *                   sends the final report to recipients specified in config.pwd.ini.
+ * 
+ *   -cancel-holds   Optional. Enable automated hold cancellation in OverDrive Marketplace for 
+ *                   matched patrons. For safety, this only processes 15-digit User IDs.
+ * 
+ *   -test-batch=N   Optional. Limit hold cancellations to a specific number of patrons (e.g., -test-batch=5).
+ *                   Useful for verification before running a full batch.
+ * 
+ * Credits:
+ * Most of the programming and automation logic was developed by Junie, an autonomous 
+ * AI programmer by JetBrains, following requirements provided by James Staub (Nashville Public Library).
+ */
 
 class IneligibleOverDriveReport {
     private $carlx_db_php;
@@ -396,7 +426,6 @@ EOT;
             "titleId" => "",
             "PatronCardNumber" => $userId,
             "PatronEmail" => "",
-            "IsSuspended" => null,
             "Parameters" => [
                 "page" => 1,
                 "start" => 0,
@@ -429,7 +458,7 @@ EOT;
         $resultsArr = json_decode($searchResults, true);
         
         $totalHolds = isset($resultsArr['total']) ? $resultsArr['total'] : (isset($resultsArr['items']) ? count($resultsArr['items']) : 0);
-        echo "User ID $userId has $totalHolds active holds.\n";
+        echo "User ID $userId has $totalHolds active/suspended holds.\n";
 
         if (empty($resultsArr['items'])) {
             return;
