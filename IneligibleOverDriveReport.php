@@ -421,31 +421,24 @@ EOT;
     private function cancelHoldsForUser($ch, $userId) {
         $baseUrl = 'https://marketplace.overdrive.com';
         
-        // 1. Visit the search page with pre-filled data
+        // 1. Prepare search data based on user feedback
         $searchData = [
-            "titleId" => "",
-            "PatronCardNumber" => $userId,
-            "PatronEmail" => "",
             "Parameters" => [
                 "page" => 1,
                 "start" => 0,
                 "limit" => 50,
                 "sort" => []
-            ]
+            ],
+            "titleId" => "",
+            "PatronCardNumber" => $userId,
+            "PatronEmail" => "",
+            "IsSuspended" => null
         ];
-        $searchUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds?data=' . urlencode(json_encode($searchData));
-        
-        curl_setopt($ch, CURLOPT_URL, $searchUrl);
-        curl_setopt($ch, CURLOPT_POST, false);
-        $searchPage = curl_exec($ch);
 
-        // Based on ExtJS patterns and the description, we need to trigger the search results
-        // and then send a removal request.
-        // Since we don't have the exact API for "Search" and "Remove", we have to infer.
-        // Usually, Search results are fetched via an API call.
+        // _dc is likely a cache-buster (timestamp in milliseconds)
+        $dc = round(microtime(true) * 1000);
+        $searchApiUrl = $baseUrl . '/api/Library/Site/EndUserManagement/ManageHolds/Data?_dc=' . $dc;
         
-        // Step A: Search API call
-        $searchApiUrl = $baseUrl . '/api/EndUserManagement/SearchHolds';
         $searchPayload = ['inputJson' => json_encode($searchData)];
         
         echo "   [Diagnostic] Searching holds for $userId at $searchApiUrl\n";
@@ -492,28 +485,23 @@ EOT;
         }
 
         // Step B: Remove Holds API call
-        // Pattern matches the Export pattern: /api/.../Export -> /api/.../Remove
-        $removeApiUrl = $baseUrl . '/api/EndUserManagement/RemoveHolds';
+        // Assuming the removal endpoint also follows the Library/Site pattern
+        $removeApiUrl = $baseUrl . '/api/Library/Site/EndUserManagement/ManageHolds/Remove';
         $removeData = [
-            "holdIds" => $holdIds,
-            "reason" => "Ineligible patron" // Optional, but common
+            "holdIds" => $holdIds
         ];
 
+        echo "   [Diagnostic] Removing holds at $removeApiUrl\n";
         curl_setopt($ch, CURLOPT_URL, $removeApiUrl);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => json_encode($removeData)]));
         
         $removeResponse = curl_exec($ch);
-        
-        // Step C: Confirm (if needed by API)
-        // Sometimes the "Remove" call IS the action, and "Confirm" is just UI.
-        // But if there's a separate confirm endpoint:
-        // $confirmApiUrl = $baseUrl . '/api/EndUserManagement/ConfirmRemoveHolds';
+        echo "   [Diagnostic] Remove Response: " . substr($removeResponse, 0, 500) . "\n";
         
         if (strpos($removeResponse, 'success":true') !== false || strpos($removeResponse, '"The selected holds have been removed."') !== false) {
             echo "Successfully removed " . count($holdIds) . " holds for $userId.\n";
         } else {
-            // Log response if it didn't look successful
             echo "Response from removal for $userId: " . substr($removeResponse, 0, 200) . "...\n";
         }
     }
