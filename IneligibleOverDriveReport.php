@@ -117,21 +117,45 @@ EOT;
         curl_setopt($ch, CURLOPT_POST, false);
         $reportPage = curl_exec($ch);
 
-        // 4. Trigger "Create Worksheet"
-        // Based on the URL and description, clicking 'Create Worksheet' in the modal 
-        // likely triggers a POST or GET with Exporting=true.
-        echo "Triggering 'Create Worksheet'...\n";
-        $exportUrl = str_replace('%22Exporting%22%3afalse', '%22Exporting%22%3atrue', $reportUrl);
-        // Remove deferDataLoad and showDialogOnLoad for the actual export call if they interfere
-        $exportUrl = str_replace('deferDataLoad=True&showDialogOnLoad=True', 'deferDataLoad=False', $exportUrl);
+        // 4. Trigger "Create Worksheet" (Export)
+        // Based on the HAR files provided, the export is a POST request to a specific API endpoint
+        echo "Exporting holds report...\n";
+        $exportApiUrl = $baseUrl . '/api/insights/CurrentHolds/Export';
+        
+        $inputJson = json_encode([
+            "Parameters" => [
+                "page" => 1,
+                "limit" => 50,
+                "sort" => [],
+                "filter" => [],
+                "query" => ""
+            ],
+            "Branch" => [],
+            "IsWeeded" => null,
+            "IsSuspended" => null,
+            "IsAvailableForSale" => null,
+            "Website" => "",
+            "UserStatus" => null,
+            "VisitingSystem" => null,
+            "AdvContentOnly" => false,
+            "RunBy" => 2,
+            "Exporting" => false
+        ]);
 
-        curl_setopt($ch, CURLOPT_URL, $exportUrl);
+        curl_setopt($ch, CURLOPT_URL, $exportApiUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => $inputJson]));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'X-Requested-With: XMLHttpRequest',
+            'Accept: */*'
+        ]);
+
         $fileData = curl_exec($ch);
         $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
 
-        if (strpos($contentType, 'application/vnd.ms-excel') !== false || 
-            strpos($contentType, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') !== false ||
-            strpos($contentType, 'text/csv') !== false) {
+        if (strpos($contentType, 'text/csv') !== false || 
+            strpos($contentType, 'application/vnd.ms-excel') !== false || 
+            strpos($contentType, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') !== false) {
             
             $tempFile = tempnam(sys_get_temp_dir(), 'ODReport');
             file_put_contents($tempFile, $fileData);
@@ -141,8 +165,12 @@ EOT;
             @unlink($cookieFile);
             return $this->parseOverDriveReport($tempFile, $contentType);
         } else {
-            // It might be that 'Create Worksheet' triggers an async job and we need to wait or check another URL.
-            // But usually OverDrive Marketplace reports download directly when Exporting=true is set in the query.
+            // Log the error and content type for troubleshooting
+            echo "Error: Unexpected content type received: $contentType\n";
+            if (strpos($contentType, 'text/html') !== false) {
+                // If it's HTML, it might be an error page or a redirect to login
+                echo "Received HTML content instead of CSV/Excel. This might indicate a session timeout or an application error.\n";
+            }
             curl_close($ch);
             @unlink($cookieFile);
             throw new Exception("Failed to download report. Received content type: $contentType");
