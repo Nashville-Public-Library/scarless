@@ -34,10 +34,19 @@ class IneligibleOverDriveReport {
             $patrons = [];
             if (($handle = fopen($carlxFile, "r")) !== FALSE) {
                 $header = fgetcsv($handle);
+                if ($header) {
+                    // Remove BOM if present
+                    $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+                    // Normalize headers to lowercase
+                    $header = array_map('strtolower', $header);
+                }
                 while (($data = fgetcsv($handle)) !== FALSE) {
+                    if (count($header) !== count($data)) continue;
                     $row = array_combine($header, $data);
-                    if ($row['patronguid']) {
+                    if (isset($row['patronguid']) && $row['patronguid']) {
                         $patrons[strtolower(trim($row['patronguid']))] = $row;
+                    } elseif (isset($row['patronid']) && $row['patronid']) {
+                        // Fallback or secondary check if needed, but the requirement was patronguid
                     }
                 }
                 fclose($handle);
