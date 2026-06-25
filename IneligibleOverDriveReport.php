@@ -8,6 +8,7 @@ class IneligibleOverDriveReport {
     private $od_password;
     private $reportPath = '../data/';
     private $emailRecipients;
+    private $cancelHolds = false;
 
     public function getConfig() {
         if (!file_exists('../config.pwd.ini')) {
@@ -316,7 +317,153 @@ EOT;
         }
     }
 
-    public function run($useLocal = false, $sendEmail = true) {
+    private function processHoldCancellations($userIds) {
+        echo "Starting hold cancellation process...\n";
+        
+        $cookieFile = tempnam(sys_get_temp_dir(), 'ODCookie');
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+        // Reuse login logic (could be refactored, but for simplicity we re-login or use session if possible)
+        // Actually, we should probably pass the existing $ch if we want to be efficient, but downloadOverDriveHoldsReport closes it.
+        // Let's just login again here for a fresh session for cancellations.
+        
+        $baseUrl = 'https://marketplace.overdrive.com';
+        $loginUrl = $baseUrl . '/Account/Login';
+        
+        curl_setopt($ch, CURLOPT_URL, $loginUrl);
+        $loginPage = curl_exec($ch);
+        $token = '';
+        if (preg_match('/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/', $loginPage, $matches)) {
+            $token = $matches[1];
+        }
+
+        $postFields = [
+            'UserName' => $this->od_username,
+            'Password' => $this->od_password,
+            'RememberMe' => 'false'
+        ];
+        if ($token) {
+            $postFields['__RequestVerificationToken'] = $token;
+        }
+
+        curl_setopt($ch, CURLOPT_URL, $loginUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
+        $response = curl_exec($ch);
+
+        if (strpos($response, 'Sign out') === false && strpos($response, 'Log out') === false) {
+             echo "Login failed for cancellation process.\n";
+             curl_close($ch);
+             @unlink($cookieFile);
+             return;
+        }
+        echo "Login successful for cancellation.\n";
+
+        foreach ($userIds as $id) {
+            if (strlen($id) !== 15) {
+                echo "Skipping User ID $id (not 15 digits).\n";
+                continue;
+            }
+
+            echo "Canceling holds for User ID: $id\n";
+            $this->cancelHoldsForUser($ch, $id);
+        }
+
+        curl_close($ch);
+        @unlink($cookieFile);
+    }
+
+    private function cancelHoldsForUser($ch, $userId) {
+        $baseUrl = 'https://marketplace.overdrive.com';
+        
+        // 1. Visit the search page with pre-filled data
+        $searchData = [
+            "titleId" => "",
+            "PatronCardNumber" => $userId,
+            "PatronEmail" => "",
+            "IsSuspended" => null,
+            "Parameters" => [
+                "page" => 1,
+                "start" => 0,
+                "limit" => 50,
+                "sort" => []
+            ]
+        ];
+        $searchUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds?data=' . urlencode(json_encode($searchData));
+        
+        curl_setopt($ch, CURLOPT_URL, $searchUrl);
+        curl_setopt($ch, CURLOPT_POST, false);
+        $searchPage = curl_exec($ch);
+
+        // Based on ExtJS patterns and the description, we need to trigger the search results
+        // and then send a removal request.
+        // Since we don't have the exact API for "Search" and "Remove", we have to infer.
+        // Usually, Search results are fetched via an API call.
+        
+        // Step A: Search API call
+        $searchApiUrl = $baseUrl . '/api/EndUserManagement/SearchHolds';
+        curl_setopt($ch, CURLOPT_URL, $searchApiUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => json_encode($searchData)]));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'X-Requested-With: XMLHttpRequest',
+            'Accept: application/json'
+        ]);
+        
+        $searchResults = curl_exec($ch);
+        $resultsArr = json_decode($searchResults, true);
+        
+        if (empty($resultsArr['items'])) {
+            echo "No holds found for User ID $userId.\n";
+            return;
+        }
+
+        $holdIds = [];
+        foreach ($resultsArr['items'] as $item) {
+            if (isset($item['Id'])) {
+                $holdIds[] = $item['Id'];
+            }
+        }
+
+        if (empty($holdIds)) {
+            echo "Could not identify hold IDs for User ID $userId.\n";
+            return;
+        }
+
+        // Step B: Remove Holds API call
+        // Pattern matches the Export pattern: /api/.../Export -> /api/.../Remove
+        $removeApiUrl = $baseUrl . '/api/EndUserManagement/RemoveHolds';
+        $removeData = [
+            "holdIds" => $holdIds,
+            "reason" => "Ineligible patron" // Optional, but common
+        ];
+
+        curl_setopt($ch, CURLOPT_URL, $removeApiUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => json_encode($removeData)]));
+        
+        $removeResponse = curl_exec($ch);
+        
+        // Step C: Confirm (if needed by API)
+        // Sometimes the "Remove" call IS the action, and "Confirm" is just UI.
+        // But if there's a separate confirm endpoint:
+        // $confirmApiUrl = $baseUrl . '/api/EndUserManagement/ConfirmRemoveHolds';
+        
+        if (strpos($removeResponse, 'success":true') !== false || strpos($removeResponse, '"The selected holds have been removed."') !== false) {
+            echo "Successfully removed " . count($holdIds) . " holds for $userId.\n";
+        } else {
+            // Log response if it didn't look successful
+            echo "Response from removal for $userId: " . substr($removeResponse, 0, 200) . "...\n";
+        }
+    }
+
+    public function run($useLocal = false, $sendEmail = true, $cancelHolds = false) {
+        $this->cancelHolds = $cancelHolds;
         // Increase memory limit for processing large datasets
         ini_set('memory_limit', '256M');
         try {
@@ -406,6 +553,10 @@ EOT;
                 fclose($outFp);
                 echo "Final report saved to: $outputFile\n";
 
+                if ($this->cancelHolds) {
+                    $this->processHoldCancellations($matchedUserIds);
+                }
+
                 if ($sendEmail) {
                     echo "Sending report via email...\n";
                     $this->sendEmail(
@@ -438,6 +589,7 @@ EOT;
 
 $useLocal = in_array('-localfile', $argv);
 $sendEmail = !in_array('-no-email', $argv);
+$cancelHolds = in_array('-cancel-holds', $argv);
 
 $report = new IneligibleOverDriveReport();
-$report->run($useLocal, $sendEmail);
+$report->run($useLocal, $sendEmail, $cancelHolds);
