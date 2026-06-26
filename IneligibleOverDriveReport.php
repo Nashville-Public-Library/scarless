@@ -421,27 +421,27 @@ EOT;
     private function cancelHoldsForUser($ch, $userId) {
         $baseUrl = 'https://marketplace.overdrive.com';
         
-        // 1. Establish session context by visiting the SearchHolds page first (Screen Scrape approach)
-        // This mimics the manual process where the staffer navigates to this URL.
-        $searchPageUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds?data=' . urlencode(json_encode([
-            "titleId" => "",
-            "PatronCardNumber" => $userId,
-            "PatronEmail" => "",
-            "IsSuspended" => null,
-            "Parameters" => [
-                "page" => 1,
-                "start" => 0,
-                "limit" => 50,
-                "sort" => []
-            ]
-        ]));
+        // 1. Visit the search page to establish session and get the anti-forgery token
+        $searchPageUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds';
 
-        echo "   [Diagnostic] Visiting search page for $userId: $searchPageUrl\n";
+        echo "   [Diagnostic] Visiting search page to get token: $searchPageUrl\n";
         curl_setopt($ch, CURLOPT_URL, $searchPageUrl);
         curl_setopt($ch, CURLOPT_POST, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+        ]);
+        
         $searchPageHtml = curl_exec($ch);
         $searchPageHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         echo "   [Diagnostic] Search Page HTTP Code: $searchPageHttpCode\n";
+
+        $token = '';
+        if (preg_match('/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/', $searchPageHtml, $matches)) {
+            $token = $matches[1];
+            echo "   [Diagnostic] Found __RequestVerificationToken\n";
+        } else {
+            echo "   [Warning] Could not find __RequestVerificationToken on SearchHolds page.\n";
+        }
 
         // 2. Prepare search data for the API call that populates the grid
         $searchData = [
@@ -480,8 +480,6 @@ EOT;
         if ($searchResults === false) {
             echo "   [Diagnostic] cURL Error: " . curl_error($ch) . "\n";
             return;
-        } else {
-            echo "   [Diagnostic] Raw Response (first 500 chars): " . substr($searchResults, 0, 500) . "\n";
         }
         
         $resultsArr = json_decode($searchResults, true);
@@ -494,46 +492,58 @@ EOT;
             return;
         }
 
-        $holdIds = [];
+        $holdsToCancel = [];
         foreach ($resultsArr['data'] as $item) {
-            // Check if CardNumber in the response matches the requested User ID to prevent "wrong title" issue
-            // The response sample showed "CardNumber":"547115" when requesting "100000000672528"
+            // Verify CardNumber if possible to ensure we're looking at the right patron
             $respCardNumber = isset($item['CardNumber']) ? $item['CardNumber'] : 'unknown';
             
-            if ($respCardNumber != $userId) {
+            if ($respCardNumber != $userId && $respCardNumber != 'unknown') {
                 echo "   [Warning] Received hold for CardNumber $respCardNumber, but requested $userId. Skipping.\n";
                 continue;
             }
 
-            if (isset($item['ReserveID'])) {
-                $holdIds[] = $item['ReserveID'];
-                echo "   [Diagnostic] Found Hold: " . ($item['Title'] ?? 'Unknown Title') . " (ReserveID: " . $item['ReserveID'] . ")\n";
+            if (isset($item['ReserveID']) && isset($item['PatronID'])) {
+                $holdsToCancel[] = [
+                    'ReserveId' => $item['ReserveID'],
+                    'PatronId' => $item['PatronID']
+                ];
+                echo "   [Diagnostic] Identified Hold for cancellation: " . ($item['Title'] ?? 'Unknown Title') . " (ReserveID: " . $item['ReserveID'] . ", PatronID: " . $item['PatronID'] . ")\n";
             }
         }
 
-        if (empty($holdIds)) {
-            echo "No matching holds found for User ID $userId after verification.\n";
+        if (empty($holdsToCancel)) {
+            echo "No valid holds identified for User ID $userId after verification.\n";
             return;
         }
 
-        // Step 3: Remove Holds API call
-        $removeApiUrl = $baseUrl . '/api/Library/Site/EndUserManagement/ManageHolds/Remove';
-        $removeData = [
-            "holdIds" => $holdIds
+        // 3. Execute Cancellation
+        $cancelUrl = $baseUrl . '/Library/Site/EndUserManagement/CancelHold';
+        
+        // Build the multi-part body for application/x-www-form-urlencoded
+        $postData = [
+            '__RequestVerificationToken' => $token
         ];
+        foreach ($holdsToCancel as $index => $hold) {
+            $postData["holdsToCancel[$index][ReserveId]"] = $hold['ReserveId'];
+            $postData["holdsToCancel[$index][PatronId]"] = $hold['PatronId'];
+        }
 
-        echo "   [Diagnostic] Removing " . count($holdIds) . " holds at $removeApiUrl\n";
-        curl_setopt($ch, CURLOPT_URL, $removeApiUrl);
+        echo "   [Diagnostic] Sending Cancellation request to $cancelUrl\n";
+        curl_setopt($ch, CURLOPT_URL, $cancelUrl);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => json_encode($removeData)]));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+            'X-Requested-With: XMLHttpRequest'
+        ]);
         
-        $removeResponse = curl_exec($ch);
-        echo "   [Diagnostic] Remove Response: " . substr($removeResponse, 0, 500) . "\n";
+        $cancelResponse = curl_exec($ch);
+        echo "   [Diagnostic] Cancel Response (first 500 chars): " . substr($cancelResponse, 0, 500) . "\n";
         
-        if (strpos($removeResponse, 'success":true') !== false || strpos($removeResponse, '"The selected holds have been removed."') !== false) {
-            echo "Successfully removed " . count($holdIds) . " holds for $userId.\n";
+        if (strpos($cancelResponse, '"success":true') !== false || strpos($cancelResponse, '"The selected holds have been removed."') !== false) {
+            echo "Successfully requested cancellation for " . count($holdsToCancel) . " holds for $userId.\n";
         } else {
-            echo "Response from removal for $userId: " . substr($removeResponse, 0, 200) . "...\n";
+            echo "Response from cancellation for $userId might indicate an issue: " . substr($cancelResponse, 0, 200) . "...\n";
         }
     }
 
