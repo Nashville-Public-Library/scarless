@@ -464,18 +464,18 @@ EOT;
         
         $resultsArr = json_decode($searchResults, true);
         
-        $totalHolds = isset($resultsArr['total']) ? $resultsArr['total'] : (isset($resultsArr['items']) ? count($resultsArr['items']) : 0);
+        $totalHolds = isset($resultsArr['total']) ? $resultsArr['total'] : (isset($resultsArr['data']) ? count($resultsArr['data']) : 0);
         echo "User ID $userId has $totalHolds active/suspended holds.\n";
 
-        if (empty($resultsArr['items'])) {
+        if (empty($resultsArr['data'])) {
             echo "   [Diagnostic] No items found in response for $userId.\n";
             return;
         }
 
         $holdIds = [];
-        foreach ($resultsArr['items'] as $item) {
-            if (isset($item['Id'])) {
-                $holdIds[] = $item['Id'];
+        foreach ($resultsArr['data'] as $item) {
+            if (isset($item['ReserveID'])) {
+                $holdIds[] = $item['ReserveID'];
             }
         }
 
