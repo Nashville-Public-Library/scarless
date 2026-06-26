@@ -68,33 +68,48 @@ class IneligibleOverDriveReport {
 
     public function getIneligiblePatronsFromCarlX($useLocal = false) {
         $carlxFile = $this->reportPath . 'IneligibleOverDrive_Holds_CarlX.csv';
+        $problematicFile = $this->reportPath . 'IneligibleOverDrive_Problematic_IDs.csv';
 
         // Problematic 6-digit IDs that have Carl.X "collisions" with a record having ID as patronid and a different record having ID as patronguid - this is a Nashville-specific problem originating in 2017
         $this->problematicIds = []; 
 
-        if ($useLocal && file_exists($carlxFile)) {
-            echo "Reading Carl.X data from local file: $carlxFile\n";
-            $patrons = [];
-            if (($handle = fopen($carlxFile, "r")) !== FALSE) {
-                $header = fgetcsv($handle);
-                if ($header) {
-                    // Remove BOM if present
-                    $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
-                    // Normalize headers to lowercase
-                    $header = array_map('strtolower', $header);
-                }
-                while (($data = fgetcsv($handle)) !== FALSE) {
-                    if (count($header) !== count($data)) continue;
-                    $row = array_combine($header, $data);
-                    if (isset($row['patronguid']) && $row['patronguid']) {
-                        $patrons[strtolower(trim($row['patronguid']))] = $row;
-                    } elseif (isset($row['patronid']) && $row['patronid']) {
-                        // Fallback or secondary check if needed, but the requirement was patronguid
+        if ($useLocal) {
+            if (file_exists($problematicFile)) {
+                echo "Reading problematic 6-digit IDs from local file: $problematicFile\n";
+                if (($handle = fopen($problematicFile, "r")) !== FALSE) {
+                    $header = fgetcsv($handle); // Skip header if present
+                    while (($data = fgetcsv($handle)) !== FALSE) {
+                        if (!empty($data[0])) $this->problematicIds[] = trim($data[0]);
                     }
+                    fclose($handle);
                 }
-                fclose($handle);
+                if (!empty($this->problematicIds)) {
+                    echo "Loaded " . count($this->problematicIds) . " problematic IDs from local file.\n";
+                }
             }
-            return $patrons;
+
+            if (file_exists($carlxFile)) {
+                echo "Reading Carl.X data from local file: $carlxFile\n";
+                $patrons = [];
+                if (($handle = fopen($carlxFile, "r")) !== FALSE) {
+                    $header = fgetcsv($handle);
+                    if ($header) {
+                        // Remove BOM if present
+                        $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+                        // Normalize headers to lowercase
+                        $header = array_map('strtolower', $header);
+                    }
+                    while (($data = fgetcsv($handle)) !== FALSE) {
+                        if (count($header) !== count($data)) continue;
+                        $row = array_combine($header, $data);
+                        if (isset($row['patronguid']) && $row['patronguid']) {
+                            $patrons[strtolower(trim($row['patronguid']))] = $row;
+                        }
+                    }
+                    fclose($handle);
+                }
+                return $patrons;
+            }
         }
 
         $sql = <<<EOT
@@ -133,13 +148,18 @@ EOT;
 
         $stidProb = oci_parse($conn, $sqlProblematic);
         oci_execute($stidProb);
+        $probFp = fopen($problematicFile, 'w');
+        fputcsv($probFp, ['problematic_id']); // Header
         while (($probRow = oci_fetch_array($stidProb, OCI_ASSOC)) != false) {
-            $this->problematicIds[] = $probRow['VALUE_CHECKED'];
+            $val = $probRow['VALUE_CHECKED'];
+            $this->problematicIds[] = $val;
+            fputcsv($probFp, [$val]);
         }
+        fclose($probFp);
         oci_free_statement($stidProb);
 
         if (!empty($this->problematicIds)) {
-            echo "Identified " . count($this->problematicIds) . " problematic 6-digit User IDs: " . implode(', ', $this->problematicIds) . "\n";
+            echo "Identified " . count($this->problematicIds) . " problematic 6-digit User IDs and saved to $problematicFile: " . implode(', ', $this->problematicIds) . "\n";
         }
 
         $stid = oci_parse($conn, $sql);
