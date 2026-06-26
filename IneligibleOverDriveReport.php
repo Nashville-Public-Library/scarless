@@ -355,7 +355,7 @@ EOT;
         }
     }
 
-    private function getOverDriveAccessToken() {
+    private function getPatronAccessToken($userId) {
         if (!$this->api_client_key || !$this->api_client_secret) {
             throw new Exception("Circulation API credentials (APIClientKey/APIClientSecret) are missing.");
         }
@@ -365,7 +365,20 @@ EOT;
         $ch = curl_init('https://oauth.overdrive.com/token');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, 'grant_type=client_credentials');
+        
+        // As per user instructions and OverDrive documentation for patron authentication:
+        // grant_type=password
+        // password_required=false (workaround for Nashville's configuration)
+        // password=nopin (non-empty value)
+        // username=[User ID]
+        $fields = [
+            'grant_type' => 'password',
+            'username' => $userId,
+            'password' => 'nopin',
+            'password_required' => 'false'
+        ];
+        
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Authorization: Basic ' . $authHeader,
             'Content-Type: application/x-www-form-urlencoded;charset=UTF-8'
@@ -376,12 +389,12 @@ EOT;
         curl_close($ch);
 
         if ($httpCode !== 200) {
-            throw new Exception("Failed to obtain OverDrive Access Token. HTTP Code: $httpCode. Response: $response");
+            throw new Exception("Failed to obtain Patron Access Token for $userId. HTTP Code: $httpCode. Response: $response");
         }
 
         $data = json_decode($response, true);
         if (!isset($data['access_token'])) {
-            throw new Exception("Access token missing in response: $response");
+            throw new Exception("Access token missing in response for $userId: $response");
         }
 
         return $data['access_token'];
@@ -393,15 +406,8 @@ EOT;
             echo "Test batch mode enabled. Limit: $testBatchLimit patrons.\n";
         }
 
-        try {
-            $accessToken = $this->getOverDriveAccessToken();
-            echo "OAuth2 Access Token obtained.\n";
-        } catch (Exception $e) {
-            echo "Error: " . $e->getMessage() . "\n";
-            return;
-        }
-
         $processedCount = 0;
+        $skippedCount = 0;
         foreach ($userIds as $id) {
             if ($testBatchLimit !== null && $processedCount >= $testBatchLimit) {
                 echo "Test batch limit reached ($testBatchLimit). Stopping.\n";
@@ -409,24 +415,30 @@ EOT;
             }
 
             if (strlen($id) !== 15) {
-                echo "Skipping User ID $id (not 15 digits).\n";
+                $skippedCount++;
                 continue;
             }
 
             echo "[$processedCount] Processing User ID: $id\n";
-            $this->cancelHoldsForUserViaAPI($accessToken, $id);
-            $processedCount++;
+            try {
+                $accessToken = $this->getPatronAccessToken($id);
+                $this->cancelHoldsForUserViaAPI($accessToken, $id);
+                $processedCount++;
+            } catch (Exception $e) {
+                echo "   [Error] " . $e->getMessage() . "\n";
+            }
+        }
+        
+        if ($skippedCount > 0) {
+            echo "Skipped $skippedCount User IDs that were not 15 digits.\n";
         }
     }
 
     private function cancelHoldsForUserViaAPI($accessToken, $userId) {
-        if (!$this->api_library_account) {
-            echo "   [Error] APILibraryAccount (Library ID) is required for Circulation API calls.\n";
-            return;
-        }
-
-        $libraryId = $this->api_library_account;
-        $holdsUrl = "https://api.overdrive.com/v1/libraries/$libraryId/patrons/$userId/holds";
+        // Circulation API: Retrieve holds for the authenticated patron
+        // Documentation: https://developer.overdrive.com/api-docs/circulation-apis/holds
+        // The endpoint /v1/patrons/me/holds acts on the authenticated patron context.
+        $holdsUrl = "https://api.overdrive.com/v1/patrons/me/holds";
 
         $ch = curl_init($holdsUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -456,6 +468,7 @@ EOT;
 
             echo "   [Action] Canceling hold for: $title (ReserveID: $reserveId)\n";
             
+            // DELETE endpoint for hold cancellation
             $deleteUrl = "$holdsUrl/$reserveId";
             
             $dch = curl_init($deleteUrl);
