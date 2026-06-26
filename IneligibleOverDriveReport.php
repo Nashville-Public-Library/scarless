@@ -29,7 +29,7 @@
  * Most of the programming and automation logic was developed by Junie, an autonomous 
  * AI programmer by JetBrains, following requirements provided by James Staub (Nashville Public Library).
  * 
- * Update 2026-06-26: Refactored hold cancellation to use OverDrive Circulation API.
+ * Update 2026-06-26: Refactored hold cancellation to mimic manual Marketplace flow.
  */
 
 class IneligibleOverDriveReport {
@@ -355,56 +355,53 @@ EOT;
         }
     }
 
-    private function getPatronAccessToken($userId) {
-        if (!$this->api_client_key || !$this->api_client_secret) {
-            throw new Exception("Circulation API credentials (APIClientKey/APIClientSecret) are missing.");
-        }
-
-        $authHeader = base64_encode($this->api_client_key . ':' . $this->api_client_secret);
-        
-        $ch = curl_init('https://oauth.overdrive.com/token');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        
-        // As per user instructions and OverDrive documentation for patron authentication:
-        // grant_type=password
-        // password_required=false (workaround for Nashville's configuration)
-        // password=nopin (non-empty value)
-        // username=[User ID]
-        $fields = [
-            'grant_type' => 'password',
-            'username' => $userId,
-            'password' => 'nopin',
-            'password_required' => 'false'
-        ];
-        
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Basic ' . $authHeader,
-            'Content-Type: application/x-www-form-urlencoded;charset=UTF-8'
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode !== 200) {
-            throw new Exception("Failed to obtain Patron Access Token for $userId. HTTP Code: $httpCode. Response: $response");
-        }
-
-        $data = json_decode($response, true);
-        if (!isset($data['access_token'])) {
-            throw new Exception("Access token missing in response for $userId: $response");
-        }
-
-        return $data['access_token'];
-    }
-
     private function processHoldCancellations($userIds, $testBatchLimit = null) {
-        echo "Starting hold cancellation process via OverDrive Circulation API...\n";
+        echo "Starting hold cancellation process via OverDrive Marketplace...\n";
         if ($testBatchLimit !== null) {
             echo "Test batch mode enabled. Limit: $testBatchLimit patrons.\n";
         }
+
+        $cookieFile = tempnam(sys_get_temp_dir(), 'ODCookie');
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+        // Login to Marketplace
+        $baseUrl = 'https://marketplace.overdrive.com';
+        $loginUrl = $baseUrl . '/Account/Login';
+        
+        curl_setopt($ch, CURLOPT_URL, $loginUrl);
+        curl_setopt($ch, CURLOPT_POST, false);
+        $loginPage = curl_exec($ch);
+        $token = '';
+        if (preg_match('/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/', $loginPage, $matches)) {
+            $token = $matches[1];
+        }
+
+        $postFields = [
+            'UserName' => $this->od_username,
+            'Password' => $this->od_password,
+            'RememberMe' => 'false'
+        ];
+        if ($token) {
+            $postFields['__RequestVerificationToken'] = $token;
+        }
+
+        curl_setopt($ch, CURLOPT_URL, $loginUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
+        $response = curl_exec($ch);
+
+        if (strpos($response, 'Sign out') === false && strpos($response, 'Log out') === false) {
+             echo "Login failed for cancellation process.\n";
+             curl_close($ch);
+             @unlink($cookieFile);
+             return;
+        }
+        echo "Login successful for cancellation.\n";
 
         $processedCount = 0;
         $skippedCount = 0;
@@ -420,77 +417,125 @@ EOT;
             }
 
             echo "[$processedCount] Processing User ID: $id\n";
-            try {
-                $accessToken = $this->getPatronAccessToken($id);
-                $this->cancelHoldsForUserViaAPI($accessToken, $id);
+            if ($this->cancelHoldsForUser($ch, $id)) {
                 $processedCount++;
-            } catch (Exception $e) {
-                echo "   [Error] " . $e->getMessage() . "\n";
             }
         }
         
         if ($skippedCount > 0) {
             echo "Skipped $skippedCount User IDs that were not 15 digits.\n";
         }
+
+        curl_close($ch);
+        @unlink($cookieFile);
     }
 
-    private function cancelHoldsForUserViaAPI($accessToken, $userId) {
-        // Circulation API: Retrieve holds for the authenticated patron
-        // Documentation: https://developer.overdrive.com/api-docs/circulation-apis/holds
-        // The endpoint /v1/patrons/me/holds acts on the authenticated patron context.
-        $holdsUrl = "https://api.overdrive.com/v1/patrons/me/holds";
-
-        $ch = curl_init($holdsUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Authorization: Bearer $accessToken",
-            "Accept: application/json"
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    private function cancelHoldsForUser($ch, $userId) {
+        $baseUrl = 'https://marketplace.overdrive.com';
         
-        if ($httpCode !== 200) {
-            echo "   [Error] Failed to retrieve holds for $userId. HTTP Code: $httpCode. Response: " . substr($response, 0, 200) . "\n";
-            curl_close($ch);
-            return;
+        // 1. Visit the search page to establish session context for this patron
+        // This mimics entering User ID and clicking Update in the manual flow
+        $searchPageUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds?data=' . urlencode(json_encode([
+            "titleId" => "",
+            "PatronCardNumber" => $userId,
+            "PatronEmail" => "",
+            "IsSuspended" => null,
+            "Parameters" => [
+                "page" => 1,
+                "start" => 0,
+                "limit" => 50,
+                "sort" => []
+            ]
+        ]));
+
+        curl_setopt($ch, CURLOPT_URL, $searchPageUrl);
+        curl_setopt($ch, CURLOPT_POST, false);
+        $searchPageHtml = curl_exec($ch);
+        
+        $token = '';
+        if (preg_match('/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/', $searchPageHtml, $matches)) {
+            $token = $matches[1];
         }
 
-        $data = json_decode($response, true);
-        $holds = $data['holds'] ?? [];
-        echo "   User ID $userId has " . count($holds) . " holds.\n";
+        // 2. Request the hold data for the grid
+        $dc = round(microtime(true) * 1000);
+        $searchApiUrl = $baseUrl . '/api/Library/Site/EndUserManagement/ManageHolds/Data?_dc=' . $dc;
+        
+        $searchData = [
+            "Parameters" => ["page" => 1, "start" => 0, "limit" => 50, "sort" => []],
+            "titleId" => "",
+            "PatronCardNumber" => $userId,
+            "PatronEmail" => "",
+            "IsSuspended" => null
+        ];
+        
+        curl_setopt($ch, CURLOPT_URL, $searchApiUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => json_encode($searchData)]));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'X-Requested-With: XMLHttpRequest',
+            'Accept: application/json'
+        ]);
+        
+        $searchResults = curl_exec($ch);
+        $resultsArr = json_decode($searchResults, true);
+        
+        if (empty($resultsArr['data'])) {
+            echo "   User ID $userId has 0 active/suspended holds.\n";
+            return true; 
+        }
 
-        foreach ($holds as $hold) {
-            $reserveId = $hold['reserveId'] ?? null;
-            $title = $hold['title'] ?? 'Unknown Title';
-            
-            if (!$reserveId) continue;
+        $holdsToCancel = [];
+        foreach ($resultsArr['data'] as $item) {
+            // Safety check: ensure the CardNumber in the response matches what we requested
+            $respCardNumber = $item['CardNumber'] ?? 'unknown';
+            if ($respCardNumber != $userId && $respCardNumber != 'unknown') {
+                continue;
+            }
 
-            echo "   [Action] Canceling hold for: $title (ReserveID: $reserveId)\n";
-            
-            // DELETE endpoint for hold cancellation
-            $deleteUrl = "$holdsUrl/$reserveId";
-            
-            $dch = curl_init($deleteUrl);
-            curl_setopt($dch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-            curl_setopt($dch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($dch, CURLOPT_HTTPHEADER, [
-                "Authorization: Bearer $accessToken",
-                "Accept: application/json"
-            ]);
-            
-            $deleteResponse = curl_exec($dch);
-            $deleteHttpCode = curl_getinfo($dch, CURLINFO_HTTP_CODE);
-            curl_close($dch);
-
-            if ($deleteHttpCode === 204 || $deleteHttpCode === 200) {
-                echo "   [Success] Hold canceled successfully.\n";
-            } else {
-                echo "   [Error] Failed to cancel hold. HTTP Code: $deleteHttpCode. Response: " . substr($deleteResponse, 0, 200) . "\n";
+            if (isset($item['ReserveID']) && isset($item['PatronID'])) {
+                $holdsToCancel[] = [
+                    'ReserveId' => $item['ReserveID'],
+                    'PatronId' => $item['PatronID']
+                ];
+                echo "   Found hold: " . ($item['Title'] ?? 'Unknown') . "\n";
             }
         }
+
+        if (empty($holdsToCancel)) {
+            echo "   No valid holds identified for $userId.\n";
+            return true;
+        }
+
+        echo "   Canceling " . count($holdsToCancel) . " holds...\n";
+
+        // 3. Execute Cancellation
+        $cancelUrl = $baseUrl . '/Library/Site/EndUserManagement/CancelHold';
         
-        curl_close($ch);
+        $postData = [
+            '__RequestVerificationToken' => $token
+        ];
+        foreach ($holdsToCancel as $index => $hold) {
+            $postData["holdsToCancel[$index][ReserveId]"] = $hold['ReserveId'];
+            $postData["holdsToCancel[$index][PatronId]"] = $hold['PatronId'];
+        }
+
+        curl_setopt($ch, CURLOPT_URL, $cancelUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+            'X-Requested-With: XMLHttpRequest'
+        ]);
+        
+        $cancelResponse = curl_exec($ch);
+        if (strpos($cancelResponse, '"success":true') !== false) {
+            echo "   [Success] Holds removed.\n";
+            return true;
+        } else {
+            echo "   [Error] Cancellation failed: " . substr($cancelResponse, 0, 200) . "\n";
+            return false;
+        }
     }
 
     public function run($useLocal = false, $sendEmail = true, $cancelHolds = false, $testBatchLimit = null) {
