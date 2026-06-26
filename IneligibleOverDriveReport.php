@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * IneligibleOverDriveReport.php
  * 
@@ -443,7 +443,7 @@ EOT;
         @unlink($cookieFile);
     }
 
-    private function cancelHoldsForUser($ch, $userId) {
+                        private function cancelHoldsForUser($ch, $userId) {
         $baseUrl = 'https://marketplace.overdrive.com';
         
         // 1. Visit the search page to establish session context for this patron
@@ -460,12 +460,15 @@ EOT;
                 "sort" => []
             ]
         ];
-        $searchPageUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds?data=' . urlencode(json_encode($searchParams));
+        $searchDataJson = json_encode($searchParams);
+        $searchPageUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds?data=' . urlencode($searchDataJson);
 
         if ($this->verbose) echo "   [Verbose] Visiting search page for $userId: $searchPageUrl\n";
         curl_setopt($ch, CURLOPT_URL, $searchPageUrl);
         curl_setopt($ch, CURLOPT_POST, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, []); // Clear any headers from previous POSTs
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Referer: $baseUrl/Library/Site/EndUserManagement/SearchHolds"
+        ]);
         $searchPageHtml = curl_exec($ch);
         
         $token = '';
@@ -478,23 +481,17 @@ EOT;
         $dc = round(microtime(true) * 1000);
         $searchApiUrl = $baseUrl . '/api/Library/Site/EndUserManagement/ManageHolds/Data?_dc=' . $dc;
         
-        $searchData = [
-            "Parameters" => ["page" => 1, "start" => 0, "limit" => 50, "sort" => []],
-            "titleId" => "",
-            "PatronCardNumber" => $userId,
-            "PatronEmail" => "",
-            "IsSuspended" => null
-        ];
-        
         if ($this->verbose) echo "   [Verbose] Requesting hold data from API: $searchApiUrl\n";
-        if ($this->verbose) echo "   [Verbose] Payload: " . json_encode($searchData) . "\n";
+        if ($this->verbose) echo "   [Verbose] Payload: $searchDataJson\n";
         
         curl_setopt($ch, CURLOPT_URL, $searchApiUrl);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => json_encode($searchData)]));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $searchDataJson);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'X-Requested-With: XMLHttpRequest',
-            'Accept: application/json'
+            'Accept: application/json',
+            'Content-Type: application/json',
+            "Referer: $searchPageUrl"
         ]);
         
         $searchResults = curl_exec($ch);
@@ -553,7 +550,8 @@ EOT;
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/x-www-form-urlencoded',
-            'X-Requested-With: XMLHttpRequest'
+            'X-Requested-With: XMLHttpRequest',
+            "Referer: $searchPageUrl"
         ]);
         
         $cancelResponse = curl_exec($ch);
@@ -709,3 +707,8 @@ foreach ($argv as $arg) {
 
 $report = new IneligibleOverDriveReport();
 $report->run($useLocal, $sendEmail, $cancelHolds, $testBatchLimit, $verbose);
+
+
+
+
+
