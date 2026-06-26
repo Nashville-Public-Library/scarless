@@ -359,6 +359,15 @@ EOT;
             echo "Test batch mode enabled. Limit: $testBatchLimit patrons.\n";
         }
 
+        $summary = [
+            'patronsTargeted' => 0,
+            'patronsProcessed' => 0,
+            'patronsCanceled' => 0,
+            'totalHoldsCanceled' => 0,
+            'skippedNon15' => 0,
+            'errors' => []
+        ];
+
         $cookieFile = tempnam(sys_get_temp_dir(), 'ODCookie');
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -401,45 +410,61 @@ EOT;
         $response = curl_exec($ch);
 
         if (strpos($response, 'Sign out') === false && strpos($response, 'Log out') === false) {
-             echo "Login failed for cancellation process.\n";
+             $errorMsg = "Login failed for cancellation process.";
+             echo "$errorMsg\n";
              if ($this->verbose) {
                  echo "[Verbose] Login response preview: " . substr(strip_tags($response), 0, 500) . "...\n";
              }
+             $summary['errors'][] = $errorMsg;
              curl_close($ch);
              @unlink($cookieFile);
-             return;
+             return $summary;
         }
         echo "Login successful for cancellation.\n";
 
-        $processedCount = 0;
-        $skippedCount = 0;
         foreach ($userIds as $id) {
-            if ($testBatchLimit !== null && $processedCount >= $testBatchLimit) {
+            if ($testBatchLimit !== null && $summary['patronsProcessed'] >= $testBatchLimit) {
                 echo "Test batch limit reached ($testBatchLimit). Stopping.\n";
                 break;
             }
 
             if (strlen($id) !== 15) {
-                $skippedCount++;
+                $summary['skippedNon15']++;
                 continue;
             }
 
-            echo "[$processedCount] Processing User ID: $id\n";
-            if ($this->cancelHoldsForUser($ch, $id)) {
-                $processedCount++;
+            $summary['patronsTargeted']++;
+            echo "[" . $summary['patronsProcessed'] . "] Processing User ID: $id\n";
+            $result = $this->cancelHoldsForUser($ch, $id);
+            $summary['patronsProcessed']++;
+
+            if ($result['success']) {
+                if ($result['holdsCount'] > 0) {
+                    $summary['patronsCanceled']++;
+                    $summary['totalHoldsCanceled'] += $result['holdsCount'];
+                }
+            } else {
+                $summary['errors'][] = "User ID $id: " . $result['error'];
             }
         }
         
-        if ($skippedCount > 0) {
-            echo "Skipped $skippedCount User IDs that were not 15 digits.\n";
+        if ($summary['skippedNon15'] > 0) {
+            echo "Skipped " . $summary['skippedNon15'] . " User IDs that were not 15 digits.\n";
         }
 
         curl_close($ch);
         @unlink($cookieFile);
+        return $summary;
     }
 
                         private function cancelHoldsForUser($ch, $userId) {
         $baseUrl = 'https://marketplace.overdrive.com';
+        
+        $result = [
+            'success' => false,
+            'holdsCount' => 0,
+            'error' => ''
+        ];
         
         // 1. Visit the search page to establish session context for this patron
         // This mimics entering User ID and clicking Update in the manual flow
@@ -496,7 +521,8 @@ EOT;
         
         if (empty($resultsArr['data'])) {
             echo "   User ID $userId has 0 active/suspended holds.\n";
-            return true; 
+            $result['success'] = true;
+            return $result; 
         }
 
         $holdsToCancel = [];
@@ -515,15 +541,17 @@ EOT;
                     'ReserveId' => $item['ReserveID'],
                     'PatronId' => $item['PatronID']
                 ];
-                echo "   Found hold: " . ($item['Title'] ?? 'Unknown') . "\n";
+                if (!$this->verbose) echo "   Found hold: " . ($item['Title'] ?? 'Unknown') . "\n";
             }
         }
 
         if (empty($holdsToCancel)) {
             echo "   No valid holds identified for $userId.\n";
-            return true;
+            $result['success'] = true;
+            return $result;
         }
 
+        $result['holdsCount'] = count($holdsToCancel);
         echo "   Canceling " . count($holdsToCancel) . " holds...\n";
 
         // 3. Execute Cancellation
@@ -554,10 +582,13 @@ EOT;
         
         if (strpos($cancelResponse, '"success":true') !== false) {
             echo "   [Success] Holds removed.\n";
-            return true;
+            $result['success'] = true;
+            return $result;
         } else {
-            echo "   [Error] Cancellation failed: " . substr($cancelResponse, 0, 200) . "\n";
-            return false;
+            $errorMsg = "Cancellation failed: " . substr($cancelResponse, 0, 200);
+            echo "   [Error] $errorMsg\n";
+            $result['error'] = $errorMsg;
+            return $result;
         }
     }
 
@@ -653,17 +684,39 @@ EOT;
                 fclose($outFp);
                 echo "Final report saved to: $outputFile\n";
 
+                $cancellationSummary = null;
                 if ($this->cancelHolds) {
-                    $this->processHoldCancellations($matchedUserIds, $testBatchLimit);
+                    $cancellationSummary = $this->processHoldCancellations($matchedUserIds, $testBatchLimit);
                 }
 
                 if ($sendEmail) {
-                    echo "Sending report via email...\n";
-                    $this->sendEmail(
-                        "Ineligible OverDrive Holds Report",
-                        "Please find attached the Ineligible OverDrive Holds Report generated on " . date('Y-m-d H:i:s') . ".\n\nTotal matches found: $matchCount",
-                        $outputFile
-                    );
+                    echo "Preparing email...\n";
+                    $subject = "Ineligible OverDrive Holds - Action Summary";
+                    $body = "Ineligible OverDrive Holds process completed on " . date('Y-m-d H:i:s') . ".\n\n";
+                    $body .= "Total matches found in OverDrive report: $matchCount\n";
+                    
+                    if ($cancellationSummary) {
+                        $body .= "\nHold Cancellation Summary:\n";
+                        $body .= "---------------------------\n";
+                        $body .= "Patrons Targeted: " . $cancellationSummary['patronsTargeted'] . "\n";
+                        $body .= "Patrons Processed: " . $cancellationSummary['patronsProcessed'] . "\n";
+                        $body .= "Patrons with holds canceled: " . $cancellationSummary['patronsCanceled'] . "\n";
+                        $body .= "Total holds canceled: " . $cancellationSummary['totalHoldsCanceled'] . "\n";
+                        $body .= "Skipped (6-digit) User IDs: " . $cancellationSummary['skippedNon15'] . "\n";
+                        
+                        if (!empty($cancellationSummary['errors'])) {
+                            $body .= "\nErrors encountered:\n";
+                            foreach ($cancellationSummary['errors'] as $error) {
+                                $body .= "- $error\n";
+                            }
+                        } else {
+                            $body .= "\nNo errors reported during cancellation.\n";
+                        }
+                    } else {
+                        $body .= "\nHold cancellation was NOT performed (missing -cancel-holds flag).\n";
+                    }
+
+                    $this->sendEmail($subject, $body, null);
                 } else {
                     echo "Email suppressed by -no-email flag.\n";
                 }
