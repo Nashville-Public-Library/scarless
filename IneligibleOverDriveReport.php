@@ -45,6 +45,7 @@ class IneligibleOverDriveReport {
     private $emailRecipients;
     private $cancelHolds = false;
     private $verbose = false;
+    private $problematicIds = []; // 6-digit IDs that shouldn't be processed
 
     public function getConfig() {
         if (!file_exists('../config.pwd.ini')) {
@@ -67,6 +68,9 @@ class IneligibleOverDriveReport {
 
     public function getIneligiblePatronsFromCarlX($useLocal = false) {
         $carlxFile = $this->reportPath . 'IneligibleOverDrive_Holds_CarlX.csv';
+
+        // Problematic 6-digit IDs that have Carl.X "collisions" with a record having ID as patronid and a different record having ID as patronguid - this is a Nashville-specific problem originating in 2017
+        $this->problematicIds = []; 
 
         if ($useLocal && file_exists($carlxFile)) {
             echo "Reading Carl.X data from local file: $carlxFile\n";
@@ -109,6 +113,33 @@ EOT;
         if (!$conn) {
             $e = oci_error();
             throw new Exception("Carl.X Connection failed: " . $e['message']);
+        }
+
+        $sqlProblematic = <<<EOT
+with all_6_digits as (
+    select distinct to_char(patronguid) as value_checked from patron_v2 where length(patronguid) = 6
+    union
+    select distinct patronid from patron_v2 where length(to_char(patronid)) = 6
+)
+select distinct
+    cv.value_checked
+from all_6_digits cv
+join PATRON_V2 p_id
+    on to_char(p_id.PATRONID) = cv.value_checked
+join PATRON_V2 p_guid
+    on p_guid.PATRONGUID = cv.value_checked
+where p_id.PATRONID <> p_guid.PATRONID
+EOT;
+
+        $stidProb = oci_parse($conn, $sqlProblematic);
+        oci_execute($stidProb);
+        while (($probRow = oci_fetch_array($stidProb, OCI_ASSOC)) != false) {
+            $this->problematicIds[] = $probRow['VALUE_CHECKED'];
+        }
+        oci_free_statement($stidProb);
+
+        if (!empty($this->problematicIds)) {
+            echo "Identified " . count($this->problematicIds) . " problematic 6-digit User IDs: " . implode(', ', $this->problematicIds) . "\n";
         }
 
         $stid = oci_parse($conn, $sql);
@@ -364,7 +395,7 @@ EOT;
             'patronsProcessed' => 0,
             'patronsCanceled' => 0,
             'totalHoldsCanceled' => 0,
-            'skippedNon15' => 0,
+            'skippedNon15' => 0, // Now means skipped other than 15 or 6 digit
             'errors' => []
         ];
 
@@ -428,13 +459,21 @@ EOT;
                 break;
             }
 
-            if (strlen($id) !== 15) {
+            if (strlen($id) !== 15 && strlen($id) !== 6) {
                 $summary['skippedNon15']++;
                 continue;
             }
 
             $summary['patronsTargeted']++;
             echo "[" . $summary['patronsProcessed'] . "] Processing User ID: $id\n";
+            
+            // Check if this is a problematic 6-digit ID
+            if (strlen($id) === 6 && in_array($id, $this->problematicIds)) {
+                echo "   [Warning] Skipping problematic 6-digit User ID: $id\n";
+                $summary['patronsProcessed']++;
+                continue;
+            }
+
             $result = $this->cancelHoldsForUser($ch, $id);
             $summary['patronsProcessed']++;
 
@@ -449,7 +488,7 @@ EOT;
         }
         
         if ($summary['skippedNon15'] > 0) {
-            echo "Skipped " . $summary['skippedNon15'] . " User IDs that were not 15 digits.\n";
+            echo "Skipped " . $summary['skippedNon15'] . " User IDs that were not 15 or 6 digits.\n";
         }
 
         curl_close($ch);
@@ -702,7 +741,11 @@ EOT;
                         $body .= "Patrons Processed: " . $cancellationSummary['patronsProcessed'] . "\n";
                         $body .= "Patrons with holds canceled: " . $cancellationSummary['patronsCanceled'] . "\n";
                         $body .= "Total holds canceled: " . $cancellationSummary['totalHoldsCanceled'] . "\n";
-                        $body .= "Skipped (6-digit) User IDs: " . $cancellationSummary['skippedNon15'] . "\n";
+                        $body .= "Skipped (non-15/6 digit) User IDs: " . $cancellationSummary['skippedNon15'] . "\n";
+                        
+                        if (!empty($this->problematicIds)) {
+                            $body .= "Problematic 6-digit IDs skipped: " . implode(', ', $this->problematicIds) . "\n";
+                        }
                         
                         if (!empty($cancellationSummary['errors'])) {
                             $body .= "\nErrors encountered:\n";
