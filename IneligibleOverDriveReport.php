@@ -421,7 +421,29 @@ EOT;
     private function cancelHoldsForUser($ch, $userId) {
         $baseUrl = 'https://marketplace.overdrive.com';
         
-        // 1. Prepare search data based on user feedback
+        // 1. Establish session context by visiting the SearchHolds page first (Screen Scrape approach)
+        // This mimics the manual process where the staffer navigates to this URL.
+        $searchPageUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds?data=' . urlencode(json_encode([
+            "titleId" => "",
+            "PatronCardNumber" => $userId,
+            "PatronEmail" => "",
+            "IsSuspended" => null,
+            "Parameters" => [
+                "page" => 1,
+                "start" => 0,
+                "limit" => 50,
+                "sort" => []
+            ]
+        ]));
+
+        echo "   [Diagnostic] Visiting search page for $userId: $searchPageUrl\n";
+        curl_setopt($ch, CURLOPT_URL, $searchPageUrl);
+        curl_setopt($ch, CURLOPT_POST, false);
+        $searchPageHtml = curl_exec($ch);
+        $searchPageHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        echo "   [Diagnostic] Search Page HTTP Code: $searchPageHttpCode\n";
+
+        // 2. Prepare search data for the API call that populates the grid
         $searchData = [
             "Parameters" => [
                 "page" => 1,
@@ -435,14 +457,13 @@ EOT;
             "IsSuspended" => null
         ];
 
-        // _dc is likely a cache-buster (timestamp in milliseconds)
+        // _dc is a cache-buster (timestamp in milliseconds)
         $dc = round(microtime(true) * 1000);
         $searchApiUrl = $baseUrl . '/api/Library/Site/EndUserManagement/ManageHolds/Data?_dc=' . $dc;
         
         $searchPayload = ['inputJson' => json_encode($searchData)];
         
-        echo "   [Diagnostic] Searching holds for $userId at $searchApiUrl\n";
-        echo "   [Diagnostic] Payload: " . $searchPayload['inputJson'] . "\n";
+        echo "   [Diagnostic] Requesting hold data for $userId at $searchApiUrl\n";
         
         curl_setopt($ch, CURLOPT_URL, $searchApiUrl);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -454,10 +475,11 @@ EOT;
         
         $searchResults = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        echo "   [Diagnostic] HTTP Code: $httpCode\n";
+        echo "   [Diagnostic] API HTTP Code: $httpCode\n";
         
         if ($searchResults === false) {
             echo "   [Diagnostic] cURL Error: " . curl_error($ch) . "\n";
+            return;
         } else {
             echo "   [Diagnostic] Raw Response (first 500 chars): " . substr($searchResults, 0, 500) . "\n";
         }
@@ -474,24 +496,33 @@ EOT;
 
         $holdIds = [];
         foreach ($resultsArr['data'] as $item) {
+            // Check if CardNumber in the response matches the requested User ID to prevent "wrong title" issue
+            // The response sample showed "CardNumber":"547115" when requesting "100000000672528"
+            $respCardNumber = isset($item['CardNumber']) ? $item['CardNumber'] : 'unknown';
+            
+            if ($respCardNumber != $userId) {
+                echo "   [Warning] Received hold for CardNumber $respCardNumber, but requested $userId. Skipping.\n";
+                continue;
+            }
+
             if (isset($item['ReserveID'])) {
                 $holdIds[] = $item['ReserveID'];
+                echo "   [Diagnostic] Found Hold: " . ($item['Title'] ?? 'Unknown Title') . " (ReserveID: " . $item['ReserveID'] . ")\n";
             }
         }
 
         if (empty($holdIds)) {
-            echo "Could not identify hold IDs for User ID $userId.\n";
+            echo "No matching holds found for User ID $userId after verification.\n";
             return;
         }
 
-        // Step B: Remove Holds API call
-        // Assuming the removal endpoint also follows the Library/Site pattern
+        // Step 3: Remove Holds API call
         $removeApiUrl = $baseUrl . '/api/Library/Site/EndUserManagement/ManageHolds/Remove';
         $removeData = [
             "holdIds" => $holdIds
         ];
 
-        echo "   [Diagnostic] Removing holds at $removeApiUrl\n";
+        echo "   [Diagnostic] Removing " . count($holdIds) . " holds at $removeApiUrl\n";
         curl_setopt($ch, CURLOPT_URL, $removeApiUrl);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => json_encode($removeData)]));
