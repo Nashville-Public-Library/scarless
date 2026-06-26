@@ -25,6 +25,8 @@
  *   -test-batch=N   Optional. Limit hold cancellations to a specific number of patrons (e.g., -test-batch=5).
  *                   Useful for verification before running a full batch.
  * 
+ *   -verbose        Optional. Enable detailed diagnostic logging for the hold cancellation process.
+ * 
  * Credits:
  * Most of the programming and automation logic was developed by Junie, an autonomous 
  * AI programmer by JetBrains, following requirements provided by James Staub (Nashville Public Library).
@@ -44,6 +46,7 @@ class IneligibleOverDriveReport {
     private $reportPath = '../data/';
     private $emailRecipients;
     private $cancelHolds = false;
+    private $verbose = false;
 
     public function getConfig() {
         if (!file_exists('../config.pwd.ini')) {
@@ -369,10 +372,15 @@ EOT;
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
+        if ($this->verbose) {
+            curl_setopt($ch, CURLOPT_VERBOSE, true);
+        }
+
         // Login to Marketplace
         $baseUrl = 'https://marketplace.overdrive.com';
         $loginUrl = $baseUrl . '/Account/Login';
         
+        if ($this->verbose) echo "[Verbose] Accessing login page: $loginUrl\n";
         curl_setopt($ch, CURLOPT_URL, $loginUrl);
         curl_setopt($ch, CURLOPT_POST, false);
         $loginPage = curl_exec($ch);
@@ -380,6 +388,7 @@ EOT;
         if (preg_match('/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/', $loginPage, $matches)) {
             $token = $matches[1];
         }
+        if ($this->verbose) echo "[Verbose] Login page token: " . ($token ? $token : "NOT FOUND") . "\n";
 
         $postFields = [
             'UserName' => $this->od_username,
@@ -390,6 +399,7 @@ EOT;
             $postFields['__RequestVerificationToken'] = $token;
         }
 
+        if ($this->verbose) echo "[Verbose] Submitting login form to $loginUrl\n";
         curl_setopt($ch, CURLOPT_URL, $loginUrl);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
@@ -397,6 +407,9 @@ EOT;
 
         if (strpos($response, 'Sign out') === false && strpos($response, 'Log out') === false) {
              echo "Login failed for cancellation process.\n";
+             if ($this->verbose) {
+                 echo "[Verbose] Login response preview: " . substr(strip_tags($response), 0, 500) . "...\n";
+             }
              curl_close($ch);
              @unlink($cookieFile);
              return;
@@ -435,7 +448,7 @@ EOT;
         
         // 1. Visit the search page to establish session context for this patron
         // This mimics entering User ID and clicking Update in the manual flow
-        $searchPageUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds?data=' . urlencode(json_encode([
+        $searchParams = [
             "titleId" => "",
             "PatronCardNumber" => $userId,
             "PatronEmail" => "",
@@ -446,16 +459,20 @@ EOT;
                 "limit" => 50,
                 "sort" => []
             ]
-        ]));
+        ];
+        $searchPageUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds?data=' . urlencode(json_encode($searchParams));
 
+        if ($this->verbose) echo "   [Verbose] Visiting search page for $userId: $searchPageUrl\n";
         curl_setopt($ch, CURLOPT_URL, $searchPageUrl);
         curl_setopt($ch, CURLOPT_POST, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, []); // Clear any headers from previous POSTs
         $searchPageHtml = curl_exec($ch);
         
         $token = '';
         if (preg_match('/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/', $searchPageHtml, $matches)) {
             $token = $matches[1];
         }
+        if ($this->verbose) echo "   [Verbose] Search page token: " . ($token ? $token : "NOT FOUND") . "\n";
 
         // 2. Request the hold data for the grid
         $dc = round(microtime(true) * 1000);
@@ -469,6 +486,9 @@ EOT;
             "IsSuspended" => null
         ];
         
+        if ($this->verbose) echo "   [Verbose] Requesting hold data from API: $searchApiUrl\n";
+        if ($this->verbose) echo "   [Verbose] Payload: " . json_encode($searchData) . "\n";
+        
         curl_setopt($ch, CURLOPT_URL, $searchApiUrl);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['inputJson' => json_encode($searchData)]));
@@ -478,6 +498,8 @@ EOT;
         ]);
         
         $searchResults = curl_exec($ch);
+        if ($this->verbose) echo "   [Verbose] API Response (first 500 chars): " . substr($searchResults, 0, 500) . "...\n";
+        
         $resultsArr = json_decode($searchResults, true);
         
         if (empty($resultsArr['data'])) {
@@ -489,7 +511,10 @@ EOT;
         foreach ($resultsArr['data'] as $item) {
             // Safety check: ensure the CardNumber in the response matches what we requested
             $respCardNumber = $item['CardNumber'] ?? 'unknown';
+            if ($this->verbose) echo "   [Verbose] Found record in data: Title=" . ($item['Title'] ?? 'N/A') . ", CardNumber=$respCardNumber, ReserveID=" . ($item['ReserveID'] ?? 'N/A') . "\n";
+            
             if ($respCardNumber != $userId && $respCardNumber != 'unknown') {
+                if ($this->verbose) echo "   [Verbose] Skipping record as CardNumber does not match $userId\n";
                 continue;
             }
 
@@ -520,6 +545,9 @@ EOT;
             $postData["holdsToCancel[$index][PatronId]"] = $hold['PatronId'];
         }
 
+        if ($this->verbose) echo "   [Verbose] Sending cancel request to: $cancelUrl\n";
+        if ($this->verbose) echo "   [Verbose] Cancel payload: " . http_build_query($postData) . "\n";
+
         curl_setopt($ch, CURLOPT_URL, $cancelUrl);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
@@ -529,6 +557,8 @@ EOT;
         ]);
         
         $cancelResponse = curl_exec($ch);
+        if ($this->verbose) echo "   [Verbose] Cancel Response: $cancelResponse\n";
+        
         if (strpos($cancelResponse, '"success":true') !== false) {
             echo "   [Success] Holds removed.\n";
             return true;
@@ -538,8 +568,9 @@ EOT;
         }
     }
 
-    public function run($useLocal = false, $sendEmail = true, $cancelHolds = false, $testBatchLimit = null) {
+    public function run($useLocal = false, $sendEmail = true, $cancelHolds = false, $testBatchLimit = null, $verbose = false) {
         $this->cancelHolds = $cancelHolds;
+        $this->verbose = $verbose;
         // Increase memory limit for processing large datasets
         ini_set('memory_limit', '256M');
         try {
@@ -666,6 +697,7 @@ EOT;
 $useLocal = in_array('-localfile', $argv);
 $sendEmail = !in_array('-no-email', $argv);
 $cancelHolds = in_array('-cancel-holds', $argv);
+$verbose = in_array('-verbose', $argv);
 
 $testBatchLimit = null;
 foreach ($argv as $arg) {
@@ -676,4 +708,4 @@ foreach ($argv as $arg) {
 }
 
 $report = new IneligibleOverDriveReport();
-$report->run($useLocal, $sendEmail, $cancelHolds, $testBatchLimit);
+$report->run($useLocal, $sendEmail, $cancelHolds, $testBatchLimit, $verbose);
