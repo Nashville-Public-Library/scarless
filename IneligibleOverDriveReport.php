@@ -28,6 +28,8 @@
  * Credits:
  * Most of the programming and automation logic was developed by Junie, an autonomous 
  * AI programmer by JetBrains, following requirements provided by James Staub (Nashville Public Library).
+ * 
+ * Update 2026-06-26: Refactored hold cancellation to use OverDrive Circulation API.
  */
 
 class IneligibleOverDriveReport {
@@ -36,6 +38,9 @@ class IneligibleOverDriveReport {
     private $carlx_db_php_password;
     private $od_username;
     private $od_password;
+    private $api_client_key;
+    private $api_client_secret;
+    private $api_library_account;
     private $reportPath = '../data/';
     private $emailRecipients;
     private $cancelHolds = false;
@@ -51,8 +56,11 @@ class IneligibleOverDriveReport {
         $this->carlx_db_php_password = $configArray['Catalog']['carlx_db_php_password'];
         
         if (isset($configArray['OverDrive'])) {
-            $this->od_username = $configArray['OverDrive']['UserName'];
-            $this->od_password = $configArray['OverDrive']['Password'];
+            $this->od_username = $configArray['OverDrive']['MarketplaceUserName'] ?? ($configArray['OverDrive']['UserName'] ?? null);
+            $this->od_password = $configArray['OverDrive']['MarketplacePassword'] ?? ($configArray['OverDrive']['Password'] ?? null);
+            $this->api_client_key = $configArray['OverDrive']['APIClientKey'] ?? null;
+            $this->api_client_secret = $configArray['OverDrive']['APIClientSecret'] ?? null;
+            $this->api_library_account = $configArray['OverDrive']['APILibraryAccount'] ?? null;
             $this->emailRecipients = $configArray['OverDrive']['IneligibleOverDriveEmailRecipients'] ?? null;
         } else {
             throw new Exception("[OverDrive] section missing in config.pwd.ini");
@@ -347,55 +355,51 @@ EOT;
         }
     }
 
+    private function getOverDriveAccessToken() {
+        if (!$this->api_client_key || !$this->api_client_secret) {
+            throw new Exception("Circulation API credentials (APIClientKey/APIClientSecret) are missing.");
+        }
+
+        $authHeader = base64_encode($this->api_client_key . ':' . $this->api_client_secret);
+        
+        $ch = curl_init('https://oauth.overdrive.com/token');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, 'grant_type=client_credentials');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Basic ' . $authHeader,
+            'Content-Type: application/x-www-form-urlencoded;charset=UTF-8'
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            throw new Exception("Failed to obtain OverDrive Access Token. HTTP Code: $httpCode. Response: $response");
+        }
+
+        $data = json_decode($response, true);
+        if (!isset($data['access_token'])) {
+            throw new Exception("Access token missing in response: $response");
+        }
+
+        return $data['access_token'];
+    }
+
     private function processHoldCancellations($userIds, $testBatchLimit = null) {
-        echo "Starting hold cancellation process...\n";
+        echo "Starting hold cancellation process via OverDrive Circulation API...\n";
         if ($testBatchLimit !== null) {
             echo "Test batch mode enabled. Limit: $testBatchLimit patrons.\n";
         }
-        
-        $cookieFile = tempnam(sys_get_temp_dir(), 'ODCookie');
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
-        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-        // Reuse login logic (could be refactored, but for simplicity we re-login or use session if possible)
-        // Actually, we should probably pass the existing $ch if we want to be efficient, but downloadOverDriveHoldsReport closes it.
-        // Let's just login again here for a fresh session for cancellations.
-        
-        $baseUrl = 'https://marketplace.overdrive.com';
-        $loginUrl = $baseUrl . '/Account/Login';
-        
-        curl_setopt($ch, CURLOPT_URL, $loginUrl);
-        $loginPage = curl_exec($ch);
-        $token = '';
-        if (preg_match('/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/', $loginPage, $matches)) {
-            $token = $matches[1];
+        try {
+            $accessToken = $this->getOverDriveAccessToken();
+            echo "OAuth2 Access Token obtained.\n";
+        } catch (Exception $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            return;
         }
-
-        $postFields = [
-            'UserName' => $this->od_username,
-            'Password' => $this->od_password,
-            'RememberMe' => 'false'
-        ];
-        if ($token) {
-            $postFields['__RequestVerificationToken'] = $token;
-        }
-
-        curl_setopt($ch, CURLOPT_URL, $loginUrl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
-        $response = curl_exec($ch);
-
-        if (strpos($response, 'Sign out') === false && strpos($response, 'Log out') === false) {
-             echo "Login failed for cancellation process.\n";
-             curl_close($ch);
-             @unlink($cookieFile);
-             return;
-        }
-        echo "Login successful for cancellation.\n";
 
         $processedCount = 0;
         foreach ($userIds as $id) {
@@ -410,141 +414,70 @@ EOT;
             }
 
             echo "[$processedCount] Processing User ID: $id\n";
-            $this->cancelHoldsForUser($ch, $id);
+            $this->cancelHoldsForUserViaAPI($accessToken, $id);
             $processedCount++;
         }
-
-        curl_close($ch);
-        @unlink($cookieFile);
     }
 
-    private function cancelHoldsForUser($ch, $userId) {
-        $baseUrl = 'https://marketplace.overdrive.com';
-        
-        // 1. Visit the search page to establish session and get the anti-forgery token
-        $searchPageUrl = $baseUrl . '/Library/Site/EndUserManagement/SearchHolds';
-
-        echo "   [Diagnostic] Visiting search page to get token: $searchPageUrl\n";
-        curl_setopt($ch, CURLOPT_URL, $searchPageUrl);
-        curl_setopt($ch, CURLOPT_POST, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
-        ]);
-        
-        $searchPageHtml = curl_exec($ch);
-        $searchPageHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        echo "   [Diagnostic] Search Page HTTP Code: $searchPageHttpCode\n";
-
-        $token = '';
-        if (preg_match('/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/', $searchPageHtml, $matches)) {
-            $token = $matches[1];
-            echo "   [Diagnostic] Found __RequestVerificationToken\n";
-        } else {
-            echo "   [Warning] Could not find __RequestVerificationToken on SearchHolds page.\n";
+    private function cancelHoldsForUserViaAPI($accessToken, $userId) {
+        if (!$this->api_library_account) {
+            echo "   [Error] APILibraryAccount (Library ID) is required for Circulation API calls.\n";
+            return;
         }
 
-        // 2. Prepare search data for the API call that populates the grid
-        $searchData = [
-            "Parameters" => [
-                "page" => 1,
-                "start" => 0,
-                "limit" => 50,
-                "sort" => []
-            ],
-            "titleId" => "",
-            "PatronCardNumber" => $userId,
-            "PatronEmail" => "",
-            "IsSuspended" => null
-        ];
+        $libraryId = $this->api_library_account;
+        $holdsUrl = "https://api.overdrive.com/v1/libraries/$libraryId/patrons/$userId/holds";
 
-        // _dc is a cache-buster (timestamp in milliseconds)
-        $dc = round(microtime(true) * 1000);
-        $searchApiUrl = $baseUrl . '/api/Library/Site/EndUserManagement/ManageHolds/Data?_dc=' . $dc;
-        
-        $searchPayload = ['inputJson' => json_encode($searchData)];
-        
-        echo "   [Diagnostic] Requesting hold data for $userId at $searchApiUrl\n";
-        
-        curl_setopt($ch, CURLOPT_URL, $searchApiUrl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($searchPayload));
+        $ch = curl_init($holdsUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'X-Requested-With: XMLHttpRequest',
-            'Accept: application/json'
+            "Authorization: Bearer $accessToken",
+            "Accept: application/json"
         ]);
-        
-        $searchResults = curl_exec($ch);
+
+        $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        echo "   [Diagnostic] API HTTP Code: $httpCode\n";
         
-        if ($searchResults === false) {
-            echo "   [Diagnostic] cURL Error: " . curl_error($ch) . "\n";
-            return;
-        }
-        
-        $resultsArr = json_decode($searchResults, true);
-        
-        $totalHolds = isset($resultsArr['total']) ? $resultsArr['total'] : (isset($resultsArr['data']) ? count($resultsArr['data']) : 0);
-        echo "User ID $userId has $totalHolds active/suspended holds.\n";
-
-        if (empty($resultsArr['data'])) {
-            echo "   [Diagnostic] No items found in response for $userId.\n";
+        if ($httpCode !== 200) {
+            echo "   [Error] Failed to retrieve holds for $userId. HTTP Code: $httpCode. Response: " . substr($response, 0, 200) . "\n";
+            curl_close($ch);
             return;
         }
 
-        $holdsToCancel = [];
-        foreach ($resultsArr['data'] as $item) {
-            // Verify CardNumber if possible to ensure we're looking at the right patron
-            $respCardNumber = isset($item['CardNumber']) ? $item['CardNumber'] : 'unknown';
+        $data = json_decode($response, true);
+        $holds = $data['holds'] ?? [];
+        echo "   User ID $userId has " . count($holds) . " holds.\n";
+
+        foreach ($holds as $hold) {
+            $reserveId = $hold['reserveId'] ?? null;
+            $title = $hold['title'] ?? 'Unknown Title';
             
-            if ($respCardNumber != $userId && $respCardNumber != 'unknown') {
-                echo "   [Warning] Received hold for CardNumber $respCardNumber, but requested $userId. Skipping.\n";
-                continue;
+            if (!$reserveId) continue;
+
+            echo "   [Action] Canceling hold for: $title (ReserveID: $reserveId)\n";
+            
+            $deleteUrl = "$holdsUrl/$reserveId";
+            
+            $dch = curl_init($deleteUrl);
+            curl_setopt($dch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+            curl_setopt($dch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($dch, CURLOPT_HTTPHEADER, [
+                "Authorization: Bearer $accessToken",
+                "Accept: application/json"
+            ]);
+            
+            $deleteResponse = curl_exec($dch);
+            $deleteHttpCode = curl_getinfo($dch, CURLINFO_HTTP_CODE);
+            curl_close($dch);
+
+            if ($deleteHttpCode === 204 || $deleteHttpCode === 200) {
+                echo "   [Success] Hold canceled successfully.\n";
+            } else {
+                echo "   [Error] Failed to cancel hold. HTTP Code: $deleteHttpCode. Response: " . substr($deleteResponse, 0, 200) . "\n";
             }
-
-            if (isset($item['ReserveID']) && isset($item['PatronID'])) {
-                $holdsToCancel[] = [
-                    'ReserveId' => $item['ReserveID'],
-                    'PatronId' => $item['PatronID']
-                ];
-                echo "   [Diagnostic] Identified Hold for cancellation: " . ($item['Title'] ?? 'Unknown Title') . " (ReserveID: " . $item['ReserveID'] . ", PatronID: " . $item['PatronID'] . ")\n";
-            }
         }
-
-        if (empty($holdsToCancel)) {
-            echo "No valid holds identified for User ID $userId after verification.\n";
-            return;
-        }
-
-        // 3. Execute Cancellation
-        $cancelUrl = $baseUrl . '/Library/Site/EndUserManagement/CancelHold';
         
-        // Build the multi-part body for application/x-www-form-urlencoded
-        $postData = [
-            '__RequestVerificationToken' => $token
-        ];
-        foreach ($holdsToCancel as $index => $hold) {
-            $postData["holdsToCancel[$index][ReserveId]"] = $hold['ReserveId'];
-            $postData["holdsToCancel[$index][PatronId]"] = $hold['PatronId'];
-        }
-
-        echo "   [Diagnostic] Sending Cancellation request to $cancelUrl\n";
-        curl_setopt($ch, CURLOPT_URL, $cancelUrl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/x-www-form-urlencoded',
-            'X-Requested-With: XMLHttpRequest'
-        ]);
-        
-        $cancelResponse = curl_exec($ch);
-        echo "   [Diagnostic] Cancel Response (first 500 chars): " . substr($cancelResponse, 0, 500) . "\n";
-        
-        if (strpos($cancelResponse, '"success":true') !== false || strpos($cancelResponse, '"The selected holds have been removed."') !== false) {
-            echo "Successfully requested cancellation for " . count($holdsToCancel) . " holds for $userId.\n";
-        } else {
-            echo "Response from cancellation for $userId might indicate an issue: " . substr($cancelResponse, 0, 200) . "...\n";
-        }
+        curl_close($ch);
     }
 
     public function run($useLocal = false, $sendEmail = true, $cancelHolds = false, $testBatchLimit = null) {
