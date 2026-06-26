@@ -30,8 +30,6 @@
  * Credits:
  * Most of the programming and automation logic was developed by Junie, an autonomous 
  * AI programmer by JetBrains, following requirements provided by James Staub (Nashville Public Library).
- * 
- * Update 2026-06-26: Refactored hold cancellation to mimic manual Marketplace flow.
  */
 
 class IneligibleOverDriveReport {
@@ -61,9 +59,6 @@ class IneligibleOverDriveReport {
         if (isset($configArray['OverDrive'])) {
             $this->od_username = $configArray['OverDrive']['MarketplaceUserName'] ?? ($configArray['OverDrive']['UserName'] ?? null);
             $this->od_password = $configArray['OverDrive']['MarketplacePassword'] ?? ($configArray['OverDrive']['Password'] ?? null);
-            $this->api_client_key = $configArray['OverDrive']['APIClientKey'] ?? null;
-            $this->api_client_secret = $configArray['OverDrive']['APIClientSecret'] ?? null;
-            $this->api_library_account = $configArray['OverDrive']['APILibraryAccount'] ?? null;
             $this->emailRecipients = $configArray['OverDrive']['IneligibleOverDriveEmailRecipients'] ?? null;
         } else {
             throw new Exception("[OverDrive] section missing in config.pwd.ini");
