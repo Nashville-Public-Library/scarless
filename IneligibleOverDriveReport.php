@@ -416,6 +416,7 @@ EOT;
             'patronsCanceled' => 0,
             'totalHoldsCanceled' => 0,
             'skippedNon15' => 0, // Now means skipped other than 15 or 6 digit
+            'skippedProblematic' => [],
             'errors' => []
         ];
 
@@ -490,6 +491,7 @@ EOT;
             // Check if this is a problematic 6-digit ID
             if (strlen($id) === 6 && in_array($id, $this->problematicIds)) {
                 echo "   [Warning] Skipping problematic 6-digit User ID: $id\n";
+                $summary['skippedProblematic'][] = $id;
                 $summary['patronsProcessed']++;
                 continue;
             }
@@ -763,8 +765,8 @@ EOT;
                         $body .= "Total holds canceled: " . $cancellationSummary['totalHoldsCanceled'] . "\n";
                         $body .= "Skipped (non-15/6 digit) User IDs: " . $cancellationSummary['skippedNon15'] . "\n";
                         
-                        if (!empty($this->problematicIds)) {
-                            $body .= "Problematic 6-digit IDs skipped: " . implode(', ', $this->problematicIds) . "\n";
+                        if (!empty($cancellationSummary['skippedProblematic'])) {
+                            $body .= "Problematic 6-digit IDs skipped: " . implode(', ', $cancellationSummary['skippedProblematic']) . "\n";
                         }
                         
                         if (!empty($cancellationSummary['errors'])) {
