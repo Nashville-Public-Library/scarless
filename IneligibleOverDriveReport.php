@@ -159,7 +159,7 @@ EOT;
         oci_free_statement($stidProb);
 
         if (!empty($this->problematicIds)) {
-            echo "Identified " . count($this->problematicIds) . " problematic 6-digit User IDs and saved to $problematicFile: " . implode(', ', $this->problematicIds) . "\n";
+            echo "Identified " . count($this->problematicIds) . " problematic 6-digit User IDs and saved to $problematicFile " . "\n";
         }
 
         $stid = oci_parse($conn, $sql);
