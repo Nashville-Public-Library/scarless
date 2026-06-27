@@ -35,6 +35,8 @@
 30 4 * * * cd ~/scarless; php NashvilleCarlXUpdatePatronsCase2.php;
 ## Update patrons: full non-resident -> in service area
 0 5 * * * cd ~/scarless; php NashvilleCarlXUpdatePatrons-2026NR-2.php;
+## 202606-202702 Delete OverDrive Holds of Ineligible In Service Area patrons
+30 5 * * * cd ~/scarless && /usr/bin/php IneligibleOverDriveReport.php -cancel-holds >> ~/data/IneligibleOverDrive.log 2>&1
 
 # DAILY REPORTS
 ## MNPS Data Warehouse Report
