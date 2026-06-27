@@ -752,8 +752,10 @@ EOT;
 
                 if ($sendEmail) {
                     echo "Preparing email...\n";
+					$date = new DateTimeImmutable('now');
+					$localDate = $date->setTimezone(new DateTimeZone('America/Chicago'));
                     $subject = "Ineligible OverDrive Holds - Action Summary";
-                    $body = "Ineligible OverDrive Holds process completed on " . date('Y-m-d H:i:s') . ".\n\n";
+                    $body = "Ineligible OverDrive Holds process completed on " . $localDate->format('Y-m-d H:i:s T') . ".\n\n";
                     $body .= "Total matches found in OverDrive report: $matchCount\n";
                     
                     if ($cancellationSummary) {
