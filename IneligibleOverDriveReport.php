@@ -192,8 +192,10 @@ EOT;
         oci_close($conn);
 
         echo "Carl.X data saved to: $carlxFile\n";
-        echo "Carl.X Sample PATRONGUIDs: " . implode(', ', $sampleGuids) . "\n";
-
+		if ($this->verbose) {
+			echo "[Verbose] Carl.X Sample PATRONGUIDs: " . implode(', ', $sampleGuids) . "\n";
+		}
+		
         return $patrons;
     }
 
@@ -362,7 +364,7 @@ EOT;
         return $rows;
     }
 
-    private function sendEmail($subject, $body, $attachmentPath = null) {
+    private function sendEmail($subject, $body) {
         if (empty($this->emailRecipients)) {
             echo "No email recipients found in config. Skipping email.\n";
             return;
@@ -370,38 +372,26 @@ EOT;
 
         $to = $this->emailRecipients;
         $headers = "From: noreply-connected@nashville.gov\r\n";
-        
-        if ($attachmentPath && file_exists($attachmentPath)) {
-            $file = file_get_contents($attachmentPath);
-            $filename = basename($attachmentPath);
-            $boundary = md5(time());
-            $headers .= "MIME-Version: 1.0\r\n";
-            $headers .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
-            
-            $message = "--{$boundary}\r\n";
-            $message .= "Content-Type: text/plain; charset=\"utf-8\"\r\n";
-            $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-            $message .= $body . "\r\n";
-            
-            $message .= "--{$boundary}\r\n";
-            $message .= "Content-Type: text/plain; name=\"{$filename}\"\r\n";
-            $message .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n";
-            $message .= "Content-Transfer-Encoding: base64\r\n\r\n";
-            $message .= chunk_split(base64_encode($file)) . "\r\n";
-            $message .= "--{$boundary}--";
-            
-            if (mail($to, $subject, $message, $headers)) {
-                echo "Email sent successfully to: $to\n";
-            } else {
-                echo "Failed to send email to: $to\n";
-            }
-        } else {
-            if (mail($to, $subject, $body, $headers)) {
-                echo "Email sent successfully to: $to\n";
-            } else {
-                echo "Failed to send email to: $to\n";
-            }
+
+        // Verify if the mail server is actually responding
+        $host = ini_get('SMTP') ?: 'localhost';
+        $port = (int)(ini_get('smtp_port') ?: 25);
+        $mailerActive = false;
+        $connection = @fsockopen($host, $port, $errno, $errstr, 1);
+        if (is_resource($connection)) {
+            $mailerActive = true;
+            fclose($connection);
         }
+
+		if (mail($to, $subject, $body, $headers)) {
+            if ($mailerActive) {
+			    echo "Email sent successfully to: $to\n";
+            } else {
+                echo "Warning: Email accepted by local mailer, but the SMTP server at $host:$port is not responding. The mail is likely queued and will be sent once the mail server (Postfix) is back online. Recipient: $to\n";
+            }
+		} else {
+			echo "Failed to send email to: $to. The local mailer rejected the message.\n";
+		}
     }
 
     private function processHoldCancellations($userIds, $testBatchLimit = null) {
@@ -602,7 +592,7 @@ EOT;
                     'ReserveId' => $item['ReserveID'],
                     'PatronId' => $item['PatronID']
                 ];
-                if (!$this->verbose) echo "   Found hold: " . ($item['Title'] ?? 'Unknown') . "\n";
+                if (!$this->verbose) echo "   [Verbose] Found hold: " . ($item['Title'] ?? 'Unknown') . "\n";
             }
         }
 
@@ -659,6 +649,7 @@ EOT;
         // Increase memory limit for processing large datasets
         ini_set('memory_limit', '256M');
         try {
+			
             $this->getConfig();
             echo "Retrieving ineligible patrons from Carl.X...\n";
             $ineligiblePatrons = $this->getIneligiblePatronsFromCarlX($useLocal);
@@ -691,9 +682,11 @@ EOT;
                     if (isset($header[0])) {
                         $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
                     }
-                    
-                    echo "OverDrive Report Headers: " . implode(', ', $header) . "\n";
-                    
+
+					if ($this->verbose) {
+						echo "[Verbose] OverDrive Report Headers: " . implode(', ', $header) . "\n";
+					}
+
                     $sampleOdIds = [];
                     while (($data = fgetcsv($handle, 0, $delimiter)) !== FALSE) {
                         $recordCount++;
@@ -723,12 +716,16 @@ EOT;
                             $matchedUserIds[] = trim($hold[$foundKey]);
                             $matchCount++;
                         }
-                        
-                        if ($recordCount % 10000 == 0) {
-                            echo "Processed $recordCount records...\n";
-                        }
+
+						if ($this->verbose) {
+							if ($recordCount % 10000 == 0) {
+								echo "[Verbose] Processed $recordCount records...\n";
+							}
+						}
                     }
-                    echo "OverDrive Sample User IDs: " . implode(', ', $sampleOdIds) . "\n";
+					if ($this->verbose) {
+						echo "[Verbose] OverDrive Sample User IDs: " . implode(', ', $sampleOdIds) . "\n";
+					}
                 }
                 fclose($handle);
             }
@@ -783,7 +780,7 @@ EOT;
                         $body .= "\nHold cancellation was NOT performed (missing -cancel-holds flag).\n";
                     }
 
-                    $this->sendEmail($subject, $body, null);
+                    $this->sendEmail($subject, $body);
                 } else {
                     echo "Email suppressed by -no-email flag.\n";
                 }
