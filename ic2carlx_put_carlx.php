@@ -90,6 +90,17 @@ function getRecords($filename) {
 function sendEmail($subject, $body, $recipients, $attachmentPath = null) {
 	$to = is_array($recipients) ? implode(',', $recipients) : $recipients;
 	$headers = "From: noreply-connected@nashville.gov\r\n";
+
+	// Verify if the mail server is actually responding
+	$host = ini_get('SMTP') ?: 'localhost';
+	$port = (int)(ini_get('smtp_port') ?: 25);
+	$mailerActive = false;
+	$connection = @fsockopen($host, $port, $errno, $errstr, 1);
+	if (is_resource($connection)) {
+		$mailerActive = true;
+		fclose($connection);
+	}
+
 	if ($attachmentPath && file_exists($attachmentPath)) {
 		$file = file_get_contents($attachmentPath);
 		$filename = basename($attachmentPath);
@@ -106,9 +117,19 @@ function sendEmail($subject, $body, $recipients, $attachmentPath = null) {
 		$message .= "Content-Transfer-Encoding: base64\r\n\r\n";
 		$message .= chunk_split(base64_encode($file)) . "\r\n";
 		$message .= "--{$boundary}--";
-		mail($to, $subject, $message, $headers);
+		$mailSent = mail($to, $subject, $message, $headers);
 	} else {
-		mail($to, $subject, $body, $headers);
+		$mailSent = mail($to, $subject, $body, $headers);
+	}
+
+	if ($mailSent) {
+		if ($mailerActive) {
+			echo "Email sent successfully to: $to\n";
+		} else {
+			echo "Warning: Email accepted by local mailer, but the SMTP server at $host:$port is not responding. The mail is likely queued and will be sent once the mail server (Postfix) is back online. Recipient: $to\n";
+		}
+	} else {
+		echo "Failed to send email to: $to. The local mailer rejected the message.\n";
 	}
 }
 
