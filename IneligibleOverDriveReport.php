@@ -648,6 +648,7 @@ EOT;
         $this->verbose = $verbose;
         // Increase memory limit for processing large datasets
         ini_set('memory_limit', '256M');
+        echo "Ineligible OverDrive Holds run started at " . date('Y-m-d H:i:s') . " with args: useLocal=$useLocal, sendEmail=$sendEmail, cancelHolds=$cancelHolds, testBatchLimit=$testBatchLimit, verbose=$verbose\n";
         try {
 			
             $this->getConfig();
