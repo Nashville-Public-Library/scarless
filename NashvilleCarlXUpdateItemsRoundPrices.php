@@ -110,6 +110,10 @@ function updateItems() {
 			$body = "Error log too large for email body. See attached file.";
 			sendEmail('NashvilleCarlXUpdateItemsRoundPrices Errors', $body, $emailRecipients, $errorFile);
 		}
+	} else {
+		if (file_exists($errorFile) && filesize($errorFile) == 0) {
+			unlink($errorFile);
+		}
 	}
 }
 
