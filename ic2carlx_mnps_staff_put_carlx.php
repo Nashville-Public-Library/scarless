@@ -55,6 +55,7 @@ if ($today >= $twentyDay && $today < $stopDate) { // FROM TWENTYDAY UNTIL STOPDA
 		$request->Modifiers = new stdClass();
 		$request->Modifiers->DebugMode = $patronApiDebugMode;
 		$request->Modifiers->ReportMode = $patronApiReportMode;
+		$request->Modifiers->StaffID = 'PIK'; // Pika Patron Loader
 		$request->SearchType = 'Patron ID';
 		$request->SearchID = $patron['patronid']; // Patron ID
 		$request->Patron = new stdClass();

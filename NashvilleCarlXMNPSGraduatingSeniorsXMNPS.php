@@ -286,6 +286,7 @@ if (count($updateRecords) > 0 && !$isTestRun) {
 		$request->Modifiers = new stdClass();
 		$request->Modifiers->DebugMode = $patronApiDebugMode;
 		$request->Modifiers->ReportMode = $patronApiReportMode;
+		$request->Modifiers->StaffID = 'PIK'; // Pika Patron Loader
 		$request->SearchType = 'Patron ID';
 		$request->SearchID = $patron['Patron ID'];
 		$request->Patron = new stdClass();
