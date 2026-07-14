@@ -347,6 +347,7 @@ function processPatronField($fieldName, $regexCondition, $standardizeFunction, $
         $request->Modifiers = new stdClass();
         $request->Modifiers->DebugMode = false;
         $request->Modifiers->ReportMode = false;
+		$request->Modifiers->StaffID = 'PIK'; // Pika Patron Loader
         $request->SearchType = 'Patron ID';
         $request->SearchID = $record['PATRONID'];
         $request->Patron = new stdClass();
