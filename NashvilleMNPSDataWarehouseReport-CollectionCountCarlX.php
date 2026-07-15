@@ -132,7 +132,7 @@ EOT;
 
     private function sendCompletionEmail($rows, $filename) {
         $schoolCount = count($rows);
-        $totalCollectionCountCarlX = array_sum(array_column($rows, 'collectionCountCarlX'));
+        $totalCollectionCountCarlX = array_sum(array_column($rows, 'COLLECTIONCOUNTCARLX'));
 
         $pickupPath = "/home/mnps.org/data/" . basename($filename);
         $subject = "MNPS Collection Count CarlX Report: " . $this->reportDate;
