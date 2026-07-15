@@ -183,12 +183,7 @@ EOT;
     }
 
     function setReportDate($date = null) {
-        if (isset($date)) {
-            $this->reportDate = date('Y-m-d', strtotime($date));
-        } else {
-            // default to yesterday
-            $this->reportDate = date('Y-m-d', strtotime('yesterday'));
-        }
+            $this->reportDate = date('Y-m-d', strtotime('today'));
     }
 
     public function run($date = null) {
