@@ -38,13 +38,16 @@
 ## 202606-202702 Delete OverDrive Holds of Ineligible In Service Area patrons
 30 5 * * * cd ~/scarless && /usr/bin/php IneligibleOverDriveReport.php -cancel-holds >> ~/data/IneligibleOverDrive.log 2>&1
 
-# DAILY REPORTS
-## MNPS Data Warehouse Report
+# REPORTS
+## MNPS Data Warehouse Report - Checkouts
 0 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport.sh;
 ## MNPS Data Warehouse Report - In house circulation
 15 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-InHouseCirc.sh;
 ## MackinVIA files are generated at ~3AM... but not made available in the SFTP server until ~7AM
 30 7 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-Mackin.sh;
+## MNPS Data Warehouse Report - Collection Count CarlX
+0 5 28 2 * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-CollectionCountCarlX.sh;
+0 5 31 7 * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-CollectionCountCarlX.sh;
 
 # 2026 08 AUGUST
 30 04 04-31 08 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
