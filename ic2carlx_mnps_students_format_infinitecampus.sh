@@ -9,6 +9,11 @@ if [[ "$1" == "--promisingScholars" ]]; then
     PROMISING_SCHOLARS=1
 fi
 
+# Check if any row except the first contains a non-empty/non-space value for the 32nd column
+if awk -F'|' 'NR > 1 && $32 !~ /^[[:space:]]*$/ { found=1; exit } END { exit !found }' ../data/CARLX_INFINITECAMPUS_STUDENT.txt 2>/dev/null; then
+    echo "WARNING: IC extract contained Limitless permission value" | mail -s "WARNING: IC extract contained Limitless permission value" james.staub@nashville.gov
+fi
+
 # APPEND TEST PATRONS
 cat ../data/ic2carlx_mnps_students_test.txt ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/ic2carlx_mnps_students_infinitecampus.txt
 # USE ONLY TEST PATRONS
