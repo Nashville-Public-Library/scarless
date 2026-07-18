@@ -28,22 +28,25 @@ delete from carlx_school_lookup where patronid = 'patronid';
 
 .headers on
 .output "../data/LibraryServices-Checkouts-ComicsPlus-staff-DATEPLACEHOLDERYYYYMMDD.csv"
+with comicsplus_data_patron as (
+    select
+        *
+        , trim(case 
+            when instr(patron_full, '@') > 0 then substr(patron_full, 1, instr(patron_full, '@') - 1)
+            else patron_full
+          end, '" ') as patronid
+    from comicsplus_data
+)
 select
     coalesce(csl.tn_school_code, ms.tn_school_code) as tn_school_code
      , substr(cd.activity_date, 1, 10) as yearmonthday
-     , trim(case 
-         when instr(cd.patron_full, '@') > 0 then substr(cd.patron_full, 1, instr(cd.patron_full, '@') - 1)
-         else cd.patron_full
-       end, '" ') as patronid
+     , cd.patronid
      , sum(cd.checkouts) as count_of_checkouts
-from comicsplus_data cd
+from comicsplus_data_patron cd
     left join comicsplus_school_lookup ms on cd.library_id = ms.comicsplus_library_id
-    left join carlx_school_lookup csl on 
-        trim(case 
-            when instr(cd.patron_full, '@') > 0 then substr(cd.patron_full, 1, instr(cd.patron_full, '@') - 1)
-            else cd.patron_full
-         end, '" ') = trim(csl.patronid, '" ')
+    left join carlx_school_lookup csl on cd.patronid = trim(csl.patronid, '" ')
 where coalesce(csl.tn_school_code, ms.tn_school_code) is not null
+  and length(cd.patronid) in (6, 7)
 group by 1, 2, 3;
 .output stdout
 .headers off
