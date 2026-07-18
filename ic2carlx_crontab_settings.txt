@@ -49,8 +49,10 @@
 0 5 28 2 * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-CollectionCountCarlX.sh;
 0 5 31 7 * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-CollectionCountCarlX.sh;
 
+# 2026 07 JULY
+30 04 19-31 07 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2026 08 AUGUST
-30 04 04-31 08 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
+30 04 * 08 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2026 09 SEPTEMBER
 30 04 * 09 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
 # 2026 10 OCTOBER
