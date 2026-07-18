@@ -39,15 +39,17 @@
 30 5 * * * cd ~/scarless && /usr/bin/php IneligibleOverDriveReport.php -cancel-holds >> ~/data/IneligibleOverDrive.log 2>&1
 
 # REPORTS
-## MNPS Data Warehouse Report - Checkouts
+## MNPS Data Warehouse Report - CARLX Checkouts
 0 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport.sh;
-## MNPS Data Warehouse Report - In house circulation
+## MNPS Data Warehouse Report - CARLX In house circulation
 15 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-InHouseCirc.sh;
+## MNPS Data Warehouse Report - ComicsPlus
+30 5 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-ComicsPlus.sh;
+## MNPS Data Warehouse Report - MackinVIA
 ## MackinVIA files are generated at ~3AM... but not made available in the SFTP server until ~7AM
 30 7 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-Mackin.sh;
 ## MNPS Data Warehouse Report - Collection Count CarlX
-0 5 28 2 * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-CollectionCountCarlX.sh;
-0 5 31 7 * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-CollectionCountCarlX.sh;
+0 5 28 2,7 * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-CollectionCountCarlX.sh;
 
 # 2026 07 JULY
 30 04 19-31 07 * cd /home/scarless/scarless/; expect ic2carlx_mnps.exp;
