@@ -253,6 +253,7 @@ foreach (getRecords('../data/ic2carlx_mnps_students_update.csv') as $patron) {
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
 	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->Modifiers->StaffID 		= 'PIK'; // Pika Patron Loader
 	$request->SearchType						= 'Patron ID';
 	$request->SearchID						= $patron['PatronID']; // Patron ID
 	$request->Patron						= new stdClass();
@@ -317,6 +318,7 @@ foreach (getRecords('../data/ic2carlx_mnps_students_updateEmail.csv') as $patron
 	$request->Modifiers						= new stdClass();
 	$request->Modifiers->DebugMode					= $patronApiDebugMode;
 	$request->Modifiers->ReportMode					= $patronApiReportMode;
+	$request->Modifiers->StaffID 		= 'PIK'; // Pika Patron Loader
 	$request->SearchType						= 'Patron ID';
 	$request->SearchID						= $patron['PatronID']; // Patron ID
 	$request->Patron						= new stdClass();

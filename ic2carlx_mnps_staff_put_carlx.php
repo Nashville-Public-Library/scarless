@@ -163,6 +163,7 @@ foreach ($all_rows as $patron) {
 	$request->Modifiers					= new stdClass();
 	$request->Modifiers->DebugMode		= $patronApiDebugMode;
 	$request->Modifiers->ReportMode		= $patronApiReportMode;
+	$request->Modifiers->StaffID 		= 'PIK'; // Pika Patron Loader
 	$request->SearchType				= 'Patron ID';
 	$request->SearchID					= $patron['patronid']; // Patron ID
 	$request->Patron					= new stdClass();
@@ -197,6 +198,7 @@ foreach ($all_rows as $patron) {
 	$request->Modifiers					= new stdClass();
 	$request->Modifiers->DebugMode		= $patronApiDebugMode;
 	$request->Modifiers->ReportMode		= $patronApiReportMode;
+	$request->Modifiers->StaffID 		= 'PIK'; // Pika Patron Loader
 	$request->SearchType				= 'Patron ID';
 	$request->SearchID					= $patron['patronid']; // Patron ID
 	$request->Patron					= new stdClass();
