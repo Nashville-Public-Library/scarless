@@ -27,7 +27,7 @@
 # Read the configuration file
 mackinUser=$(awk -F "=" '/mackinUser/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
 mackinPassword=$(awk -F "=" '/mackinPassword/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
-mackinErrorEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
+MNPSEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d ' ' | sed 's/^"\(.*\)"$/\1/')
 
 # Function to send error emails
 send_error_email() {
@@ -38,12 +38,12 @@ send_error_email() {
     echo "$error_message"
     
     # If no recipients are configured, just return
-    if [ -z "$mackinErrorEmailRecipients" ]; then
+    if [ -z "$MNPSEmailRecipients" ]; then
         return
     fi
     
     # Send a single email to all recipients
-    echo "$error_message" | mail -s "$subject" "$mackinErrorEmailRecipients"
+    echo "$error_message" | mail -s "$subject" "$MNPSEmailRecipients"
 }
 
 # Function to format date_mackin based on date - before or after Aug 5 2025 which is when Mackin switched filename scheme
