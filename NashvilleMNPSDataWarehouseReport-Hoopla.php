@@ -166,7 +166,10 @@ class HooplaReportDownloader {
         curl_setopt($ch, CURLOPT_COOKIELIST, "Set-Cookie: mwt-client-auth-token=$token; Domain=.midwesttape.com; Path=/; Secure; HttpOnly");
 
         // 4. Access the report page first to initialize session/get CSRF if needed
-        if ($this->verbose) echo "Step 3: Accessing main report page: $reportUrl\n";
+        if ($this->verbose) {
+            echo "\n[--- BEGIN ANALYTIC SEGMENT ---]\n";
+            echo "Step 3: Accessing main report page: $reportUrl\n";
+        }
         
         curl_setopt($ch, CURLOPT_URL, $reportUrl);
         curl_setopt($ch, CURLOPT_POST, false);
@@ -174,7 +177,23 @@ class HooplaReportDownloader {
             'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
         ]);
 
-        curl_exec($ch);
+        $reportHtml = curl_exec($ch);
+        if ($this->verbose) {
+            echo "Step 3 Response Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . "\n";
+            // Check for Tableau references
+            if (preg_match_all('/https?:\/\/[^"\'>]*tableau[^"\'>]*/i', $reportHtml, $matches)) {
+                echo "DEBUG: Found Tableau-related URLs in report page:\n";
+                foreach (array_unique($matches[0]) as $url) {
+                    echo "  - $url\n";
+                }
+            }
+            
+            $cookies = curl_getinfo($ch, CURLINFO_COOKIELIST);
+            echo "DEBUG: Cookies in jar after Step 3:\n";
+            foreach ($cookies as $cookie) {
+                echo "  - $cookie\n";
+            }
+        }
 
         // 5. Trigger the Tableau CSV Export
         // The user pointed out the specific Tableau view and parameters needed.
@@ -213,6 +232,8 @@ class HooplaReportDownloader {
             copy($tempFile, $hooplaFile);
             echo "Hoopla report saved to: $hooplaFile\n";
             
+            if ($this->verbose) echo "\n[--- END ANALYTIC SEGMENT ---]\n";
+            
             curl_close($ch);
             @unlink($cookieFile);
             @unlink($tempFile);
@@ -224,7 +245,8 @@ class HooplaReportDownloader {
             @unlink($tempFile);
             if ($this->verbose) {
                 echo "Response Preview: " . substr(strip_tags($html), 0, 1000) . "...\n";
-                // If it's HTML, it might contain an error message or a redirect
+                echo "\n[--- END ANALYTIC SEGMENT ---]\n";
+                echo "\nANALYSIS NEEDED: Please copy everything from '[--- BEGIN ANALYTIC SEGMENT ---]' above to here and provide it to Junie.\n";
             }
             throw new Exception("Failed to download report. Received content type: $finalContentType. Check verbose output for details.");
         }
@@ -261,6 +283,9 @@ try {
     $downloader->getConfig();
     $downloader->downloadReport($date);
 } catch (Exception $e) {
+    if ($verbose) {
+        echo "\nANALYSIS NEEDED: Please copy everything from '[--- BEGIN ANALYTIC SEGMENT ---]' above to the end and provide it to Junie.\n";
+    }
     echo "Error: " . $e->getMessage() . "\n";
     exit(1);
 }
