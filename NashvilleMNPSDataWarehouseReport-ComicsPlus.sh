@@ -4,11 +4,23 @@
 #
 # USAGE:
 # ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh [date] [-localfile] [-verbose] [-no-email]
+# ./NashvilleMNPSDataWarehouseReport-ComicsPlus.sh [start_date] [stop_date] [-localfile] [-verbose] [-no-email]
 #
 # DESCRIPTION:
 #   This script retrieves ComicsPlus usage reports via API for Nashville MNPS.
 #   It transforms the data, splitting the Patron field at '@' to get the patronid,
 #   and outputs CSV files to the specified destination for pickup by MNPS.
+#
+#   If two dates are provided, it loops through the date range using
+#   NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh.
+
+# Check if first two arguments are dates for a date range loop
+if [[ $# -ge 2 ]] && [[ "$1" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]] && [[ "$2" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]]; then
+    start_date=$1
+    stop_date=$2
+    shift 2
+    exec ./NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh "$0" "$start_date" "$stop_date" "$@"
+fi
 #
 # PARAMETERS:
 #   [date]       Optional. The date for which to process reports in YYYY-MM-DD format.
@@ -45,7 +57,7 @@ for arg in "$@"; do
         verbose=true
     elif [[ "$arg" == "-no-email" ]]; then
         no_email=true
-    elif [[ "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    elif [[ "$arg" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]]; then
         date_str="$arg"
     fi
 done
