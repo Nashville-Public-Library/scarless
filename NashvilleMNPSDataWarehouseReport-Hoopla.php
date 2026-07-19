@@ -168,12 +168,13 @@ class HooplaReportDownloader {
         }
         
         $reportingTokenUrls = [
+            'https://mwt-gateway.midwesttape.com/insights/v1/token',
+            'https://mwt-gateway.midwesttape.com/insights/v1/reporting/token',
             'https://mwt-gateway.midwesttape.com/auth/v1/token/reporting',
             'https://mwt-gateway.midwesttape.com/auth/v1/reporting/token',
-            'https://mwt-gateway.midwesttape.com/reporting/v1/token',
+            'https://www.midwesttape.com/api/insights/v1/token',
             'https://www.midwesttape.com/api/auth/v1/token/reporting',
-            'https://www.midwesttape.com/api/reporting/token',
-            'https://www.midwesttape.com/api/reporting/redirect'
+            'https://mwt-gateway.midwesttape.com/insights/v1/reporting/redirect'
         ];
         
         $redirectUrl = null;
@@ -181,22 +182,23 @@ class HooplaReportDownloader {
             if ($this->verbose) echo "Step 2.5: Attempting to get reporting token from $tryUrl\n";
             curl_setopt($ch, CURLOPT_URL, $tryUrl);
             curl_setopt($ch, CURLOPT_POST, false);
-            // Try both Bearer and a potential X-Auth-Token if Bearer is not enough
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 'Authorization: Bearer ' . $token,
                 'X-Auth-Token: ' . $token,
+                'X-Requested-With: XMLHttpRequest',
                 'Accept: application/json, text/plain, */*',
                 'Referer: ' . $baseUrl . '/'
             ]);
             $reportingResponse = curl_exec($ch);
             $repCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $repContentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
             
             if ($this->verbose) {
-                echo "Response Code: $repCode\n";
+                echo "Response Code: $repCode, Content-Type: $repContentType\n";
             }
             
-            if ($repCode === 200 || $repCode === 201) {
-                if ($this->verbose) echo "Success at $tryUrl\n";
+            if (($repCode === 200 || $repCode === 201) && strpos($repContentType, 'application/json') !== false) {
+                if ($this->verbose) echo "Success at $tryUrl (JSON received)\n";
                 $reportingData = json_decode($reportingResponse, true);
                 $redirectUrl = $reportingData['redirectUrl'] ?? ($reportingData['url'] ?? null);
                 if ($redirectUrl) break;
@@ -288,12 +290,26 @@ class HooplaReportDownloader {
         $viewUrl = $tableauBaseUrl;
         $tableauParams = [
             ':embed' => 'y',
-            ':showAppBanner' => 'false',
-            ':showShareOptions' => 'true',
-            ':display_count' => 'no',
-            ':showVizHome' => 'no',
-            ':origin' => 'viz_share_link',
-            ':apiID' => 'host0'
+            ':apiID' => 'embhost5',
+            ':embcount' => '1',
+            ':apiInternalVersion' => '1.196.0',
+            ':apiExternalVersion' => '3.16.0',
+            'navType' => '0',
+            'navSrc' => 'Opt',
+            ':disableUrlActionsPopups' => 'n',
+            ':tabs' => 'y',
+            ':toolbar' => 'n',
+            ':device' => 'desktop',
+            'mobile' => 'n',
+            ':hideEditButton' => 'n',
+            ':hideEditInDesktopButton' => 'n',
+            ':suppressDefaultEditBehavior' => 'n',
+            ':jsdebug' => 'n',
+            ':site' => 'external_reporting',
+            'customer_master' => $customerMaster,
+            'Custom Start' => $date,
+            'Custom End' => $date,
+            'Time Frame' => 'Custom'
         ];
         $viewUrlWithParams = $viewUrl . '?' . http_build_query($tableauParams);
 
@@ -302,13 +318,15 @@ class HooplaReportDownloader {
         curl_setopt($ch, CURLOPT_URL, $viewUrlWithParams);
         curl_setopt($ch, CURLOPT_REFERER, $reportUrl);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Authorization: Bearer ' . $token
         ]);
         $initResponse = curl_exec($ch);
         $initHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
         if ($this->verbose) {
             echo "Step 3.5 Response Code: $initHttpCode\n";
+            echo "Step 3.5 Response Preview: " . substr(strip_tags($initResponse), 0, 1000) . "...\n";
             $cookies = curl_getinfo($ch, CURLINFO_COOKIELIST);
             echo "DEBUG: Cookies in jar after Step 3.5:\n";
             foreach ($cookies as $cookie) {
@@ -316,14 +334,15 @@ class HooplaReportDownloader {
             }
         }
 
+        // Give the session a moment to initialize
+        if ($this->verbose) echo "Waiting 2 seconds for session propagation...\n";
+        sleep(2);
+
         // 6. Trigger the Tableau CSV Export
         $downloadUrl = $tableauBaseUrl . ".csv";
-        $downloadParams = [
-            'customer_master' => $customerMaster,
-            'Custom Start' => $date,
-            'Custom End' => $date,
-            'Time Frame' => 'Custom'
-        ];
+        // Use the same params as manual process for consistency
+        $downloadParams = $tableauParams;
+        $downloadParams[':export_format'] = 'csv';
         $downloadUrl .= '?' . http_build_query($downloadParams);
 
         echo "Exporting Hoopla Overall Circulations report for $date...\n";
@@ -334,7 +353,8 @@ class HooplaReportDownloader {
         curl_setopt($ch, CURLOPT_URL, $downloadUrl);
         curl_setopt($ch, CURLOPT_REFERER, $viewUrlWithParams);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Authorization: Bearer ' . $token
         ]);
         curl_setopt($ch, CURLOPT_FILE, $fp);
         curl_exec($ch);
