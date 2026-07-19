@@ -163,7 +163,10 @@ class HooplaReportDownloader {
         }
 
         // 2.5. Get Reporting Token (Handshake for Tableau)
-        if ($this->verbose) echo "Step 2.5: Getting reporting token from https://mwt-gateway.midwesttape.com/auth/v1/token/reporting\n";
+        if ($this->verbose) {
+            echo "\n[--- BEGIN ANALYTIC SEGMENT ---]\n";
+            echo "Step 2.5: Getting reporting token from https://mwt-gateway.midwesttape.com/auth/v1/token/reporting\n";
+        }
         curl_setopt($ch, CURLOPT_URL, 'https://mwt-gateway.midwesttape.com/auth/v1/token/reporting');
         curl_setopt($ch, CURLOPT_POST, false);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -172,16 +175,30 @@ class HooplaReportDownloader {
             'Referer: ' . $baseUrl . '/'
         ]);
         $reportingResponse = curl_exec($ch);
+        
+        if ($this->verbose) {
+            echo "Step 2.5 Response Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . "\n";
+            echo "Step 2.5 Response: " . $reportingResponse . "\n";
+        }
+
         $reportingData = json_decode($reportingResponse, true);
         $redirectUrl = $reportingData['redirectUrl'] ?? null;
         
         if ($redirectUrl) {
-            if ($this->verbose) echo "Step 2.6: Establishing Tableau session via redirect URL\n";
+            if ($this->verbose) echo "Step 2.6: Establishing Tableau session via redirect URL: $redirectUrl\n";
             curl_setopt($ch, CURLOPT_URL, $redirectUrl);
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 'Referer: ' . $baseUrl . '/'
             ]);
             curl_exec($ch);
+            if ($this->verbose) {
+                echo "Step 2.6 Response Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . "\n";
+                $cookies = curl_getinfo($ch, CURLINFO_COOKIELIST);
+                echo "DEBUG: Cookies in jar after Step 2.6 handshake:\n";
+                foreach ($cookies as $cookie) {
+                    echo "  - $cookie\n";
+                }
+            }
         } else {
             if ($this->verbose) echo "Warning: No redirectUrl found in reporting token response. Proceeding anyway.\n";
         }
@@ -207,6 +224,18 @@ class HooplaReportDownloader {
         $reportHtml = curl_exec($ch);
         if ($this->verbose) {
             echo "Step 3 Response Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . "\n";
+            
+            // Check for Tableau references in the HTML
+            if (preg_match_all('/https?:\/\/[^"\'>]*(?:tableau|externalreporting)[^"\'>]*/i', $reportHtml, $matches)) {
+                echo "DEBUG: Found relevant URLs in report page:\n";
+                foreach (array_unique($matches[0]) as $url) {
+                    echo "  - $url\n";
+                }
+            } else {
+                echo "DEBUG: No relevant URLs found in first 5000 chars of body:\n";
+                echo substr(strip_tags($reportHtml), 0, 5000) . "...\n";
+            }
+
             $cookies = curl_getinfo($ch, CURLINFO_COOKIELIST);
             echo "DEBUG: Cookies in jar after Step 3:\n";
             foreach ($cookies as $cookie) {
@@ -284,6 +313,8 @@ class HooplaReportDownloader {
             copy($tempFile, $hooplaFile);
             echo "Hoopla report saved to: $hooplaFile\n";
             
+            if ($this->verbose) echo "\n[--- END ANALYTIC SEGMENT ---]\n";
+            
             curl_close($ch);
             @unlink($cookieFile);
             @unlink($tempFile);
@@ -295,6 +326,8 @@ class HooplaReportDownloader {
             @unlink($tempFile);
             if ($this->verbose) {
                 echo "Response Preview: " . substr(strip_tags($html), 0, 1000) . "...\n";
+                echo "\n[--- END ANALYTIC SEGMENT ---]\n";
+                echo "\nANALYSIS NEEDED: Please copy everything from '[--- BEGIN ANALYTIC SEGMENT ---]' above to here and provide it to Junie.\n";
             }
             throw new Exception("Failed to download report. Received content type: $finalContentType. Check verbose output for details.");
         }
@@ -331,6 +364,9 @@ try {
     $downloader->getConfig();
     $downloader->downloadReport($date);
 } catch (Exception $e) {
+    if ($verbose) {
+        echo "\nANALYSIS NEEDED: Please copy everything from '[--- BEGIN ANALYTIC SEGMENT ---]' above to the end and provide it to Junie.\n";
+    }
     echo "Error: " . $e->getMessage() . "\n";
     exit(1);
 }
