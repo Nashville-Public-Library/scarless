@@ -4,11 +4,23 @@
 #
 # USAGE:
 # ./NashvilleMNPSDataWarehouseReport-OverDrive.sh [date] [-localfile] [-verbose] [-no-email]
+# ./NashvilleMNPSDataWarehouseReport-OverDrive.sh [start_date] [stop_date] [-localfile] [-verbose] [-no-email]
 #
 # DESCRIPTION:
 #   This script retrieves OverDrive Unique Users User Detail reports via Marketplace.
 #   It transforms the data by matching the OverDrive User ID (patronguid) with Carl.X data
 #   stored in sqlite3 databases, and outputs CSV files for MNPS.
+#
+#   If two dates are provided, it loops through the date range using
+#   NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh.
+
+# Check if first two arguments are dates for a date range loop
+if [[ $# -ge 2 ]] && [[ "$1" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]] && [[ "$2" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]]; then
+    start_date=$1
+    stop_date=$2
+    shift 2
+    exec ./NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh "$0" "$start_date" "$stop_date" "$@"
+fi
 
 # Read the configuration file
 MNPSEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
@@ -26,7 +38,7 @@ for arg in "$@"; do
         verbose=true
     elif [[ "$arg" == "-no-email" ]]; then
         no_email=true
-    elif [[ "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    elif [[ "$arg" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]]; then
         date_str="$arg"
     fi
 done
@@ -88,7 +100,7 @@ echo "Running SQL transformations..."
 
 # STUDENTS
 sql_student=$(<NashvilleMNPSDataWarehouseReport-OverDrive-Students.sql)
-sql_student=${sql_student//DATEPLACEHOLDERYYYYMMDD/$date_safe}
+sql_student=${sql_student//DATEPLACEHOLDERYYYYMMDD/$date_output}
 sql_student=${sql_student//DATEPLACEHOLDER_ISO/$date_output}
 sql_student=${sql_student//DATEPLACEHOLDER/$date_safe}
 
@@ -97,7 +109,7 @@ sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-Ove
 
 # STAFF
 sql_staff=$(<NashvilleMNPSDataWarehouseReport-OverDrive-Staff.sql)
-sql_staff=${sql_staff//DATEPLACEHOLDERYYYYMMDD/$date_safe}
+sql_staff=${sql_staff//DATEPLACEHOLDERYYYYMMDD/$date_output}
 sql_staff=${sql_staff//DATEPLACEHOLDER_ISO/$date_output}
 sql_staff=${sql_staff//DATEPLACEHOLDER/$date_safe}
 
@@ -105,8 +117,8 @@ echo "$sql_staff" > NashvilleMNPSDataWarehouseReport-OverDrive-Staff-Date-Specif
 sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-OverDrive-Staff-Date-Specific.sql > /dev/null 2>&1
 
 # Output and move files
-STAFF_OUTPUT_FILE="../data/LibraryServices-Checkouts-OverDrive-staff-$date_safe.csv"
-STUDENT_OUTPUT_FILE="../data/LibraryServices-Checkouts-OverDrive-student-$date_safe.csv"
+STAFF_OUTPUT_FILE="../data/LibraryServices-Checkouts-OverDrive-staff-$date_output.csv"
+STUDENT_OUTPUT_FILE="../data/LibraryServices-Checkouts-OverDrive-student-$date_output.csv"
 
 # Ensure output files exist even if queries returned 0 results
 for f in "$STAFF_OUTPUT_FILE" "$STUDENT_OUTPUT_FILE"; do
@@ -115,7 +127,7 @@ for f in "$STAFF_OUTPUT_FILE" "$STUDENT_OUTPUT_FILE"; do
     fi
 done
 
-SOURCE_FILES="../data/LibraryServices-Checkouts-OverDrive-*-$date_safe.csv"
+SOURCE_FILES="../data/LibraryServices-Checkouts-OverDrive-*-$date_output.csv"
 DEST_DIR="/home/mnps.org/data"
 
 # Count how many files we have to move
