@@ -163,8 +163,9 @@ class HooplaReportDownloader {
         }
 
         // 3. Set the auth token cookie for the main domain
-        // We use .midwesttape.com to ensure it's sent to externalreporting.midwesttape.com as well
-        curl_setopt($ch, CURLOPT_COOKIELIST, "Set-Cookie: mwt-client-auth-token=$token; Domain=.midwesttape.com; Path=/; Secure; HttpOnly");
+        // We use both midwesttape.com and .midwesttape.com to be sure it's sent correctly
+        curl_setopt($ch, CURLOPT_COOKIELIST, "Set-Cookie: mwt-client-auth-token=$token; Domain=midwesttape.com; Path=/; Max-Age=259200");
+        curl_setopt($ch, CURLOPT_COOKIELIST, "Set-Cookie: mwt-client-auth-token=$token; Domain=.midwesttape.com; Path=/; Max-Age=259200");
 
         // 4. Access the report page first to initialize session/get CSRF if needed
         if ($this->verbose) {
@@ -176,7 +177,8 @@ class HooplaReportDownloader {
         curl_setopt($ch, CURLOPT_POST, false);
         curl_setopt($ch, CURLOPT_REFERER, $baseUrl . '/login');
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Authorization: Bearer ' . $token
         ]);
 
         $reportHtml = curl_exec($ch);
@@ -189,8 +191,15 @@ class HooplaReportDownloader {
                     echo "  - $url\n";
                 }
             } else {
-                echo "DEBUG: No relevant URLs found in first 2000 chars of body:\n";
-                echo substr(strip_tags($reportHtml), 0, 2000) . "...\n";
+                echo "DEBUG: No relevant URLs found in first 5000 chars of body:\n";
+                echo substr(strip_tags($reportHtml), 0, 5000) . "...\n";
+                // Look for any JSON-like structures that might contain config
+                if (preg_match_all('/\{[^{}]*"url"[^{}]*\}/i', $reportHtml, $jsonMatches)) {
+                    echo "DEBUG: Found potential JSON config objects:\n";
+                    foreach (array_unique($jsonMatches[0]) as $json) {
+                        echo "  - $json\n";
+                    }
+                }
             }
             
             $cookies = curl_getinfo($ch, CURLINFO_COOKIELIST);
@@ -204,6 +213,9 @@ class HooplaReportDownloader {
         if ($this->verbose) echo "Step 3.2: Accessing externalreporting.midwesttape.com root\n";
         curl_setopt($ch, CURLOPT_URL, 'https://externalreporting.midwesttape.com/');
         curl_setopt($ch, CURLOPT_REFERER, $reportUrl);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $token
+        ]);
         curl_exec($ch);
 
         // 5. Initialize Tableau Session
@@ -223,6 +235,9 @@ class HooplaReportDownloader {
         
         curl_setopt($ch, CURLOPT_URL, $viewUrlWithParams);
         curl_setopt($ch, CURLOPT_REFERER, $reportUrl);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $token
+        ]);
         $initResponse = curl_exec($ch);
         $initHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
@@ -256,6 +271,9 @@ class HooplaReportDownloader {
         $fp = fopen($tempFile, 'w+');
         curl_setopt($ch, CURLOPT_URL, $downloadUrl);
         curl_setopt($ch, CURLOPT_REFERER, $viewUrlWithParams);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $token
+        ]);
         curl_setopt($ch, CURLOPT_FILE, $fp);
         curl_exec($ch);
         
