@@ -39,6 +39,7 @@ select patron_v2.patronid as "Patron ID"						-- 00
 --  , gDeleteNotes.deleteGuarantorNotes as "Delete Guarantor Note IDs"		-- 36
   , patron_v2.collectionstatus as "Collection Status"				-- 37 -- 11
   , editbranch.branchcode as "Edit Branch"					-- 38 -- 12
+  , patron_v2.patronguid as "Patron GUID"					-- 39 -- 13
 
 from patron_v2
 left outer join branch_v2 patronbranch on patron_v2.defaultbranch = patronbranch.branchnumber
