@@ -4,11 +4,23 @@
 #
 # USAGE:
 # ./NashvilleMNPSDataWarehouseReport-OverDrive.sh [date] [-localfile] [-verbose] [-no-email]
+# ./NashvilleMNPSDataWarehouseReport-OverDrive.sh [start_date] [stop_date] [-localfile] [-verbose] [-no-email]
 #
 # DESCRIPTION:
 #   This script retrieves OverDrive Unique Users User Detail reports via Marketplace.
 #   It transforms the data by matching the OverDrive User ID (patronguid) with Carl.X data
 #   stored in sqlite3 databases, and outputs CSV files for MNPS.
+#
+#   If two dates are provided, it loops through the date range using
+#   NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh.
+
+# Check if first two arguments are dates for a date range loop
+if [[ $# -ge 2 ]] && [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$2" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    start_date=$1
+    stop_date=$2
+    shift 2
+    exec ./NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh "$0" "$start_date" "$stop_date" "$@"
+fi
 
 # Read the configuration file
 MNPSEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
