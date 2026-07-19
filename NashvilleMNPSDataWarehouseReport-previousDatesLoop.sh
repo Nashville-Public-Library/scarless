@@ -50,7 +50,11 @@ while [[ "$current_date" < $(date -d "$stop_date + 1 day" +%Y-%m-%d) ]]; do
   echo "Processing date: $current_date"
   
   # Run the script with the date as the first argument, followed by any extra args
-  $script_to_run "$current_date" "$@"
+  if [[ "$script_to_run" == */* ]]; then
+    "$script_to_run" "$current_date" "$@"
+  else
+    "./$script_to_run" "$current_date" "$@"
+  fi
   
   # Check if the script failed
   if [ $? -ne 0 ]; then
