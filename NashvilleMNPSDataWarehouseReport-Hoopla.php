@@ -225,6 +225,49 @@ class HooplaReportDownloader {
             if ($this->verbose) echo "Warning: No redirectUrl found in reporting token response. Proceeding anyway.\n";
         }
 
+        // 2.7. Get Tableau JWT via GraphQL
+        if ($this->verbose) echo "Step 2.7: Fetching Tableau JWT via GraphQL...\n";
+        $graphqlQuery = [
+            'query' => 'query generateTableauJwt { tableauJwt { ... on TableauJwtPayload { token } ... on ErrorPayload { errors { message code } } } }',
+            'variables' => new stdClass()
+        ];
+        
+        $graphqlEndpoints = [
+            'https://mwt-ecom-graphql-gateway.midwesttape.com',
+            'https://mwt-gateway.midwesttape.com/graphql'
+        ];
+        
+        $tableauJwt = null;
+        foreach ($graphqlEndpoints as $endpoint) {
+            if ($this->verbose) echo "Trying GraphQL endpoint: $endpoint\n";
+            curl_setopt($ch, CURLOPT_URL, $endpoint);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($graphqlQuery));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $token,
+                'X-Client-Name: MEG',
+                'X-Requested-With: XMLHttpRequest'
+            ]);
+            
+            $gqlResponse = curl_exec($ch);
+            $gqlHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            if ($gqlHttpCode === 200) {
+                $gqlData = json_decode($gqlResponse, true);
+                $tableauJwt = $gqlData['data']['tableauJwt']['token'] ?? null;
+                if ($tableauJwt) {
+                    if ($this->verbose) echo "Successfully obtained Tableau JWT.\n";
+                    break;
+                }
+            }
+            if ($this->verbose) echo "Failed to get token from $endpoint (HTTP $gqlHttpCode)\n";
+        }
+
+        if (!$tableauJwt) {
+            if ($this->verbose) echo "Warning: Could not obtain Tableau JWT via GraphQL. Proceeding with regular session.\n";
+        }
+
         // 3. Set the auth token cookie for the domains
         // We set them as session cookies (no Max-Age) to avoid CURL thinking they are expired due to potential clock skew
         curl_setopt($ch, CURLOPT_COOKIELIST, "Set-Cookie: mwt-client-auth-token=$token; Domain=midwesttape.com; Path=/");
@@ -238,10 +281,15 @@ class HooplaReportDownloader {
         curl_setopt($ch, CURLOPT_URL, $reportUrl);
         curl_setopt($ch, CURLOPT_POST, false);
         curl_setopt($ch, CURLOPT_REFERER, $baseUrl . '/login');
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        
+        $reportHeaders = [
             'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Authorization: Bearer ' . $token
-        ]);
+        ];
+        if ($tableauJwt) {
+            $reportHeaders[] = 'X-Tableau-Auth: ' . $tableauJwt;
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $reportHeaders);
 
         $reportHtml = curl_exec($ch);
         if ($this->verbose) {
@@ -286,6 +334,26 @@ class HooplaReportDownloader {
         }
 
         // 5. Initialize Tableau Session
+        if ($tableauJwt) {
+            if ($this->verbose) echo "Step 3.4: Proactively signing in to Tableau via JWT...\n";
+            $signInUrl = "https://externalreporting.midwesttape.com/vizportal/api/web/v1/auth/signin?token=" . urlencode($tableauJwt);
+            curl_setopt($ch, CURLOPT_URL, $signInUrl);
+            curl_setopt($ch, CURLOPT_REFERER, $reportUrl);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: application/json, text/plain, */*',
+                'X-Requested-With: XMLHttpRequest'
+            ]);
+            curl_exec($ch);
+            if ($this->verbose) {
+                echo "Step 3.4 Response Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . "\n";
+                $cookies = curl_getinfo($ch, CURLINFO_COOKIELIST);
+                echo "DEBUG: Cookies in jar after Step 3.4 signin:\n";
+                foreach ($cookies as $cookie) {
+                    echo "  - $cookie\n";
+                }
+            }
+        }
+
         // We hit the view URL without .csv first to establish the session.
         $viewUrl = $tableauBaseUrl;
         $tableauParams = [
@@ -317,10 +385,14 @@ class HooplaReportDownloader {
         
         curl_setopt($ch, CURLOPT_URL, $viewUrlWithParams);
         curl_setopt($ch, CURLOPT_REFERER, $reportUrl);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        $initHeaders = [
             'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Authorization: Bearer ' . $token
-        ]);
+            'Authorization: Bearer ' . ($tableauJwt ?? $token)
+        ];
+        if ($tableauJwt) {
+            $initHeaders[] = 'X-Tableau-Auth: ' . $tableauJwt;
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $initHeaders);
         $initResponse = curl_exec($ch);
         $initHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
@@ -352,10 +424,14 @@ class HooplaReportDownloader {
         $fp = fopen($tempFile, 'w+');
         curl_setopt($ch, CURLOPT_URL, $downloadUrl);
         curl_setopt($ch, CURLOPT_REFERER, $viewUrlWithParams);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        $downloadHeaders = [
             'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Authorization: Bearer ' . $token
-        ]);
+            'Authorization: Bearer ' . ($tableauJwt ?? $token)
+        ];
+        if ($tableauJwt) {
+            $downloadHeaders[] = 'X-Tableau-Auth: ' . $tableauJwt;
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $downloadHeaders);
         curl_setopt($ch, CURLOPT_FILE, $fp);
         curl_exec($ch);
         
