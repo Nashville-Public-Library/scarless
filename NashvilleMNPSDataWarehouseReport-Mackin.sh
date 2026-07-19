@@ -4,12 +4,24 @@
 #
 # USAGE:
 # ./NashvilleMNPSDataWarehouseReport-Mackin.sh [date] [-localfile]
+# ./NashvilleMNPSDataWarehouseReport-Mackin.sh [start_date] [stop_date] [-localfile]
 #
 # DESCRIPTION:
 #   This script processes MackinVIA usage reports for Nashville MNPS students and staff.
 #   It retrieves reports from Mackin's SFTP server, validates the data, transforms it replacing
 #   Mackin school IDs with MNPS IDs and replacing email addresses with MNPS student/staff IDs,
 #   and outputs CSV files to the specified destination for pickup by MNPS.
+#
+#   If two dates are provided, it loops through the date range using
+#   NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh.
+
+# Check if first two arguments are dates for a date range loop
+if [[ $# -ge 2 ]] && [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$2" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    start_date=$1
+    stop_date=$2
+    shift 2
+    exec ./NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh "$0" "$start_date" "$stop_date" "$@"
+fi
 #
 # PARAMETERS:
 #   [date]       Optional. The date for which to process reports in YYYY-MM-DD format.
