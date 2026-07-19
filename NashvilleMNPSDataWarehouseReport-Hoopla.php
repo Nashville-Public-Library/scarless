@@ -104,6 +104,7 @@ class HooplaReportDownloader {
         curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
         curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_AUTOREFERER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
         if ($this->verbose) {
@@ -173,6 +174,7 @@ class HooplaReportDownloader {
         
         curl_setopt($ch, CURLOPT_URL, $reportUrl);
         curl_setopt($ch, CURLOPT_POST, false);
+        curl_setopt($ch, CURLOPT_REFERER, $baseUrl . '/login');
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
         ]);
@@ -180,12 +182,15 @@ class HooplaReportDownloader {
         $reportHtml = curl_exec($ch);
         if ($this->verbose) {
             echo "Step 3 Response Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . "\n";
-            // Check for Tableau references
-            if (preg_match_all('/https?:\/\/[^"\'>]*tableau[^"\'>]*/i', $reportHtml, $matches)) {
-                echo "DEBUG: Found Tableau-related URLs in report page:\n";
+            // Check for Tableau and External Reporting references
+            if (preg_match_all('/https?:\/\/[^"\'>]*(?:tableau|externalreporting)[^"\'>]*/i', $reportHtml, $matches)) {
+                echo "DEBUG: Found relevant URLs in report page:\n";
                 foreach (array_unique($matches[0]) as $url) {
                     echo "  - $url\n";
                 }
+            } else {
+                echo "DEBUG: No relevant URLs found in first 2000 chars of body:\n";
+                echo substr(strip_tags($reportHtml), 0, 2000) . "...\n";
             }
             
             $cookies = curl_getinfo($ch, CURLINFO_COOKIELIST);
@@ -195,7 +200,42 @@ class HooplaReportDownloader {
             }
         }
 
-        // 5. Trigger the Tableau CSV Export
+        // 3.2. Hit the External Reporting root to see if it sets anything
+        if ($this->verbose) echo "Step 3.2: Accessing externalreporting.midwesttape.com root\n";
+        curl_setopt($ch, CURLOPT_URL, 'https://externalreporting.midwesttape.com/');
+        curl_setopt($ch, CURLOPT_REFERER, $reportUrl);
+        curl_exec($ch);
+
+        // 5. Initialize Tableau Session
+        // We hit the view URL without .csv first to establish the session.
+        $viewUrl = $tableauBaseUrl;
+        $params = [
+            ':embed' => 'y',
+            ':toolbar' => 'n',
+            'customer_master' => $customerMaster,
+            'Custom Start' => $date,
+            'Custom End' => $date,
+            'Time Frame' => 'Custom'
+        ];
+        $viewUrlWithParams = $viewUrl . '?' . http_build_query($params);
+
+        if ($this->verbose) echo "Step 3.5: Initializing Tableau session via $viewUrlWithParams\n";
+        
+        curl_setopt($ch, CURLOPT_URL, $viewUrlWithParams);
+        curl_setopt($ch, CURLOPT_REFERER, $reportUrl);
+        $initResponse = curl_exec($ch);
+        $initHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        
+        if ($this->verbose) {
+            echo "Step 3.5 Response Code: $initHttpCode\n";
+            $cookies = curl_getinfo($ch, CURLINFO_COOKIELIST);
+            echo "DEBUG: Cookies in jar after Step 3.5:\n";
+            foreach ($cookies as $cookie) {
+                echo "  - $cookie\n";
+            }
+        }
+
+        // 6. Trigger the Tableau CSV Export
         // The user pointed out the specific Tableau view and parameters needed.
         // We append .csv to the view URL for a direct data export.
         $downloadUrl = $tableauBaseUrl . ".csv";
@@ -215,6 +255,7 @@ class HooplaReportDownloader {
         $tempFile = tempnam(sys_get_temp_dir(), 'HooplaReport');
         $fp = fopen($tempFile, 'w+');
         curl_setopt($ch, CURLOPT_URL, $downloadUrl);
+        curl_setopt($ch, CURLOPT_REFERER, $viewUrlWithParams);
         curl_setopt($ch, CURLOPT_FILE, $fp);
         curl_exec($ch);
         
