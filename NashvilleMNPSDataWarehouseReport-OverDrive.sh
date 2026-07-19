@@ -117,8 +117,8 @@ echo "$sql_staff" > NashvilleMNPSDataWarehouseReport-OverDrive-Staff-Date-Specif
 sqlite3 ../data/ic2carlx_mnps_staff.db < NashvilleMNPSDataWarehouseReport-OverDrive-Staff-Date-Specific.sql > /dev/null 2>&1
 
 # Output and move files
-STAFF_OUTPUT_FILE="../data/LibraryServices-Checkouts-OverDrive-staff-$date_safe.csv"
-STUDENT_OUTPUT_FILE="../data/LibraryServices-Checkouts-OverDrive-student-$date_safe.csv"
+STAFF_OUTPUT_FILE="../data/LibraryServices-Checkouts-OverDrive-staff-$date_output.csv"
+STUDENT_OUTPUT_FILE="../data/LibraryServices-Checkouts-OverDrive-student-$date_output.csv"
 
 # Ensure output files exist even if queries returned 0 results
 for f in "$STAFF_OUTPUT_FILE" "$STUDENT_OUTPUT_FILE"; do
@@ -127,7 +127,7 @@ for f in "$STAFF_OUTPUT_FILE" "$STUDENT_OUTPUT_FILE"; do
     fi
 done
 
-SOURCE_FILES="../data/LibraryServices-Checkouts-OverDrive-*-$date_safe.csv"
+SOURCE_FILES="../data/LibraryServices-Checkouts-OverDrive-*-$date_output.csv"
 DEST_DIR="/home/mnps.org/data"
 
 # Count how many files we have to move
