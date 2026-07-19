@@ -37,15 +37,26 @@ class HooplaReportDownloader {
         }
     }
 
+    private function cleanIniValue($value) {
+        if (is_string($value)) {
+            $value = trim($value);
+            if (strlen($value) >= 2 && $value[0] === '"' && $value[strlen($value)-1] === '"') {
+                $value = substr($value, 1, -1);
+            }
+        }
+        return (string)$value;
+    }
+
     public function getConfig() {
         if (!file_exists('../config.pwd.ini')) {
             throw new Exception("Config file not found at ../config.pwd.ini");
         }
-        $configArray = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_TYPED);
+        // Use INI_SCANNER_RAW to prevent mangling of special characters in passwords (like booleans or numbers)
+        $configArray = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
         
         if (isset($configArray['Hoopla'])) {
-            $this->username = $configArray['Hoopla']['MidwestTapeUserName'] ?? null;
-            $this->password = $configArray['Hoopla']['MidwestTapePassword'] ?? null;
+            $this->username = $this->cleanIniValue($configArray['Hoopla']['MidwestTapeUserName'] ?? '');
+            $this->password = $this->cleanIniValue($configArray['Hoopla']['MidwestTapePassword'] ?? '');
         } else {
             throw new Exception("[Hoopla] section missing in config.pwd.ini");
         }
@@ -95,9 +106,14 @@ class HooplaReportDownloader {
             'password' => $this->password
         ];
 
+        if ($this->verbose) {
+            echo "DEBUG: Username: '" . $loginData['username'] . "', Password Length: " . strlen($loginData['password']) . "\n";
+        }
+
         curl_setopt($ch, CURLOPT_URL, $gatewayUrl);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($loginData));
+        // Use JSON_UNESCAPED_SLASHES and JSON_UNESCAPED_UNICODE to keep special characters literal
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($loginData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json',
             'Accept: application/json'
