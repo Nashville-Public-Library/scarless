@@ -100,7 +100,7 @@ echo "Running SQL transformations..."
 
 # STUDENTS
 sql_student=$(<NashvilleMNPSDataWarehouseReport-OverDrive-Students.sql)
-sql_student=${sql_student//DATEPLACEHOLDERYYYYMMDD/$date_safe}
+sql_student=${sql_student//DATEPLACEHOLDERYYYYMMDD/$date_output}
 sql_student=${sql_student//DATEPLACEHOLDER_ISO/$date_output}
 sql_student=${sql_student//DATEPLACEHOLDER/$date_safe}
 
@@ -109,7 +109,7 @@ sqlite3 ../data/ic2carlx_mnps_students.db < NashvilleMNPSDataWarehouseReport-Ove
 
 # STAFF
 sql_staff=$(<NashvilleMNPSDataWarehouseReport-OverDrive-Staff.sql)
-sql_staff=${sql_staff//DATEPLACEHOLDERYYYYMMDD/$date_safe}
+sql_staff=${sql_staff//DATEPLACEHOLDERYYYYMMDD/$date_output}
 sql_staff=${sql_staff//DATEPLACEHOLDER_ISO/$date_output}
 sql_staff=${sql_staff//DATEPLACEHOLDER/$date_safe}
 
