@@ -66,6 +66,22 @@ class HooplaReportDownloader {
         }
     }
 
+    private function base64UrlDecode($input) {
+        $remainder = strlen($input) % 4;
+        if ($remainder) {
+            $input .= str_repeat('=', 4 - $remainder);
+        }
+        return base64_decode(strtr($input, '-_', '+/'));
+    }
+
+    private function getCustomerMasterFromToken($token) {
+        $parts = explode('.', $token);
+        if (count($parts) < 2) return '';
+        $payload = $this->base64UrlDecode($parts[1]);
+        $decoded = json_decode($payload, true);
+        return $decoded['customerSapId'] ?? '';
+    }
+
     public function downloadReport($date) {
         $date_safe = str_replace('-', '', $date);
         $hooplaFile = $this->reportPath . "Hoopla_Report_$date_safe.csv";
@@ -79,6 +95,7 @@ class HooplaReportDownloader {
         $baseUrl = 'https://www.midwesttape.com';
         $gatewayUrl = 'https://mwt-gateway.midwesttape.com/auth/v1/token';
         $reportUrl = $baseUrl . '/hoopla/overall-circulations-report';
+        $tableauBaseUrl = "https://externalreporting.midwesttape.com/t/external_reporting/views/OverallCirculations-LibraryCard-expandedfixeddates_nofilter/OverallCirculationsLibraryCards";
 
         echo "Logging in to Midwest Tape Gateway...\n";
         
@@ -138,46 +155,42 @@ class HooplaReportDownloader {
             throw new Exception("Login successful but no token received in response.");
         }
 
-        if ($this->verbose) echo "Login successful. Received JWT token.\n";
+        $customerMaster = $this->getCustomerMasterFromToken($token);
+        if ($this->verbose) {
+            echo "Login successful. Received JWT token.\n";
+            echo "Extracted Customer Master ID: $customerMaster\n";
+        }
 
         // 3. Set the auth token cookie for the main domain
-        // This simulates Cookies.set("mwt-client-auth-token", token, ...)
-        curl_setopt($ch, CURLOPT_COOKIE, "mwt-client-auth-token=$token");
+        // We use .midwesttape.com to ensure it's sent to externalreporting.midwesttape.com as well
+        curl_setopt($ch, CURLOPT_COOKIELIST, "Set-Cookie: mwt-client-auth-token=$token; Domain=.midwesttape.com; Path=/; Secure; HttpOnly");
 
-        // 4. Access the report page
-        // We'll try to guess the parameters for date filtering
-        $reportUrlWithParams = $reportUrl . "?startDate=$date&endDate=$date";
-        echo "Exporting Hoopla Overall Circulations report for $date...\n";
+        // 4. Access the report page first to initialize session/get CSRF if needed
+        if ($this->verbose) echo "Step 3: Accessing main report page: $reportUrl\n";
         
-        if ($this->verbose) echo "Step 3: Accessing Report Page: $reportUrlWithParams\n";
-        
-        curl_setopt($ch, CURLOPT_URL, $reportUrlWithParams);
+        curl_setopt($ch, CURLOPT_URL, $reportUrl);
         curl_setopt($ch, CURLOPT_POST, false);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
         ]);
 
-        $reportPage = curl_exec($ch);
-        $contentType = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        // Find download link
-        $downloadUrl = '';
-        if (preg_match('/href="([^"]+export[^"]+)"/i', $reportPage, $matches) || 
-            preg_match('/href="([^"]+csv[^"]+)"/i', $reportPage, $matches) ||
-            preg_match('/href="([^"]+download[^"]+)"/i', $reportPage, $matches)) {
-            $downloadUrl = $matches[1];
-            if (strpos($downloadUrl, 'http') !== 0) {
-                $downloadUrl = $baseUrl . $downloadUrl;
-            }
-        }
+        curl_exec($ch);
 
-        if (!$downloadUrl) {
-            // Fallback: try appending format=csv to the URL
-            $downloadUrl = $reportUrlWithParams . "&format=csv";
-            if ($this->verbose) echo "No obvious download link found. Trying guessed URL: $downloadUrl\n";
-        }
+        // 5. Trigger the Tableau CSV Export
+        // The user pointed out the specific Tableau view and parameters needed.
+        // We append .csv to the view URL for a direct data export.
+        $downloadUrl = $tableauBaseUrl . ".csv";
+        $params = [
+            ':embed' => 'y',
+            ':toolbar' => 'n',
+            'customer_master' => $customerMaster,
+            'Custom Start' => $date,
+            'Custom End' => $date,
+            'Time Frame' => 'Custom'
+        ];
+        $downloadUrl .= '?' . http_build_query($params);
 
-        // 5. Download the report
+        echo "Exporting Hoopla Overall Circulations report for $date...\n";
         if ($this->verbose) echo "Step 4: Downloading CSV from $downloadUrl\n";
         
         $tempFile = tempnam(sys_get_temp_dir(), 'HooplaReport');
@@ -209,8 +222,11 @@ class HooplaReportDownloader {
             curl_close($ch);
             @unlink($cookieFile);
             @unlink($tempFile);
-            if ($this->verbose) echo "Response Preview: " . substr(strip_tags($html), 0, 500) . "...\n";
-            throw new Exception("Failed to download report. Received content type: $finalContentType");
+            if ($this->verbose) {
+                echo "Response Preview: " . substr(strip_tags($html), 0, 1000) . "...\n";
+                // If it's HTML, it might contain an error message or a redirect
+            }
+            throw new Exception("Failed to download report. Received content type: $finalContentType. Check verbose output for details.");
         }
     }
 }
