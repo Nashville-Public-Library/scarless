@@ -165,29 +165,49 @@ class HooplaReportDownloader {
         // 2.5. Get Reporting Token (Handshake for Tableau)
         if ($this->verbose) {
             echo "\n[--- BEGIN ANALYTIC SEGMENT ---]\n";
-            echo "Step 2.5: Getting reporting token from https://mwt-gateway.midwesttape.com/auth/v1/token/reporting\n";
         }
-        curl_setopt($ch, CURLOPT_URL, 'https://mwt-gateway.midwesttape.com/auth/v1/token/reporting');
-        curl_setopt($ch, CURLOPT_POST, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $token,
-            'Accept: application/json, text/plain, */*',
-            'Referer: ' . $baseUrl . '/'
-        ]);
-        $reportingResponse = curl_exec($ch);
         
-        if ($this->verbose) {
-            echo "Step 2.5 Response Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . "\n";
-            echo "Step 2.5 Response: " . $reportingResponse . "\n";
+        $reportingTokenUrls = [
+            'https://mwt-gateway.midwesttape.com/auth/v1/token/reporting',
+            'https://mwt-gateway.midwesttape.com/auth/v1/reporting/token',
+            'https://mwt-gateway.midwesttape.com/reporting/v1/token',
+            'https://www.midwesttape.com/api/auth/v1/token/reporting',
+            'https://www.midwesttape.com/api/reporting/token',
+            'https://www.midwesttape.com/api/reporting/redirect'
+        ];
+        
+        $redirectUrl = null;
+        foreach ($reportingTokenUrls as $tryUrl) {
+            if ($this->verbose) echo "Step 2.5: Attempting to get reporting token from $tryUrl\n";
+            curl_setopt($ch, CURLOPT_URL, $tryUrl);
+            curl_setopt($ch, CURLOPT_POST, false);
+            // Try both Bearer and a potential X-Auth-Token if Bearer is not enough
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Bearer ' . $token,
+                'X-Auth-Token: ' . $token,
+                'Accept: application/json, text/plain, */*',
+                'Referer: ' . $baseUrl . '/'
+            ]);
+            $reportingResponse = curl_exec($ch);
+            $repCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            if ($this->verbose) {
+                echo "Response Code: $repCode\n";
+            }
+            
+            if ($repCode === 200 || $repCode === 201) {
+                if ($this->verbose) echo "Success at $tryUrl\n";
+                $reportingData = json_decode($reportingResponse, true);
+                $redirectUrl = $reportingData['redirectUrl'] ?? ($reportingData['url'] ?? null);
+                if ($redirectUrl) break;
+            }
         }
-
-        $reportingData = json_decode($reportingResponse, true);
-        $redirectUrl = $reportingData['redirectUrl'] ?? null;
         
         if ($redirectUrl) {
             if ($this->verbose) echo "Step 2.6: Establishing Tableau session via redirect URL: $redirectUrl\n";
             curl_setopt($ch, CURLOPT_URL, $redirectUrl);
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Bearer ' . $token,
                 'Referer: ' . $baseUrl . '/'
             ]);
             curl_exec($ch);
@@ -225,15 +245,35 @@ class HooplaReportDownloader {
         if ($this->verbose) {
             echo "Step 3 Response Code: " . curl_getinfo($ch, CURLINFO_HTTP_CODE) . "\n";
             
-            // Check for Tableau references in the HTML
+            // Check for Tableau references in the HTML (RAW)
             if (preg_match_all('/https?:\/\/[^"\'>]*(?:tableau|externalreporting)[^"\'>]*/i', $reportHtml, $matches)) {
                 echo "DEBUG: Found relevant URLs in report page:\n";
                 foreach (array_unique($matches[0]) as $url) {
                     echo "  - $url\n";
                 }
             } else {
-                echo "DEBUG: No relevant URLs found in first 5000 chars of body:\n";
-                echo substr(strip_tags($reportHtml), 0, 5000) . "...\n";
+                echo "DEBUG: No relevant URLs found in first 5000 chars of body. Dumping RAW HTML snippet:\n";
+                echo "--------------------------------------------------\n";
+                echo substr($reportHtml, 0, 5000) . "\n";
+                echo "--------------------------------------------------\n";
+                
+                // Search for any strings that might be API endpoints or tokens
+                if (preg_match_all('/"([^"]*(?:api|token|reporting|redirect)[^"]*)"/i', $reportHtml, $stringMatches)) {
+                    echo "DEBUG: Found potential interesting strings in HTML:\n";
+                    $count = 0;
+                    foreach (array_unique($stringMatches[1]) as $str) {
+                        echo "  - $str\n";
+                        if ($count++ > 20) break;
+                    }
+                }
+                
+                // Search for potential JWT tokens
+                if (preg_match_all('/[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{20,}/', $reportHtml, $jwtMatches)) {
+                    echo "DEBUG: Found potential JWT tokens in HTML:\n";
+                    foreach (array_unique($jwtMatches[0]) as $jwt) {
+                        echo "  - " . substr($jwt, 0, 30) . "..." . substr($jwt, -30) . "\n";
+                    }
+                }
             }
 
             $cookies = curl_getinfo($ch, CURLINFO_COOKIELIST);
