@@ -8,7 +8,7 @@
 -- TO DO: for patron data privacy, kill this database when actions are complete
 
 DROP TABLE IF EXISTS carlx;
-CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,DefaultBranch,ExpirationDate,EmailAddress,EmailNotices,ExpiredNoteIDs,CollectionStatus,EditBranch);
+CREATE TABLE carlx (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,DefaultBranch,ExpirationDate,EmailAddress,EmailNotices,ExpiredNoteIDs,CollectionStatus,EditBranch,PatronGUID);
 
 DROP TABLE IF EXISTS infinitecampus;
 CREATE TABLE infinitecampus (PatronID,Borrowertypecode,Patronlastname,Patronfirstname,Patronmiddlename,Patronsuffix,DefaultBranch,ExpirationDate,EmailAddress,EmailNotices,ExpiredNoteIDs,CollectionStatus,EditBranch);

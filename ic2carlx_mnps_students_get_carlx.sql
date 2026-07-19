@@ -43,6 +43,7 @@ select patron_v2.patronid as "Patron ID"						-- 00
   , patron_v2.collectionstatus as "Collection Status"				-- 37
   , editbranch.branchcode as "Edit Branch"					-- 38
   , patron_v2.ph1 as "Primary Phone Number"					-- 39
+  , patron_v2.patronguid as "Patron GUID"					-- 40
 
 from patron_v2
 left outer join branch_v2 patronbranch on patron_v2.defaultbranch = patronbranch.branchnumber
