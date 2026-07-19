@@ -122,7 +122,8 @@ class HooplaReportDownloader {
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-        if ($httpCode !== 200) {
+        // Gateway often returns 201 Created on successful token generation
+        if ($httpCode !== 200 && $httpCode !== 201) {
             if ($this->verbose) {
                 echo "Login failed. HTTP Code: $httpCode\n";
                 echo "Response: $response\n";
