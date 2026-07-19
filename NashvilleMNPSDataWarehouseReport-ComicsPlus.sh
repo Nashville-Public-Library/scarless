@@ -30,7 +30,7 @@
 #
 
 # Read the configuration file
-mackinErrorEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
+MNPSEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
 
 # Initialize flags
 use_local=false
@@ -95,7 +95,7 @@ send_error_email() {
         if [ "$verbose" = true ]; then echo "Email suppressed (-no-email): $error_message"; fi
         return
     fi
-    if [ -n "$mackinErrorEmailRecipients" ]; then
+    if [ -n "$MNPSEmailRecipients" ]; then
         echo "$error_message" | mail -s "$subject" "$mackinErrorEmailRecipients"
     fi
 }

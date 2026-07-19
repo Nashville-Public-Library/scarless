@@ -11,7 +11,7 @@
 #   stored in sqlite3 databases, and outputs CSV files for MNPS.
 
 # Read the configuration file
-mackinErrorEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
+MNPSEmailRecipients=$(awk -F "=" '/NashvilleMNPS/ {print $2}' ../config.pwd.ini | tr -d '[:space:]' | sed 's/^"\(.*\)"$/\1/')
 
 # Initialize flags
 use_local=false
@@ -39,8 +39,8 @@ send_error_email() {
     if [ "$no_email" = true ]; then
         return
     fi
-    if [ -n "$mackinErrorEmailRecipients" ]; then
-        echo "$error_message" | mail -s "$subject" "$mackinErrorEmailRecipients"
+    if [ -n "$MNPSEmailRecipients" ]; then
+        echo "$error_message" | mail -s "$subject" "$MNPSEmailRecipients"
     fi
 }
 
