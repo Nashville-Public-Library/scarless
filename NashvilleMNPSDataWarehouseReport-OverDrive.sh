@@ -72,10 +72,11 @@ if [ "$use_local" = true ]; then
     fi
 else
     echo "Downloading OverDrive report for $date..."
-    PHP_VERBOSE=""
-    if [ "$verbose" = true ]; then PHP_VERBOSE="-verbose"; fi
+    PHP_OPTS=""
+    if [ "$verbose" = true ]; then PHP_OPTS="$PHP_OPTS -verbose"; fi
+    if [ "$no_email" = true ]; then PHP_OPTS="$PHP_OPTS -no-email"; fi
     
-    php NashvilleMNPSDataWarehouseReport-OverDrive.php "$date" $PHP_VERBOSE
+    php NashvilleMNPSDataWarehouseReport-OverDrive.php "$date" $PHP_OPTS
     if [ $? -ne 0 ]; then
         send_error_email "Failed to download OverDrive report for $date."
         exit 1

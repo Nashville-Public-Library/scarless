@@ -7,11 +7,22 @@
  * It logs into OverDrive Marketplace, triggers an export, and saves the CSV.
  * 
  * Usage:
- * php NashvilleMNPSDataWarehouseReport-OverDrive.php [date]
+ * php NashvilleMNPSDataWarehouseReport-OverDrive.php [date] [options]
  * 
  * Arguments:
  *   [date]          Optional. The date for which to process reports in YYYY-MM-DD format.
  *                   Defaults to yesterday.
+ * 
+ *   -localfile      Optional. Skip live data retrieval and use previously downloaded CSV files 
+ *                   from the ../data/overdrive/ directory.
+ * 
+ *   -no-email       Optional. Suppress the automated email notification.
+ * 
+ *   -verbose        Optional. Enable detailed diagnostic logging.
+ * 
+ * Credits:
+ * Most of the programming and automation logic was developed by Junie, an autonomous 
+ * AI programmer by JetBrains, following requirements provided by James Staub (Nashville Public Library).
  */
 
 class OverDriveReportDownloader {
@@ -19,9 +30,14 @@ class OverDriveReportDownloader {
     private $od_password;
     private $reportPath = '../data/overdrive/';
     private $verbose = false;
+    private $useLocal = false;
+    private $sendEmail = true;
+    private $emailRecipients;
 
-    public function __construct($verbose = false) {
+    public function __construct($verbose = false, $useLocal = false, $sendEmail = true) {
         $this->verbose = $verbose;
+        $this->useLocal = $useLocal;
+        $this->sendEmail = $sendEmail;
         if (!is_dir($this->reportPath)) {
             mkdir($this->reportPath, 0777, true);
         }
@@ -39,11 +55,47 @@ class OverDriveReportDownloader {
         } else {
             throw new Exception("[OverDrive] section missing in config.pwd.ini");
         }
+
+        $this->emailRecipients = $configArray['Email Recipients']['NashvilleMNPS'] ?? null;
+    }
+
+    private function sendEmail($subject, $body) {
+        if (!$this->sendEmail || empty($this->emailRecipients)) {
+            return;
+        }
+
+        $to = $this->emailRecipients;
+        $headers = "From: noreply-connected@nashville.gov\r\n";
+
+        // Verify if the mail server is actually responding
+        $host = ini_get('SMTP') ?: 'localhost';
+        $port = (int)(ini_get('smtp_port') ?: 25);
+        $mailerActive = false;
+        $connection = @fsockopen($host, $port, $errno, $errstr, 1);
+        if (is_resource($connection)) {
+            $mailerActive = true;
+            fclose($connection);
+        }
+
+        if (mail($to, $subject, $body, $headers)) {
+            if ($mailerActive) {
+                echo "Email sent successfully to: $to\n";
+            } else {
+                echo "Warning: Email accepted by local mailer, but the SMTP server at $host:$port is not responding. Recipient: $to\n";
+            }
+        } else {
+            echo "Failed to send email to: $to. The local mailer rejected the message.\n";
+        }
     }
 
     public function downloadReport($date) {
         $date_safe = str_replace('-', '', $date);
         $odFile = $this->reportPath . "OverDrive_Report_$date_safe.csv";
+
+        if ($this->useLocal && file_exists($odFile)) {
+            echo "Using local file: $odFile\n";
+            return $odFile;
+        }
 
         $cookieFile = tempnam(sys_get_temp_dir(), 'ODCookie');
         $baseUrl = 'https://marketplace.overdrive.com';
@@ -87,18 +139,22 @@ class OverDriveReportDownloader {
 
         if ($this->verbose) {
             curl_setopt($ch, CURLOPT_VERBOSE, true);
+            echo "Cookie file: $cookieFile\n";
         }
 
         // 1. Get Login Page
+        if ($this->verbose) echo "Step 1: Getting Login Page from $loginUrl\n";
         curl_setopt($ch, CURLOPT_URL, $loginUrl);
         $loginPage = curl_exec($ch);
         
         $token = '';
         if (preg_match('/name="__RequestVerificationToken" type="hidden" value="([^"]+)"/', $loginPage, $matches)) {
             $token = $matches[1];
+            if ($this->verbose) echo "Found RequestVerificationToken: $token\n";
         }
 
         // 2. Perform Login
+        if ($this->verbose) echo "Step 2: Performing Login to $loginUrl\n";
         $postFields = [
             'UserName' => $this->od_username,
             'Password' => $this->od_password,
@@ -115,6 +171,10 @@ class OverDriveReportDownloader {
 
         if (strpos($response, 'Sign out') === false && strpos($response, 'Log out') === false) {
              if (strpos($response, 'name="UserName"') !== false) {
+                 if ($this->verbose) {
+                     echo "Login failed. Response contains UserName input field again.\n";
+                     echo "Response Preview: " . substr(strip_tags($response), 0, 500) . "...\n";
+                 }
                  throw new Exception("OverDrive Login failed. Check credentials in config.pwd.ini");
              }
         }
@@ -123,6 +183,11 @@ class OverDriveReportDownloader {
         // 3. Trigger Export
         echo "Exporting Unique Users User Detail report for $date...\n";
         $exportApiUrl = $baseUrl . '/api/insights/UniqueUsersUserDetail/Export';
+        
+        if ($this->verbose) {
+            echo "Step 3: Triggering Export via API: $exportApiUrl\n";
+            echo "Input JSON: " . json_encode($inputJson, JSON_PRETTY_PRINT) . "\n";
+        }
         
         curl_setopt($ch, CURLOPT_URL, $exportApiUrl);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -133,12 +198,16 @@ class OverDriveReportDownloader {
         ]);
 
         $tempFile = tempnam(sys_get_temp_dir(), 'ODReport');
+        if ($this->verbose) echo "Temporary storage: $tempFile\n";
         $fp = fopen($tempFile, 'w+');
         curl_setopt($ch, CURLOPT_FILE, $fp);
 
         curl_exec($ch);
         $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         fclose($fp);
+
+        if ($this->verbose) echo "HTTP Response Code: $httpCode, Content-Type: $contentType\n";
 
         if (strpos($contentType, 'text/csv') !== false || 
             strpos($contentType, 'application/vnd.ms-excel') !== false || 
@@ -146,6 +215,12 @@ class OverDriveReportDownloader {
             
             copy($tempFile, $odFile);
             echo "OverDrive report saved to: $odFile\n";
+            
+            if ($this->sendEmail) {
+                $subject = "OverDrive Report Download Successful - $date";
+                $body = "The OverDrive Unique Users User Detail report for $date has been successfully downloaded and saved to:\n$odFile\n";
+                $this->sendEmail($subject, $body);
+            }
             
             curl_close($ch);
             @unlink($cookieFile);
@@ -162,11 +237,37 @@ class OverDriveReportDownloader {
     }
 }
 
-$date = isset($argv[1]) ? $argv[1] : date('Y-m-d', strtotime('yesterday'));
-$verbose = in_array('-verbose', $argv);
+$date = null;
+$verbose = false;
+$useLocal = false;
+$sendEmail = true;
+
+foreach ($argv as $i => $arg) {
+    if ($i == 0) continue;
+    if ($arg === '-verbose') {
+        $verbose = true;
+    } elseif ($arg === '-localfile') {
+        $useLocal = true;
+    } elseif ($arg === '-no-email') {
+        $sendEmail = false;
+    } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $arg)) {
+        $date = $arg;
+    }
+}
+
+if (!$date) {
+    $date = date('Y-m-d', strtotime('yesterday'));
+}
+
+if ($verbose) {
+    echo "Running in verbose mode.\n";
+    echo "Date: $date\n";
+    echo "Local file: " . ($useLocal ? "Yes" : "No") . "\n";
+    echo "Send email: " . ($sendEmail ? "Yes" : "No") . "\n";
+}
 
 try {
-    $downloader = new OverDriveReportDownloader($verbose);
+    $downloader = new OverDriveReportDownloader($verbose, $useLocal, $sendEmail);
     $downloader->getConfig();
     $downloader->downloadReport($date);
 } catch (Exception $e) {
