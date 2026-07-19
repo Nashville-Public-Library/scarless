@@ -162,6 +162,30 @@ class HooplaReportDownloader {
             echo "Extracted Customer Master ID: $customerMaster\n";
         }
 
+        // 2.5. Get Reporting Token (Handshake for Tableau)
+        if ($this->verbose) echo "Step 2.5: Getting reporting token from https://mwt-gateway.midwesttape.com/auth/v1/token/reporting\n";
+        curl_setopt($ch, CURLOPT_URL, 'https://mwt-gateway.midwesttape.com/auth/v1/token/reporting');
+        curl_setopt($ch, CURLOPT_POST, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $token,
+            'Accept: application/json, text/plain, */*',
+            'Referer: ' . $baseUrl . '/'
+        ]);
+        $reportingResponse = curl_exec($ch);
+        $reportingData = json_decode($reportingResponse, true);
+        $redirectUrl = $reportingData['redirectUrl'] ?? null;
+        
+        if ($redirectUrl) {
+            if ($this->verbose) echo "Step 2.6: Establishing Tableau session via redirect URL\n";
+            curl_setopt($ch, CURLOPT_URL, $redirectUrl);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Referer: ' . $baseUrl . '/'
+            ]);
+            curl_exec($ch);
+        } else {
+            if ($this->verbose) echo "Warning: No redirectUrl found in reporting token response. Proceeding anyway.\n";
+        }
+
         // 3. Set the auth token cookie for the domains
         // We set them as session cookies (no Max-Age) to avoid CURL thinking they are expired due to potential clock skew
         curl_setopt($ch, CURLOPT_COOKIELIST, "Set-Cookie: mwt-client-auth-token=$token; Domain=midwesttape.com; Path=/");
@@ -190,40 +214,17 @@ class HooplaReportDownloader {
             }
         }
 
-        // 3.2. Hit the External Reporting root to see if it sets anything
-        if ($this->verbose) echo "Step 3.2: Accessing externalreporting.midwesttape.com root\n";
-        curl_setopt($ch, CURLOPT_URL, 'https://externalreporting.midwesttape.com/');
-        curl_setopt($ch, CURLOPT_REFERER, $reportUrl);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $token
-        ]);
-        curl_exec($ch);
-
         // 5. Initialize Tableau Session
         // We hit the view URL without .csv first to establish the session.
         $viewUrl = $tableauBaseUrl;
         $tableauParams = [
             ':embed' => 'y',
-            ':apiID' => 'embhost5',
-            ':embcount' => '1',
-            ':apiInternalVersion' => '1.196.0',
-            ':apiExternalVersion' => '3.16.0',
-            'navType' => '0',
-            'navSrc' => 'Opt',
-            ':disableUrlActionsPopups' => 'n',
-            ':tabs' => 'y',
-            ':toolbar' => 'n',
-            ':device' => 'desktop',
-            'mobile' => 'n',
-            ':hideEditButton' => 'n',
-            ':hideEditInDesktopButton' => 'n',
-            ':suppressDefaultEditBehavior' => 'n',
-            ':jsdebug' => 'n',
-            ':site' => 'external_reporting',
-            'customer_master' => $customerMaster,
-            'Custom Start' => $date,
-            'Custom End' => $date,
-            'Time Frame' => 'Custom'
+            ':showAppBanner' => 'false',
+            ':showShareOptions' => 'true',
+            ':display_count' => 'no',
+            ':showVizHome' => 'no',
+            ':origin' => 'viz_share_link',
+            ':apiID' => 'host0'
         ];
         $viewUrlWithParams = $viewUrl . '?' . http_build_query($tableauParams);
 
@@ -232,8 +233,7 @@ class HooplaReportDownloader {
         curl_setopt($ch, CURLOPT_URL, $viewUrlWithParams);
         curl_setopt($ch, CURLOPT_REFERER, $reportUrl);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Authorization: Bearer ' . $token
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
         ]);
         $initResponse = curl_exec($ch);
         $initHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -248,12 +248,13 @@ class HooplaReportDownloader {
         }
 
         // 6. Trigger the Tableau CSV Export
-        // The user pointed out the specific Tableau view and parameters needed.
-        // We append .csv to the view URL for a direct data export.
         $downloadUrl = $tableauBaseUrl . ".csv";
-        // Use the same params but we can also add :format=csv as a safeguard
-        $downloadParams = $tableauParams;
-        $downloadParams[':export_format'] = 'csv';
+        $downloadParams = [
+            'customer_master' => $customerMaster,
+            'Custom Start' => $date,
+            'Custom End' => $date,
+            'Time Frame' => 'Custom'
+        ];
         $downloadUrl .= '?' . http_build_query($downloadParams);
 
         echo "Exporting Hoopla Overall Circulations report for $date...\n";
@@ -264,8 +265,7 @@ class HooplaReportDownloader {
         curl_setopt($ch, CURLOPT_URL, $downloadUrl);
         curl_setopt($ch, CURLOPT_REFERER, $viewUrlWithParams);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Authorization: Bearer ' . $token
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
         ]);
         curl_setopt($ch, CURLOPT_FILE, $fp);
         curl_exec($ch);
