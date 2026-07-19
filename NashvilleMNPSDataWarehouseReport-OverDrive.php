@@ -216,11 +216,11 @@ class OverDriveReportDownloader {
             copy($tempFile, $odFile);
             echo "OverDrive report saved to: $odFile\n";
             
-            if ($this->sendEmail) {
-                $subject = "OverDrive Report Download Successful - $date";
-                $body = "The OverDrive Unique Users User Detail report for $date has been successfully downloaded and saved to:\n$odFile\n";
-                $this->sendEmail($subject, $body);
-            }
+//            if ($this->sendEmail) {
+//                $subject = "OverDrive Report Download Successful - $date";
+//                $body = "The OverDrive Unique Users User Detail report for $date has been successfully downloaded and saved to:\n$odFile\n";
+//                $this->sendEmail($subject, $body);
+//            }
             
             curl_close($ch);
             @unlink($cookieFile);
