@@ -16,7 +16,7 @@
 #   NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh.
 
 # Check if first two arguments are dates for a date range loop
-if [[ $# -ge 2 ]] && [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$2" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+if [[ $# -ge 2 ]] && [[ "$1" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]] && [[ "$2" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]]; then
     start_date=$1
     stop_date=$2
     shift 2

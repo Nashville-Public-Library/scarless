@@ -3,8 +3,12 @@
 # James Staub, Nashville Public Library
 # This script runs the PHP script NashvilleMNPSDataWarehouseReport.php for a range of dates and then moves the files to the destination directory.
 
-if [ "$#" -eq 2 ]; then
-  exec ./NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh "$0" "$1" "$2"
+# Check if first two arguments are dates for a date range loop
+if [[ $# -ge 2 ]] && [[ "$1" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]] && [[ "$2" =~ ^[0-9]{4}-?[0-9]{2}-?[0-9]{2}$ ]]; then
+  start_date=$1
+  stop_date=$2
+  shift 2
+  exec ./NashvilleMNPSDataWarehouseReport-previousDatesLoop.sh "$0" "$start_date" "$stop_date" "$@"
 fi
 
 # Check if the correct number of arguments is provided
