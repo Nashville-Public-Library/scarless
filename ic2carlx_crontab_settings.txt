@@ -48,6 +48,8 @@
 ## MNPS Data Warehouse Report - MackinVIA
 ## MackinVIA files are generated at ~3AM... but not made available in the SFTP server until ~7AM
 30 7 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-Mackin.sh;
+## MNPS Data Warehouse Report - OverDrive
+30 4 * * * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-OverDrive.sh;
 ## MNPS Data Warehouse Report - Collection Count CarlX
 0 5 28 2,7 * cd ~/scarless; bash NashvilleMNPSDataWarehouseReport-CollectionCountCarlX.sh;
 
