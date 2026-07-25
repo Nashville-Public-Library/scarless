@@ -15,6 +15,7 @@
  *   -verbose               Enable detailed diagnostic logging.
  *   -dry-run               Find matching IDs but do not execute deletion.
  *   -proxy=host:port       Optional. Route requests through a proxy server.
+ *   -no-verify-ssl         Optional. Disable SSL certificate verification.
  *
  * Credits:
  * Most of the programming and automation logic was developed by Junie, an autonomous
@@ -28,6 +29,7 @@ class NashvilleLS2AdminDeleteIPRanges {
     private $verbose = false;
     private $dryRun = false;
     private $proxy = null;
+    private $verifySsl = true;
     private $cookieFile;
 
     public function __construct() {
@@ -110,6 +112,10 @@ class NashvilleLS2AdminDeleteIPRanges {
         curl_setopt($ch, CURLOPT_TIMEOUT, 45);
         if ($this->proxy) {
             curl_setopt($ch, CURLOPT_PROXY, $this->proxy);
+        }
+        if (!$this->verifySsl) {
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         }
         return $ch;
     }
@@ -333,10 +339,11 @@ class NashvilleLS2AdminDeleteIPRanges {
         }
     }
 
-    public function run($ips, $dryRun = false, $verbose = false, $proxy = null) {
+    public function run($ips, $dryRun = false, $verbose = false, $proxy = null, $verifySsl = true) {
         $this->dryRun = $dryRun;
         $this->verbose = $verbose;
         $this->proxy = $proxy;
+        $this->verifySsl = $verifySsl;
 
         try {
             $this->getConfig();
@@ -366,7 +373,7 @@ class NashvilleLS2AdminDeleteIPRanges {
 
 // CLI Handling
 if (php_sapi_name() == "cli") {
-    $options = getopt("", ["ips:", "file:", "verbose", "dry-run", "proxy:"]);
+    $options = getopt("", ["ips:", "file:", "verbose", "dry-run", "proxy:", "no-verify-ssl"]);
     
     $targetIps = [];
     if (isset($options['ips'])) {
@@ -383,5 +390,11 @@ if (php_sapi_name() == "cli") {
     }
 
     $app = new NashvilleLS2AdminDeleteIPRanges();
-    $app->run($targetIps, isset($options['dry-run']), isset($options['verbose']), $options['proxy'] ?? null);
+    $app->run(
+        $targetIps, 
+        isset($options['dry-run']), 
+        isset($options['verbose']), 
+        $options['proxy'] ?? null,
+        !isset($options['no-verify-ssl'])
+    );
 }
