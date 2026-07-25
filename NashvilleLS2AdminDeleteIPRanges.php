@@ -14,6 +14,7 @@
  *   -file=path/to/file     File containing IP addresses/patterns to remove (one per line).
  *   -verbose               Enable detailed diagnostic logging.
  *   -dry-run               Find matching IDs but do not execute deletion.
+ *   -proxy=host:port       Optional. Route requests through a proxy server.
  *
  * Credits:
  * Most of the programming and automation logic was developed by Junie, an autonomous
@@ -26,6 +27,7 @@ class NashvilleLS2AdminDeleteIPRanges {
     private $password;
     private $verbose = false;
     private $dryRun = false;
+    private $proxy = null;
     private $cookieFile;
 
     public function __construct() {
@@ -42,7 +44,7 @@ class NashvilleLS2AdminDeleteIPRanges {
         if (!file_exists('../config.pwd.ini')) {
             throw new Exception("Config file not found at ../config.pwd.ini");
         }
-        $configArray = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_TYPED);
+        $configArray = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_RAW);
         
         if (isset($configArray['LS2Admin'])) {
             $this->baseUrl  = rtrim($configArray['LS2Admin']['BaseUrl'], '/') ?? null;
@@ -106,6 +108,9 @@ class NashvilleLS2AdminDeleteIPRanges {
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
         curl_setopt($ch, CURLOPT_TIMEOUT, 45);
+        if ($this->proxy) {
+            curl_setopt($ch, CURLOPT_PROXY, $this->proxy);
+        }
         return $ch;
     }
 
@@ -113,11 +118,18 @@ class NashvilleLS2AdminDeleteIPRanges {
         $this->log("Establishing session at " . $this->baseUrl);
         $ch = $this->initCurl();
         curl_setopt($ch, CURLOPT_URL, $this->baseUrl);
-        curl_exec($ch);
+        $response = curl_exec($ch);
+        $info = curl_getinfo($ch);
+        $error = curl_error($ch);
         curl_close($ch);
 
-        $this->log("Attempting JSON login to " . $this->baseUrl);
-        $ch = $this->initCurl();
+        if ($response === false) {
+            throw new Exception("Failed to establish session (connection problem?): " . $error);
+        }
+        
+        if ($info['http_code'] >= 400) {
+            throw new Exception("Initial session establishment failed with HTTP code " . $info['http_code']);
+        }
 
         // Based on HAR, login is at /login relative to the host
         $parsed = parse_url($this->baseUrl);
@@ -127,6 +139,9 @@ class NashvilleLS2AdminDeleteIPRanges {
         
         $origin = ($parsed['scheme'] ?? 'https') . '://' . $parsed['host'] . (isset($parsed['port']) ? ':' . $parsed['port'] : '');
         $loginUrl = $origin . '/login?_=' . (time() * 1000);
+
+        $this->log("Attempting JSON login to " . $loginUrl);
+        $ch = $this->initCurl();
 
         $postData = [
             'ajax' => true,
@@ -149,9 +164,19 @@ class NashvilleLS2AdminDeleteIPRanges {
         
         $response = curl_exec($ch);
         $info = curl_getinfo($ch);
+        $error_msg = curl_error($ch);
         curl_close($ch);
 
+        if ($response === false) {
+            throw new Exception("Login failed: CURL Error: " . $error_msg);
+        }
+
         if ($info['http_code'] >= 400) {
+            if ($this->verbose) {
+                $this->log("Login failed HTTP Code: " . $info['http_code']);
+                $this->log("Response content type: " . ($info['content_type'] ?? 'unknown'));
+                $this->log("Response body: " . $response);
+            }
             throw new Exception("Login failed with HTTP code " . $info['http_code']);
         }
 
@@ -159,6 +184,12 @@ class NashvilleLS2AdminDeleteIPRanges {
         if (isset($data['success']) && $data['success'] === true) {
             $this->log("Login successful.");
         } else {
+             if ($this->verbose) {
+                 $this->log("Login response: " . $response);
+                 if (json_last_error() !== JSON_ERROR_NONE) {
+                     $this->log("JSON Decode Error: " . json_last_error_msg());
+                 }
+             }
              $error = $data['error'] ?? 'Unknown error';
              throw new Exception("Login failed: " . $error);
         }
@@ -302,9 +333,10 @@ class NashvilleLS2AdminDeleteIPRanges {
         }
     }
 
-    public function run($ips, $dryRun = false, $verbose = false) {
+    public function run($ips, $dryRun = false, $verbose = false, $proxy = null) {
         $this->dryRun = $dryRun;
         $this->verbose = $verbose;
+        $this->proxy = $proxy;
 
         try {
             $this->getConfig();
@@ -334,7 +366,7 @@ class NashvilleLS2AdminDeleteIPRanges {
 
 // CLI Handling
 if (php_sapi_name() == "cli") {
-    $options = getopt("", ["ips:", "file:", "verbose", "dry-run"]);
+    $options = getopt("", ["ips:", "file:", "verbose", "dry-run", "proxy:"]);
     
     $targetIps = [];
     if (isset($options['ips'])) {
@@ -351,5 +383,5 @@ if (php_sapi_name() == "cli") {
     }
 
     $app = new NashvilleLS2AdminDeleteIPRanges();
-    $app->run($targetIps, isset($options['dry-run']), isset($options['verbose']));
+    $app->run($targetIps, isset($options['dry-run']), isset($options['verbose']), $options['proxy'] ?? null);
 }
