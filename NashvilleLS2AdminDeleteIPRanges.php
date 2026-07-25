@@ -45,7 +45,7 @@ class NashvilleLS2AdminDeleteIPRanges {
         $configArray = parse_ini_file('../config.pwd.ini', true, INI_SCANNER_TYPED);
         
         if (isset($configArray['LS2Admin'])) {
-            $this->baseUrl  = rtrim($configArray['LS2Admin']['BaseUrl'] ?? 'https://kids.library.nashville.org/admin', '/');
+            $this->baseUrl  = rtrim($configArray['LS2Admin']['BaseUrl'], '/') ?? null;
             $this->username = $configArray['LS2Admin']['UserName'] ?? null;
             $this->password = $configArray['LS2Admin']['Password'] ?? null;
         } else {
@@ -104,10 +104,18 @@ class NashvilleLS2AdminDeleteIPRanges {
         curl_setopt($ch, CURLOPT_COOKIEFILE, $this->cookieFile);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 45);
         return $ch;
     }
 
     public function login() {
+        $this->log("Establishing session at " . $this->baseUrl);
+        $ch = $this->initCurl();
+        curl_setopt($ch, CURLOPT_URL, $this->baseUrl);
+        curl_exec($ch);
+        curl_close($ch);
+
         $this->log("Attempting JSON login to " . $this->baseUrl);
         $ch = $this->initCurl();
 
@@ -116,7 +124,9 @@ class NashvilleLS2AdminDeleteIPRanges {
         if (!$parsed || !isset($parsed['host'])) {
             throw new Exception("Invalid BaseUrl for login derivation: " . $this->baseUrl);
         }
-        $loginUrl = ($parsed['scheme'] ?? 'https') . '://' . $parsed['host'] . (isset($parsed['port']) ? ':' . $parsed['port'] : '') . '/login';
+        
+        $origin = ($parsed['scheme'] ?? 'https') . '://' . $parsed['host'] . (isset($parsed['port']) ? ':' . $parsed['port'] : '');
+        $loginUrl = $origin . '/login?_=' . (time() * 1000);
 
         $postData = [
             'ajax' => true,
@@ -131,7 +141,10 @@ class NashvilleLS2AdminDeleteIPRanges {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json; charset=utf-8',
-            'X-Requested-With: XMLHttpRequest'
+            'X-Requested-With: XMLHttpRequest',
+            'Accept: application/json, text/javascript, */*; q=0.01',
+            'Origin: ' . $origin,
+            'Referer: ' . $this->baseUrl
         ]);
         
         $response = curl_exec($ch);
@@ -156,11 +169,12 @@ class NashvilleLS2AdminDeleteIPRanges {
         $ch = $this->initCurl();
         
         // Based on the HAR, /admin/ipRange returns JSON with Accept: application/json
-        $settingsUrl = $this->baseUrl . '/ipRange'; 
+        $settingsUrl = $this->baseUrl . '/ipRange?_=' . (time() * 1000); 
         curl_setopt($ch, CURLOPT_URL, $settingsUrl);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: application/json, text/javascript, */*; q=0.01',
-            'X-Requested-With: XMLHttpRequest'
+            'X-Requested-With: XMLHttpRequest',
+            'Referer: ' . $this->baseUrl
         ]);
         $response = curl_exec($ch);
         $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
@@ -259,7 +273,7 @@ class NashvilleLS2AdminDeleteIPRanges {
     }
 
     public function deleteIpRange($id) {
-        $deleteUrl = $this->baseUrl . '/ipRange/' . $id;
+        $deleteUrl = $this->baseUrl . '/ipRange/' . $id . '?_=' . (time() * 1000);
         
         if ($this->dryRun) {
             echo "[DRY-RUN] Would delete IP range ID: $id at $deleteUrl\n";
@@ -272,7 +286,8 @@ class NashvilleLS2AdminDeleteIPRanges {
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'X-Requested-With: XMLHttpRequest',
-            'Accept: application/json, text/javascript, */*; q=0.01'
+            'Accept: application/json, text/javascript, */*; q=0.01',
+            'Referer: ' . $this->baseUrl
         ]);
         
         $response = curl_exec($ch);
