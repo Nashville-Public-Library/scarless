@@ -1,0 +1,8 @@
+services:
+  scarless-php:
+    build: .
+    volumes:
+      - .:/var/www/html/scarless
+      - ../config.pwd.ini:/var/www/html/config.pwd.ini
+    working_dir: /var/www/html/scarless
+    tty: true
