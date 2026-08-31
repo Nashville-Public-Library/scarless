@@ -10,8 +10,8 @@ sort -t'|' -r -k1,7 ../data/CARLX_INFINITECAMPUS_STAFF.txt > ../data/CARLX_INFIN
 # SORT UNIQ BY ID
 sort -t'|' -k1,1 -u ../data/CARLX_INFINITECAMPUS_STAFF.txt.sorted > ../data/CARLX_INFINITECAMPUS_STAFF.txt.unique
 
-# APPEND TEST PATRONS
-cat ../data/ic2carlx_mnps_staff_test.txt ../data/CARLX_INFINITECAMPUS_STAFF.txt.unique > ../data/ic2carlx_mnps_staff_infinitecampus.txt
+# APPEND TEST PATRONS (stripping trailing comments and blank lines)
+grep -v '^\s*$' ../data/ic2carlx_mnps_staff_test.txt | sed 's/[[:space:]]*#[^|]*$//' | cat - ../data/CARLX_INFINITECAMPUS_STAFF.txt.unique > ../data/ic2carlx_mnps_staff_infinitecampus.txt
 
 perl -MLingua::EN::NameCase -F'\|' -lane '
 # SCRUB NON-ASCII CHARACTERS

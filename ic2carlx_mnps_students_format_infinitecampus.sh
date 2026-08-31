@@ -14,8 +14,8 @@ if awk -F'|' 'NR > 1 && $32 !~ /^[[:space:]]*$/ { found=1; exit } END { exit !fo
     echo "WARNING: IC extract contained Limitless permission value" | mail -s "WARNING: IC extract contained Limitless permission value" james.staub@nashville.gov
 fi
 
-# APPEND TEST PATRONS
-cat ../data/ic2carlx_mnps_students_test.txt ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/ic2carlx_mnps_students_infinitecampus.txt
+# APPEND TEST PATRONS (stripping trailing comments and blank lines before sorting)
+grep -v '^\s*$' ../data/ic2carlx_mnps_students_test.txt | sed 's/[[:space:]]*#[^|]*$//' | cat - ../data/CARLX_INFINITECAMPUS_STUDENT.txt > ../data/ic2carlx_mnps_students_infinitecampus.txt
 # USE ONLY TEST PATRONS
 #cat ../data/ic2carlx_mnps_students_test.txt > ../data/ic2carlx_mnps_students_infinitecampus.txt
 
