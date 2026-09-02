@@ -579,20 +579,25 @@ EOT;
         $holdsToCancel = [];
         foreach ($resultsArr['data'] as $item) {
             // Safety check: ensure the CardNumber in the response matches what we requested
-            $respCardNumber = $item['CardNumber'] ?? 'unknown';
-            if ($this->verbose) echo "   [Verbose] Found record in data: Title=" . ($item['Title'] ?? 'N/A') . ", CardNumber=$respCardNumber, ReserveID=" . ($item['ReserveID'] ?? 'N/A') . "\n";
+            $respCardNumber = $item['CardNumber'] ?? ($item['Cardnumber'] ?? ($item['cardnumber'] ?? 'unknown'));
+            $reserveId = $item['ReserveId'] ?? ($item['ReserveID'] ?? ($item['reserveId'] ?? null));
+            $patronId = $item['PatronId'] ?? ($item['PatronID'] ?? ($item['patronId'] ?? null));
+            $holdId = $item['HoldId'] ?? ($item['HoldID'] ?? ($item['holdId'] ?? ''));
+
+            if ($this->verbose) echo "   [Verbose] Found record in data: Title=" . ($item['Title'] ?? 'N/A') . ", CardNumber=$respCardNumber, ReserveId=" . ($reserveId ?? 'N/A') . "\n";
             
             if ($respCardNumber != $userId && $respCardNumber != 'unknown') {
                 if ($this->verbose) echo "   [Verbose] Skipping record as CardNumber does not match $userId\n";
                 continue;
             }
 
-            if (isset($item['ReserveID']) && isset($item['PatronID'])) {
+            if ($reserveId && $patronId) {
                 $holdsToCancel[] = [
-                    'ReserveId' => $item['ReserveID'],
-                    'PatronId' => $item['PatronID']
+                    'ReserveId' => $reserveId,
+                    'PatronId' => $patronId,
+                    'HoldId' => $holdId
                 ];
-                if (!$this->verbose) echo "   [Verbose] Found hold: " . ($item['Title'] ?? 'Unknown') . "\n";
+                if ($this->verbose) echo "   [Verbose] Found hold: " . ($item['Title'] ?? 'Unknown') . "\n";
             }
         }
 
@@ -614,6 +619,9 @@ EOT;
         foreach ($holdsToCancel as $index => $hold) {
             $postData["holdsToCancel[$index][ReserveId]"] = $hold['ReserveId'];
             $postData["holdsToCancel[$index][PatronId]"] = $hold['PatronId'];
+            if (!empty($hold['HoldId'])) {
+                $postData["holdsToCancel[$index][HoldId]"] = $hold['HoldId'];
+            }
         }
 
         if ($this->verbose) echo "   [Verbose] Sending cancel request to: $cancelUrl\n";
