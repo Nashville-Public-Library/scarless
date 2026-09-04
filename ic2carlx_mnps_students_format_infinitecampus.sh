@@ -19,9 +19,7 @@ grep -v '^\s*$' ../data/ic2carlx_mnps_students_test.txt | sed 's/[[:space:]]*#[^
 # USE ONLY TEST PATRONS
 #cat ../data/ic2carlx_mnps_students_test.txt > ../data/ic2carlx_mnps_students_infinitecampus.txt
 
-# SORT AND UNIQ PATRONS ATTEMPTING TO GET THE MOST COMPLETE RECORD 
-# BY SORTING ID ASC, ADDRESS DESC TO PUSH BLANK ADDRESSES TO THE BOTTOM
-sort -t\| -k1,1 -k7,7r -o ../data/ic2carlx_mnps_students_infinitecampus.txt ../data/ic2carlx_mnps_students_infinitecampus.txt
+# SORT AND UNIQ PATRONS
 sort -t\| -k1,1 -u -o ../data/ic2carlx_mnps_students_infinitecampus.txt ../data/ic2carlx_mnps_students_infinitecampus.txt
 
 perl -MLingua::EN::NameCase -MDateTime -MDateTime::Duration -MDateTime::Format::ISO8601 -F'\|' -lane '
