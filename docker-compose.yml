@@ -7,3 +7,11 @@ services:
       - ../config.pwd.ini:/var/www/html/config.pwd.ini
     working_dir: /var/www/html/scarless
     tty: true
+  scarless-python:
+    image: python:3.13-slim
+    volumes:
+      - .:/var/www/html/scarless
+      - ../data:/var/www/html/data
+      - ../config.pwd.ini:/var/www/html/config.pwd.ini
+    working_dir: /var/www/html/scarless
+    tty: true
