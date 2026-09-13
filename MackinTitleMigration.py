@@ -14,14 +14,18 @@ Options:
     --config=PATH                 Path to config file (default: ../config.pwd.ini)
     --limit=N                     Process only first N schools (for testing)
     --school=CODE                 Process only specific school code(s) (comma-separated)
-    --district                    Retrieve and transform district active titles report
-    --district-only               Only retrieve and transform district active titles report
+    --district                    Retrieve and transform district active & expired titles report
+    --district-only               Only retrieve and transform district titles report
     --skip-download               Skip downloading reports and run combine/transform on existing files
     --clean-files                 Clean existing downloaded Excel files in data directory
-    --output=PATH                 Path for final combined request list Excel file
-    --special-output=PATH         Path for final Penguin Random House & Blackstone request list Excel file
-    --district-output=PATH         Path for district copies transfer request list Excel file
-    --district-special-output=PATH Path for district Penguin Random House & Blackstone request list Excel file
+    --output=PATH                 Path for final combined active request list Excel file
+    --special-output=PATH         Path for final active Penguin Random House & Blackstone request list Excel file
+    --output-expired=PATH         Path for final combined expired request list Excel file
+    --special-output-expired=PATH Path for final expired Penguin Random House & Blackstone request list Excel file
+    --district-output=PATH         Path for district active copies transfer request list Excel file
+    --district-special-output=PATH Path for district active PRH & Blackstone request list Excel file
+    --district-output-expired=PATH Path for district expired copies transfer request list Excel file
+    --district-special-output-expired=PATH Path for district expired PRH & Blackstone request list Excel file
     --verbose                     Enable verbose debug logging
 """
 
@@ -221,8 +225,8 @@ class MackinTitleMigration:
             self.log(f"Error fetching usage report for cust {cust_id}, account {account_id} ({school_name}): {e}")
             return None
 
-    def download_subscriptions_report(self, cust_id: int, account_id: int, school_name: str) -> Optional[bytes]:
-        sub_url = f"https://admin.mackinvia.com/api/admin/customers/{cust_id}/accounts/{account_id}/subscriptions/report?status=CURRENT&exportReport=true"
+    def download_subscriptions_report(self, cust_id: int, account_id: int, school_name: str, status: str = 'CURRENT') -> Optional[bytes]:
+        sub_url = f"https://admin.mackinvia.com/api/admin/customers/{cust_id}/accounts/{account_id}/subscriptions/report?status={status}&exportReport=true"
         headers = {
             "Accept": "*/*",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -235,7 +239,7 @@ class MackinTitleMigration:
             with urllib.request.urlopen(req, context=self.ctx) as resp:
                 return resp.read()
         except Exception as e:
-            self.log(f"Error fetching subscription report for cust {cust_id}, account {account_id} ({school_name}): {e}")
+            self.log(f"Error fetching subscription report ({status}) for cust {cust_id}, account {account_id} ({school_name}): {e}")
             return None
 
     def download_district_usage_report(self, cust_id: int = 21507) -> Optional[bytes]:
@@ -265,7 +269,7 @@ class MackinTitleMigration:
             items.pop()
         return tuple(items)
 
-    def extract_rows_from_excel_bytes(self, excel_bytes: bytes, report_type: str = 'titles') -> Tuple[List[str], List[List[Any]]]:
+    def extract_rows_from_excel_bytes(self, excel_bytes: bytes, report_type: str = 'titles', status_filter: Optional[str] = 'ACTIVE') -> Tuple[List[str], List[List[Any]]]:
         import io
         wb = load_workbook(io.BytesIO(excel_bytes), data_only=True)
         sheet = wb.active
@@ -303,7 +307,7 @@ class MackinTitleMigration:
         data_rows = all_rows[header_row_idx + 1:]
         hdr_upper = [c.upper() for c in headers]
 
-        # Filter out empty rows, EXPIRED statuses, pure METRO Provided By, and internal duplicates
+        # Filter out empty rows, status checks, pure METRO Provided By, and internal duplicates
         status_idx = hdr_upper.index('STATUS') if 'STATUS' in hdr_upper else -1
         prov_idx = hdr_upper.index('PROVIDED BY') if 'PROVIDED BY' in hdr_upper else -1
 
@@ -314,12 +318,14 @@ class MackinTitleMigration:
             if not any(c != "" for c in row):
                 continue
 
-            # 1. Status checks for titles report
-            if report_type == 'titles' and status_idx != -1 and len(row) > status_idx:
+            # 1. Status checks for reports
+            if status_idx != -1 and len(row) > status_idx:
                 status_val = str(row[status_idx]).strip().upper()
-                if status_val not in ('ACTIVE', 'EXPIRED', ''):
+                if report_type == 'titles' and status_val not in ('ACTIVE', 'EXPIRED', ''):
                     self.log(f"Notice: Non-standard Status found in {report_type} report: '{row[status_idx]}'")
-                if status_val == 'EXPIRED':
+                if status_filter == 'ACTIVE' and status_val == 'EXPIRED':
+                    continue
+                elif status_filter == 'EXPIRED' and status_val != 'EXPIRED':
                     continue
 
             # 2. Exclude pure district copies where Provided By = METROPOLITAN NASHVILLE PUBLIC SCH
@@ -380,12 +386,13 @@ class MackinTitleMigration:
     def clean_data_files(self) -> Dict[str, Any]:
         """Cleans existing title and subscription files in data directory:
         - Removes duplicates
-        - Excludes Status = EXPIRED
+        - Separates active from EXPIRED files
         - Excludes Provided By = METROPOLITAN NASHVILLE PUBLIC SCH
         - Reports unexpected statuses
         """
-        title_files = sorted([f for f in os.listdir(self.data_dir) if f.startswith("mackin-migration-titles-") and f.endswith(".xlsx")])
-        sub_files = sorted([f for f in os.listdir(self.data_dir) if f.startswith("mackin-migration-subscriptions-") and f.endswith(".xlsx")])
+        all_files = sorted(os.listdir(self.data_dir))
+        title_files = [f for f in all_files if f.startswith("mackin-migration-titles-") and f.endswith(".xlsx")]
+        sub_files = [f for f in all_files if f.startswith("mackin-migration-subscriptions-") and f.endswith(".xlsx")]
         
         self.log(f"Cleaning existing data files ({len(title_files)} title files, {len(sub_files)} subscription files)...")
         
@@ -398,6 +405,10 @@ class MackinTitleMigration:
         # Clean title files
         for tf in title_files:
             tf_path = os.path.join(self.data_dir, tf)
+            is_expired_file = tf.startswith("mackin-migration-titles-expired-")
+            m_code = re.match(r'mackin-migration-titles-(?:expired-)?(.+)\.xlsx', tf)
+            school_code = m_code.group(1) if m_code else ""
+
             try:
                 wb = load_workbook(tf_path, data_only=True)
                 ws = wb.active
@@ -412,18 +423,20 @@ class MackinTitleMigration:
                 prov_idx = hdr_upper.index('PROVIDED BY') if 'PROVIDED BY' in hdr_upper else -1
 
                 cleaned_rows = []
+                expired_rows_to_move = []
                 seen = set()
                 for r in rows[1:]:
                     titles_before_total += 1
                     if not any(r):
                         continue
                     
+                    is_expired = False
                     if status_idx != -1 and len(r) > status_idx and r[status_idx] is not None:
                         s_val = str(r[status_idx]).strip()
                         if s_val.upper() not in ('ACTIVE', 'EXPIRED', ''):
                             unexpected_statuses.add(s_val)
                         if s_val.upper() == 'EXPIRED':
-                            continue
+                            is_expired = True
 
                     if prov_idx != -1 and len(r) > prov_idx and r[prov_idx] is not None:
                         p_val = str(r[prov_idx]).strip().upper()
@@ -435,8 +448,14 @@ class MackinTitleMigration:
                     if norm_tuple in seen:
                         continue
                     seen.add(norm_tuple)
-                    cleaned_rows.append(trimmed_r)
-                    titles_after_total += 1
+
+                    if not is_expired_file and is_expired:
+                        expired_rows_to_move.append(trimmed_r)
+                    elif is_expired_file and not is_expired and status_idx != -1:
+                        continue
+                    else:
+                        cleaned_rows.append(trimmed_r)
+                        titles_after_total += 1
 
                 # Save cleaned file
                 new_wb = Workbook()
@@ -445,12 +464,21 @@ class MackinTitleMigration:
                 for r in cleaned_rows:
                     new_ws.append(r)
                 new_wb.save(tf_path)
+
+                if expired_rows_to_move and school_code:
+                    exp_tf_path = os.path.join(self.data_dir, f"mackin-migration-titles-expired-{school_code}.xlsx")
+                    self.save_or_append_excel(exp_tf_path, headers, expired_rows_to_move)
+
             except Exception as e:
                 self.log(f"Error cleaning title file {tf}: {e}")
 
         # Clean subscription files
         for sf in sub_files:
             sf_path = os.path.join(self.data_dir, sf)
+            is_expired_file = sf.startswith("mackin-migration-subscriptions-expired-")
+            m_code = re.match(r'mackin-migration-subscriptions-(?:expired-)?(.+)\.xlsx', sf)
+            school_code = m_code.group(1) if m_code else ""
+
             try:
                 wb = load_workbook(sf_path, data_only=True)
                 ws = wb.active
@@ -462,13 +490,20 @@ class MackinTitleMigration:
                     headers.pop()
                 hdr_upper = [c.upper() for c in headers]
                 prov_idx = hdr_upper.index('PROVIDED BY') if 'PROVIDED BY' in hdr_upper else -1
+                status_idx = hdr_upper.index('STATUS') if 'STATUS' in hdr_upper else -1
 
                 cleaned_rows = []
+                expired_rows_to_move = []
                 seen = set()
                 for r in rows[1:]:
                     subs_before_total += 1
                     if not any(r):
                         continue
+
+                    is_expired = False
+                    if status_idx != -1 and len(r) > status_idx and r[status_idx] is not None:
+                        if str(r[status_idx]).strip().upper() == 'EXPIRED':
+                            is_expired = True
 
                     if prov_idx != -1 and len(r) > prov_idx and r[prov_idx] is not None:
                         p_val = str(r[prov_idx]).strip().upper()
@@ -480,8 +515,14 @@ class MackinTitleMigration:
                     if norm_tuple in seen:
                         continue
                     seen.add(norm_tuple)
-                    cleaned_rows.append(trimmed_r)
-                    subs_after_total += 1
+
+                    if not is_expired_file and is_expired:
+                        expired_rows_to_move.append(trimmed_r)
+                    elif is_expired_file and not is_expired and status_idx != -1:
+                        continue
+                    else:
+                        cleaned_rows.append(trimmed_r)
+                        subs_after_total += 1
 
                 new_wb = Workbook()
                 new_ws = new_wb.active
@@ -489,11 +530,16 @@ class MackinTitleMigration:
                 for r in cleaned_rows:
                     new_ws.append(r)
                 new_wb.save(sf_path)
+
+                if expired_rows_to_move and school_code:
+                    exp_sf_path = os.path.join(self.data_dir, f"mackin-migration-subscriptions-expired-{school_code}.xlsx")
+                    self.save_or_append_excel(exp_sf_path, headers, expired_rows_to_move)
+
             except Exception as e:
                 self.log(f"Error cleaning subscription file {sf}: {e}")
 
         self.log(f"Data files cleaned:")
-        self.log(f"  Title rows: {titles_before_total} -> {titles_after_total} (filtered duplicates, EXPIRED, pure METRO)")
+        self.log(f"  Title rows: {titles_before_total} -> {titles_after_total} (filtered duplicates, pure METRO)")
         self.log(f"  Subscription rows: {subs_before_total} -> {subs_after_total} (filtered duplicates, pure METRO)")
         if unexpected_statuses:
             self.log(f"  Non-standard statuses identified outside (ACTIVE, EXPIRED): {sorted(unexpected_statuses)}")
@@ -540,29 +586,47 @@ class MackinTitleMigration:
             account_name = c_obj['accounts'][0]['name']
             
             titles_file = os.path.join(self.data_dir, f"mackin-migration-titles-{school_code}.xlsx")
+            titles_expired_file = os.path.join(self.data_dir, f"mackin-migration-titles-expired-{school_code}.xlsx")
             subs_file = os.path.join(self.data_dir, f"mackin-migration-subscriptions-{school_code}.xlsx")
+            subs_expired_file = os.path.join(self.data_dir, f"mackin-migration-subscriptions-expired-{school_code}.xlsx")
             
             self.log(f"[{idx}/{total}] Processing {school_name} (School Code: {school_code}, Cust: {cust_id}, Account: {account_id})...")
             
-            # Step 1: Usage (Titles) Report
+            # Step 1: Usage (Titles) Report (Active & Expired)
             usage_bytes = self.download_usage_report(cust_id, account_id, account_name)
             if usage_bytes:
-                t_headers, t_rows = self.extract_rows_from_excel_bytes(usage_bytes, 'titles')
+                t_headers, t_rows = self.extract_rows_from_excel_bytes(usage_bytes, 'titles', status_filter='ACTIVE')
                 if t_headers and t_rows:
                     self.save_or_append_excel(titles_file, t_headers, t_rows)
-                    self.log(f"    Titles report saved: {len(t_rows)} titles -> {titles_file}")
+                    self.log(f"    Active titles report saved: {len(t_rows)} titles -> {titles_file}")
                 else:
-                    self.debug(f"    Titles report empty for {school_name}")
+                    self.debug(f"    Active titles report empty for {school_name}")
+
+                te_headers, te_rows = self.extract_rows_from_excel_bytes(usage_bytes, 'titles', status_filter='EXPIRED')
+                if te_headers and te_rows:
+                    self.save_or_append_excel(titles_expired_file, te_headers, te_rows)
+                    self.log(f"    Expired titles report saved: {len(te_rows)} titles -> {titles_expired_file}")
+                else:
+                    self.debug(f"    Expired titles report empty for {school_name}")
             
-            # Step 2: Subscription Report
-            subs_bytes = self.download_subscriptions_report(cust_id, account_id, account_name)
+            # Step 2: Subscription Report (Active & Expired)
+            subs_bytes = self.download_subscriptions_report(cust_id, account_id, account_name, status='CURRENT')
             if subs_bytes:
-                s_headers, s_rows = self.extract_rows_from_excel_bytes(subs_bytes, 'subscriptions')
+                s_headers, s_rows = self.extract_rows_from_excel_bytes(subs_bytes, 'subscriptions', status_filter='ACTIVE')
                 if s_headers and s_rows:
                     self.save_or_append_excel(subs_file, s_headers, s_rows)
-                    self.log(f"    Subscriptions report saved: {len(s_rows)} subscriptions -> {subs_file}")
+                    self.log(f"    Active subscriptions report saved: {len(s_rows)} subscriptions -> {subs_file}")
                 else:
-                    self.debug(f"    Subscriptions report empty for {school_name}")
+                    self.debug(f"    Active subscriptions report empty for {school_name}")
+
+            subs_exp_bytes = self.download_subscriptions_report(cust_id, account_id, account_name, status='EXPIRED')
+            if subs_exp_bytes:
+                se_headers, se_rows = self.extract_rows_from_excel_bytes(subs_exp_bytes, 'subscriptions', status_filter='EXPIRED')
+                if se_headers and se_rows:
+                    self.save_or_append_excel(subs_expired_file, se_headers, se_rows)
+                    self.log(f"    Expired subscriptions report saved: {len(se_rows)} subscriptions -> {subs_expired_file}")
+                else:
+                    self.debug(f"    Expired subscriptions report empty for {school_name}")
 
         self.log("Batch retrieval completed.")
 
@@ -612,17 +676,26 @@ class MackinTitleMigration:
                 return d
         return ""
 
-    def combine_and_transform(self, output_path: Optional[str] = None, special_output_path: Optional[str] = None) -> Tuple[str, str]:
+    def combine_and_transform(self, output_path: Optional[str] = None, 
+                              special_output_path: Optional[str] = None, 
+                              is_expired: bool = False) -> Tuple[str, str]:
+        mode_label = "expired" if is_expired else "active"
         if not output_path:
-            output_path = os.path.join(self.data_dir, "mackin-overdriveTitleTransferRequestList.xlsx")
+            out_name = "mackin-overdriveTitleTransferRequestList-expired.xlsx" if is_expired else "mackin-overdriveTitleTransferRequestList.xlsx"
+            output_path = os.path.join(self.data_dir, out_name)
         if not special_output_path:
-            special_output_path = os.path.join(self.data_dir, "mackin-overdriveTitleTransferRequestList-PenguinRandomHouse-Blackstone.xlsx")
+            spec_name = "mackin-overdriveTitleTransferRequestList-PenguinRandomHouse-Blackstone-expired.xlsx" if is_expired else "mackin-overdriveTitleTransferRequestList-PenguinRandomHouse-Blackstone.xlsx"
+            special_output_path = os.path.join(self.data_dir, spec_name)
 
-        self.log("Starting combining and transforming title and subscription reports...")
+        self.log(f"Starting combining and transforming {mode_label} title and subscription reports...")
         
-        # Discover all titles files in data directory
-        title_files = [f for f in os.listdir(self.data_dir) if f.startswith("mackin-migration-titles-") and f.endswith(".xlsx")]
-        self.log(f"Found {len(title_files)} school title files to combine.")
+        # Discover titles files in data directory
+        if is_expired:
+            title_files = [f for f in os.listdir(self.data_dir) if f.startswith("mackin-migration-titles-expired-") and f.endswith(".xlsx")]
+        else:
+            title_files = [f for f in os.listdir(self.data_dir) if f.startswith("mackin-migration-titles-") and not f.startswith("mackin-migration-titles-expired-") and f.endswith(".xlsx")]
+        
+        self.log(f"Found {len(title_files)} {mode_label} school title files to combine.")
 
         target_headers = [
             'SCHOOL_CODE',
@@ -645,14 +718,23 @@ class MackinTitleMigration:
         unexpected_statuses = set()
 
         for tf in sorted(title_files):
-            m = re.match(r'mackin-migration-titles-(.+)\.xlsx', tf)
+            if is_expired:
+                m = re.match(r'mackin-migration-titles-expired-(.+)\.xlsx', tf)
+            else:
+                m = re.match(r'mackin-migration-titles-(.+)\.xlsx', tf)
             if not m:
                 continue
             school_code = m.group(1)
             titles_path = os.path.join(self.data_dir, tf)
-            subs_path = os.path.join(self.data_dir, f"mackin-migration-subscriptions-{school_code}.xlsx")
+            
+            if is_expired:
+                subs_path = os.path.join(self.data_dir, f"mackin-migration-subscriptions-expired-{school_code}.xlsx")
+                if not os.path.exists(subs_path):
+                    subs_path = os.path.join(self.data_dir, f"mackin-migration-subscriptions-{school_code}.xlsx")
+            else:
+                subs_path = os.path.join(self.data_dir, f"mackin-migration-subscriptions-{school_code}.xlsx")
 
-            # Load all subscription records for this school
+            # Load subscription records for this school
             subs_by_isbn = {}
             if os.path.exists(subs_path):
                 try:
@@ -677,8 +759,13 @@ class MackinTitleMigration:
                                 if str(sr[prov_idx_s]).strip().upper() == 'METROPOLITAN NASHVILLE PUBLIC SCH':
                                     continue
                             if status_idx_s != -1 and len(sr) > status_idx_s and sr[status_idx_s] is not None:
-                                if str(sr[status_idx_s]).strip().upper() == 'EXPIRED':
-                                    continue
+                                s_st = str(sr[status_idx_s]).strip().upper()
+                                if is_expired:
+                                    if s_st != 'EXPIRED' and s_st != '':
+                                        continue
+                                else:
+                                    if s_st == 'EXPIRED':
+                                        continue
                             norm_sub = tuple(str(c).strip() if c is not None else "" for c in sr)
                             if norm_sub in seen_sub_tuples:
                                 continue
@@ -749,8 +836,12 @@ class MackinTitleMigration:
                     status = val(r, idx_status)
                     if status.upper() not in ('ACTIVE', 'EXPIRED', ''):
                         unexpected_statuses.add(status)
-                    if status.upper() == 'EXPIRED':
-                        continue
+                    if is_expired:
+                        if status.upper() != 'EXPIRED' and status.upper() != '':
+                            continue
+                    else:
+                        if status.upper() == 'EXPIRED':
+                            continue
 
                     provided_by = val(r, idx_provided_by)
                     if provided_by.upper() == 'METROPOLITAN NASHVILLE PUBLIC SCH':
@@ -964,7 +1055,7 @@ class MackinTitleMigration:
         for r in all_combined_rows:
             out_ws.append(r)
         out_wb.save(output_path)
-        self.log(f"Saved combined and transformed transfer request list ({len(all_combined_rows)} records) to {output_path}")
+        self.log(f"Saved {mode_label} combined and transformed transfer request list ({len(all_combined_rows)} records) to {output_path}")
 
         # Write special publisher output workbook
         spec_wb = Workbook()
@@ -974,7 +1065,7 @@ class MackinTitleMigration:
         for r in special_publisher_rows:
             spec_ws.append(r)
         spec_wb.save(special_output_path)
-        self.log(f"Saved Penguin Random House & Blackstone transfer request list ({len(special_publisher_rows)} records) to {special_output_path}")
+        self.log(f"Saved {mode_label} Penguin Random House & Blackstone transfer request list ({len(special_publisher_rows)} records) to {special_output_path}")
 
         return output_path, special_output_path
 
@@ -998,14 +1089,20 @@ class MackinTitleMigration:
 
     def transform_district_report(self, district_csv_path: Optional[str] = None, 
                                   output_path: Optional[str] = None, 
-                                  special_output_path: Optional[str] = None) -> Tuple[str, str]:
-        """Transforms district usage report to match OverDrive Title Transfer Request format."""
+                                  special_output_path: Optional[str] = None,
+                                  expired_output_path: Optional[str] = None,
+                                  expired_special_output_path: Optional[str] = None) -> Tuple[str, str, str, str]:
+        """Transforms district usage report to match OverDrive Title Transfer Request format (both active and expired)."""
         if not district_csv_path:
             district_csv_path = os.path.join(self.data_dir, "mackin-migration-district-usage.csv")
         if not output_path:
             output_path = os.path.join(self.data_dir, "mackin-overdriveTitleTransferRequestList-districtCopies.xlsx")
         if not special_output_path:
             special_output_path = os.path.join(self.data_dir, "mackin-overdriveTitleTransferRequestList-districtCopies-PenguinRandomHouse-Blackstone.xlsx")
+        if not expired_output_path:
+            expired_output_path = os.path.join(self.data_dir, "mackin-overdriveTitleTransferRequestList-districtCopies-expired.xlsx")
+        if not expired_special_output_path:
+            expired_special_output_path = os.path.join(self.data_dir, "mackin-overdriveTitleTransferRequestList-districtCopies-PenguinRandomHouse-Blackstone-expired.xlsx")
 
         if not os.path.exists(district_csv_path):
             raise FileNotFoundError(f"District usage report not found at {district_csv_path}")
@@ -1017,7 +1114,7 @@ class MackinTitleMigration:
 
         if not rows:
             self.log("District usage report is empty.")
-            return output_path, special_output_path
+            return output_path, special_output_path, expired_output_path, expired_special_output_path
 
         header = rows[0]
         hdr_upper = [str(c).strip().upper() for c in header]
@@ -1066,13 +1163,14 @@ class MackinTitleMigration:
 
         all_district_rows = []
         special_publisher_rows = []
+        all_district_expired_rows = []
+        special_publisher_expired_rows = []
 
         for r in rows[1:]:
             if not any(r):
                 continue
             status = clean_val(r, idx_status).upper()
-            # District report denotes active copies with CURRENT status
-            if status != 'CURRENT':
+            if status not in ('CURRENT', 'EXPIRED'):
                 continue
 
             title = clean_val(r, idx_title)
@@ -1148,12 +1246,17 @@ class MackinTitleMigration:
                 checkouts_used,
                 checkouts_remaining
             ]
-            all_district_rows.append(row_record)
 
-            if re.search(r'penguin|random\s*house|blackstone', publisher, re.I):
-                special_publisher_rows.append(row_record)
+            if status == 'CURRENT':
+                all_district_rows.append(row_record)
+                if re.search(r'penguin|random\s*house|blackstone', publisher, re.I):
+                    special_publisher_rows.append(row_record)
+            elif status == 'EXPIRED':
+                all_district_expired_rows.append(row_record)
+                if re.search(r'penguin|random\s*house|blackstone', publisher, re.I):
+                    special_publisher_expired_rows.append(row_record)
 
-        # Write district main output workbook
+        # Write district active main output workbook
         out_wb = Workbook()
         out_ws = out_wb.active
         out_ws.title = "Titles"
@@ -1161,9 +1264,9 @@ class MackinTitleMigration:
         for r in all_district_rows:
             out_ws.append(r)
         out_wb.save(output_path)
-        self.log(f"Saved district copies transfer request list ({len(all_district_rows)} records) to {output_path}")
+        self.log(f"Saved district active copies transfer request list ({len(all_district_rows)} records) to {output_path}")
 
-        # Write district special publisher output workbook
+        # Write district active special publisher output workbook
         spec_wb = Workbook()
         spec_ws = spec_wb.active
         spec_ws.title = "Titles"
@@ -1171,9 +1274,29 @@ class MackinTitleMigration:
         for r in special_publisher_rows:
             spec_ws.append(r)
         spec_wb.save(special_output_path)
-        self.log(f"Saved district Penguin Random House & Blackstone transfer request list ({len(special_publisher_rows)} records) to {special_output_path}")
+        self.log(f"Saved district active Penguin Random House & Blackstone transfer request list ({len(special_publisher_rows)} records) to {special_output_path}")
 
-        return output_path, special_output_path
+        # Write district expired main output workbook
+        exp_wb = Workbook()
+        exp_ws = exp_wb.active
+        exp_ws.title = "Titles"
+        exp_ws.append(target_headers)
+        for r in all_district_expired_rows:
+            exp_ws.append(r)
+        exp_wb.save(expired_output_path)
+        self.log(f"Saved district expired copies transfer request list ({len(all_district_expired_rows)} records) to {expired_output_path}")
+
+        # Write district expired special publisher output workbook
+        exp_spec_wb = Workbook()
+        exp_spec_ws = exp_spec_wb.active
+        exp_spec_ws.title = "Titles"
+        exp_spec_ws.append(target_headers)
+        for r in special_publisher_expired_rows:
+            exp_spec_ws.append(r)
+        exp_spec_wb.save(expired_special_output_path)
+        self.log(f"Saved district expired Penguin Random House & Blackstone transfer request list ({len(special_publisher_expired_rows)} records) to {expired_special_output_path}")
+
+        return output_path, special_output_path, expired_output_path, expired_special_output_path
 
 
 def main():
@@ -1183,14 +1306,18 @@ def main():
     parser.add_argument("--config", default="../config.pwd.ini", help="Path to config.pwd.ini")
     parser.add_argument("--limit", type=int, default=None, help="Process only first N schools")
     parser.add_argument("--school", type=str, default=None, help="Process only specific school code(s), comma-separated")
-    parser.add_argument("--district", action="store_true", help="Retrieve and transform district active titles report")
-    parser.add_argument("--district-only", action="store_true", help="Only retrieve and transform district active titles report")
+    parser.add_argument("--district", action="store_true", help="Retrieve and transform district titles report")
+    parser.add_argument("--district-only", action="store_true", help="Only retrieve and transform district titles report")
     parser.add_argument("--skip-download", action="store_true", help="Skip downloading, run combine/transform on existing files")
     parser.add_argument("--clean-files", action="store_true", help="Clean existing downloaded Excel files in data directory")
-    parser.add_argument("--output", default=None, help="Output path for final transformed xlsx")
-    parser.add_argument("--special-output", default=None, help="Output path for Penguin Random House & Blackstone transformed xlsx")
-    parser.add_argument("--district-output", default=None, help="Output path for district copies transformed xlsx")
-    parser.add_argument("--district-special-output", default=None, help="Output path for district PRH & Blackstone transformed xlsx")
+    parser.add_argument("--output", default=None, help="Output path for final active transformed xlsx")
+    parser.add_argument("--special-output", default=None, help="Output path for active Penguin Random House & Blackstone transformed xlsx")
+    parser.add_argument("--output-expired", default=None, help="Output path for final expired transformed xlsx")
+    parser.add_argument("--special-output-expired", default=None, help="Output path for expired Penguin Random House & Blackstone transformed xlsx")
+    parser.add_argument("--district-output", default=None, help="Output path for district active copies transformed xlsx")
+    parser.add_argument("--district-special-output", default=None, help="Output path for district active PRH & Blackstone transformed xlsx")
+    parser.add_argument("--district-output-expired", default=None, help="Output path for district expired copies transformed xlsx")
+    parser.add_argument("--district-special-output-expired", default=None, help="Output path for district expired PRH & Blackstone transformed xlsx")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose debug logging")
 
     args = parser.parse_args()
@@ -1210,7 +1337,9 @@ def main():
             app.fetch_district()
         app.transform_district_report(
             output_path=args.district_output,
-            special_output_path=args.district_special_output
+            special_output_path=args.district_special_output,
+            expired_output_path=args.district_output_expired,
+            expired_special_output_path=args.district_special_output_expired
         )
         return
 
@@ -1231,9 +1360,18 @@ def main():
         # If skip download, ensure existing data files are cleaned
         app.clean_data_files()
 
-    # Combine & transform school files
+    # Combine & transform school files (both active and expired)
     if not args.school:
-        app.combine_and_transform(args.output, args.special_output)
+        app.combine_and_transform(
+            output_path=args.output, 
+            special_output_path=args.special_output, 
+            is_expired=False
+        )
+        app.combine_and_transform(
+            output_path=args.output_expired, 
+            special_output_path=args.special_output_expired, 
+            is_expired=True
+        )
 
     # Transform district report if district report exists or was requested
     district_csv_path = os.path.join(args.data_dir, "mackin-migration-district-usage.csv")
@@ -1241,7 +1379,9 @@ def main():
         app.transform_district_report(
             district_csv_path=district_csv_path,
             output_path=args.district_output,
-            special_output_path=args.district_special_output
+            special_output_path=args.district_special_output,
+            expired_output_path=args.district_output_expired,
+            expired_special_output_path=args.district_special_output_expired
         )
 
 
