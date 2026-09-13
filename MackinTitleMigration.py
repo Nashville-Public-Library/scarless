@@ -3,20 +3,26 @@
 MackinTitleMigration.py
 
 Automates batch retrieval and transformation of title reports and subscription reports
-from admin.mackinvia.com for MNPS schools.
+from admin.mackinvia.com for MNPS schools and district-provided copies.
 
 Usage:
     python MackinTitleMigration.py [options]
 
 Options:
-    --lookup=PATH        Path to lookup file (default: mackin-lookup.txt)
-    --data-dir=PATH      Output directory for data files (default: ../data)
-    --config=PATH        Path to config file (default: ../config.pwd.ini)
-    --limit=N            Process only first N schools (for testing)
-    --school=CODE        Process only specific school code(s) (comma-separated)
-    --skip-download      Skip downloading reports and run combine/transform on existing files
-    --output=PATH        Path for final combined request list Excel file
-    --verbose            Enable verbose debug logging
+    --lookup=PATH                 Path to lookup file (default: mackin-lookup.txt)
+    --data-dir=PATH               Output directory for data files (default: ../data)
+    --config=PATH                 Path to config file (default: ../config.pwd.ini)
+    --limit=N                     Process only first N schools (for testing)
+    --school=CODE                 Process only specific school code(s) (comma-separated)
+    --district                    Retrieve and transform district active titles report
+    --district-only               Only retrieve and transform district active titles report
+    --skip-download               Skip downloading reports and run combine/transform on existing files
+    --clean-files                 Clean existing downloaded Excel files in data directory
+    --output=PATH                 Path for final combined request list Excel file
+    --special-output=PATH         Path for final Penguin Random House & Blackstone request list Excel file
+    --district-output=PATH         Path for district copies transfer request list Excel file
+    --district-special-output=PATH Path for district Penguin Random House & Blackstone request list Excel file
+    --verbose                     Enable verbose debug logging
 """
 
 import os
@@ -25,6 +31,8 @@ import json
 import time
 import re
 import ssl
+import csv
+import io
 import argparse
 import configparser
 import urllib.request
@@ -227,6 +235,26 @@ class MackinTitleMigration:
                 return resp.read()
         except Exception as e:
             self.log(f"Error fetching subscription report for cust {cust_id}, account {account_id} ({school_name}): {e}")
+            return None
+
+    def download_district_usage_report(self, cust_id: int = 21507) -> Optional[bytes]:
+        """Downloads Usage Report for District / Consortia account (e.g. METROPOLITAN NASHVILLE PUBLIC SCH)."""
+        now_ms = int(time.time() * 1000)
+        one_month_ago_ms = now_ms - (30 * 24 * 3600 * 1000)
+        district_url = f"https://admin.mackinvia.com/api/admin/district/customers/{cust_id}/resources/reports/usage?dateAdded={one_month_ago_ms}&dateAdded={now_ms}&exportReport=true"
+        headers = {
+            "Accept": "*/*",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "ASID": self.sid,
+            "Cookie": f"ViaAdmin={self.sid}; ViaAdminCustomer={cust_id}"
+        }
+
+        req = urllib.request.Request(district_url, headers=headers, method="GET")
+        try:
+            with urllib.request.urlopen(req, context=self.ctx) as resp:
+                return resp.read()
+        except Exception as e:
+            self.log(f"Error fetching district usage report for customer {cust_id}: {e}")
             return None
 
     @staticmethod
@@ -787,6 +815,203 @@ class MackinTitleMigration:
 
         return output_path, special_output_path
 
+    def fetch_district(self, cust_id: int = 21507) -> Optional[str]:
+        """Fetches district active titles usage report and saves it locally."""
+        if not self.sid:
+            self.login()
+        
+        self.log(f"Fetching District Usage Report for customer {cust_id} (METROPOLITAN NASHVILLE PUBLIC SCH)...")
+        raw_bytes = self.download_district_usage_report(cust_id)
+        if not raw_bytes:
+            self.log(f"Error: Failed to download district usage report for customer {cust_id}.")
+            return None
+
+        # Save raw report to data directory
+        district_csv_path = os.path.join(self.data_dir, "mackin-migration-district-usage.csv")
+        with open(district_csv_path, "wb") as f:
+            f.write(raw_bytes)
+        self.log(f"Saved district usage report ({len(raw_bytes)} bytes) to {district_csv_path}")
+        return district_csv_path
+
+    def transform_district_report(self, district_csv_path: Optional[str] = None, 
+                                  output_path: Optional[str] = None, 
+                                  special_output_path: Optional[str] = None) -> Tuple[str, str]:
+        """Transforms district usage report to match OverDrive Title Transfer Request format."""
+        if not district_csv_path:
+            district_csv_path = os.path.join(self.data_dir, "mackin-migration-district-usage.csv")
+        if not output_path:
+            output_path = os.path.join(self.data_dir, "mackin-overdriveTitleTransferRequestList-districtCopies.xlsx")
+        if not special_output_path:
+            special_output_path = os.path.join(self.data_dir, "mackin-overdriveTitleTransferRequestList-districtCopies-PenguinRandomHouse-Blackstone.xlsx")
+
+        if not os.path.exists(district_csv_path):
+            raise FileNotFoundError(f"District usage report not found at {district_csv_path}")
+
+        self.log(f"Transforming district report from {district_csv_path}...")
+        with open(district_csv_path, "r", encoding="utf-8-sig", errors="ignore") as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+
+        if not rows:
+            self.log("District usage report is empty.")
+            return output_path, special_output_path
+
+        header = rows[0]
+        hdr_upper = [str(c).strip().upper() for c in header]
+
+        def get_col_idx(col_name: str) -> int:
+            return hdr_upper.index(col_name.upper()) if col_name.upper() in hdr_upper else -1
+
+        idx_date_added = get_col_idx('Date Added')
+        idx_title = get_col_idx('Title')
+        idx_author = get_col_idx('Author')
+        idx_publisher = get_col_idx('Publisher')
+        idx_isbn = get_col_idx('ISBN')
+        idx_access_type = get_col_idx('Access Type')
+        idx_status = get_col_idx('Subscription Status')
+        idx_exp_date = get_col_idx('Subscription End Date')
+        idx_res_type = get_col_idx('Resource Type')
+        idx_lic_type = get_col_idx('License Type')
+        idx_copies_avail = get_col_idx('Copies Available')
+        idx_checkouts = get_col_idx('Checkouts')
+
+        def clean_val(r: List[Any], idx: int) -> str:
+            if idx != -1 and idx < len(r) and r[idx] is not None:
+                v = str(r[idx]).strip()
+                if v.startswith('="') and v.endswith('"'):
+                    v = v[2:-1]
+                elif v.startswith('='):
+                    v = v[1:]
+                return v
+            return ""
+
+        target_headers = [
+            'Current Vendor',
+            'Title',
+            'Author/Creator',
+            '13-Digit ISBN',
+            'Publisher',
+            'Format \nMust specify: ebook or audiobook',
+            'Lending Model\nMust Specify:  One Copy/One User;  Metered by Checkout: 26;  Metered by Time: 12 months;  Metered by Checkout or Time: 52 or 24 months;  or Simultaneous Use',
+            'Total # Units transferring\nRequired for One Copy/One User and Metered by time  titles',
+            'Date First Unit Purchased',
+            'Date expiring\nRequired for each Metered by Time and Simultaneous Use titles',
+            'Total Licenses/Checkouts used\nRequired for Metered by Checkout titles',
+            'Total Licenses/Checkouts remaining\nRequired for Metered by Checkout titles',
+            'school code'
+        ]
+
+        all_district_rows = []
+        special_publisher_rows = []
+
+        for r in rows[1:]:
+            if not any(r):
+                continue
+            status = clean_val(r, idx_status).upper()
+            # District report denotes active copies with CURRENT status
+            if status != 'CURRENT':
+                continue
+
+            title = clean_val(r, idx_title)
+            author = clean_val(r, idx_author)
+            isbn = re.sub(r'[^0-9X]', '', clean_val(r, idx_isbn).upper())
+            publisher = clean_val(r, idx_publisher)
+            res_type = clean_val(r, idx_res_type)
+            lic_type = clean_val(r, idx_lic_type)
+            access_type = clean_val(r, idx_access_type)
+            copies_avail = clean_val(r, idx_copies_avail)
+            date_added = clean_val(r, idx_date_added)
+            exp_date = clean_val(r, idx_exp_date)
+            checkouts = clean_val(r, idx_checkouts)
+
+            current_vendor = "Mackin"
+
+            # Format
+            fmt = "ebook"
+            if "audio" in res_type.lower():
+                fmt = "audiobook"
+
+            # Lending Model
+            lending_model = "One Copy/One User"
+            units_transferring = copies_avail if copies_avail else "1"
+            date_expiring = ""
+            checkouts_used = ""
+            checkouts_remaining = ""
+
+            if "26 checkouts" in access_type.lower():
+                lending_model = "Metered by Checkout: 26"
+                units_transferring = ""
+                used_cnt = int(checkouts) if checkouts.isdigit() else 0
+                rem_cnt = int(copies_avail) if copies_avail.isdigit() else 0
+                checkouts_used = str(used_cnt)
+                checkouts_remaining = str(rem_cnt)
+            elif "52 checkouts" in access_type.lower():
+                lending_model = "Metered by Checkout: 52"
+                units_transferring = ""
+                used_cnt = int(checkouts) if checkouts.isdigit() else 0
+                rem_cnt = int(copies_avail) if copies_avail.isdigit() else 0
+                checkouts_used = str(used_cnt)
+                checkouts_remaining = str(rem_cnt)
+            elif "subscription" in access_type.lower():
+                if "simultaneous" in lic_type.lower() or "multi-user" in lic_type.lower():
+                    lending_model = "Simultaneous Use"
+                else:
+                    lending_model = "Metered by Time: 12 months"
+                units_transferring = copies_avail if copies_avail else "1"
+                date_expiring = exp_date
+            elif "simultaneous" in lic_type.lower() or "multi-user" in lic_type.lower():
+                lending_model = "Simultaneous Use"
+                units_transferring = copies_avail if copies_avail else "1"
+                date_expiring = exp_date
+            elif "perpetual" in access_type.lower():
+                lending_model = "One Copy/One User"
+                units_transferring = copies_avail if copies_avail else "1"
+
+            date_purchased = date_added
+            school_code = ""
+
+            row_record = [
+                current_vendor,
+                title,
+                author,
+                isbn,
+                publisher,
+                fmt,
+                lending_model,
+                units_transferring,
+                date_purchased,
+                date_expiring,
+                checkouts_used,
+                checkouts_remaining,
+                school_code
+            ]
+            all_district_rows.append(row_record)
+
+            if re.search(r'penguin|random\s*house|blackstone', publisher, re.I):
+                special_publisher_rows.append(row_record)
+
+        # Write district main output workbook
+        out_wb = Workbook()
+        out_ws = out_wb.active
+        out_ws.title = "Titles"
+        out_ws.append(target_headers)
+        for r in all_district_rows:
+            out_ws.append(r)
+        out_wb.save(output_path)
+        self.log(f"Saved district copies transfer request list ({len(all_district_rows)} records) to {output_path}")
+
+        # Write district special publisher output workbook
+        spec_wb = Workbook()
+        spec_ws = spec_wb.active
+        spec_ws.title = "Titles"
+        spec_ws.append(target_headers)
+        for r in special_publisher_rows:
+            spec_ws.append(r)
+        spec_wb.save(special_output_path)
+        self.log(f"Saved district Penguin Random House & Blackstone transfer request list ({len(special_publisher_rows)} records) to {special_output_path}")
+
+        return output_path, special_output_path
+
 
 def main():
     parser = argparse.ArgumentParser(description="MackinVIA Title Migration batch retrieval & transformation script")
@@ -795,10 +1020,14 @@ def main():
     parser.add_argument("--config", default="../config.pwd.ini", help="Path to config.pwd.ini")
     parser.add_argument("--limit", type=int, default=None, help="Process only first N schools")
     parser.add_argument("--school", type=str, default=None, help="Process only specific school code(s), comma-separated")
+    parser.add_argument("--district", action="store_true", help="Retrieve and transform district active titles report")
+    parser.add_argument("--district-only", action="store_true", help="Only retrieve and transform district active titles report")
     parser.add_argument("--skip-download", action="store_true", help="Skip downloading, run combine/transform on existing files")
     parser.add_argument("--clean-files", action="store_true", help="Clean existing downloaded Excel files in data directory")
     parser.add_argument("--output", default=None, help="Output path for final transformed xlsx")
     parser.add_argument("--special-output", default=None, help="Output path for Penguin Random House & Blackstone transformed xlsx")
+    parser.add_argument("--district-output", default=None, help="Output path for district copies transformed xlsx")
+    parser.add_argument("--district-special-output", default=None, help="Output path for district PRH & Blackstone transformed xlsx")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose debug logging")
 
     args = parser.parse_args()
@@ -813,6 +1042,15 @@ def main():
     if args.clean_files:
         app.clean_data_files()
 
+    if args.district_only:
+        if not args.skip_download:
+            app.fetch_district()
+        app.transform_district_report(
+            output_path=args.district_output,
+            special_output_path=args.district_special_output
+        )
+        return
+
     if not args.skip_download:
         schools = app.load_lookup()
         if args.school:
@@ -822,11 +1060,26 @@ def main():
             schools = schools[:args.limit]
         
         app.fetch_all(schools)
+        
+        # If full run or --district flag specified, also fetch district report
+        if args.district or (not args.school and not args.limit):
+            app.fetch_district()
     else:
         # If skip download, ensure existing data files are cleaned
         app.clean_data_files()
 
-    app.combine_and_transform(args.output, args.special_output)
+    # Combine & transform school files
+    if not args.school:
+        app.combine_and_transform(args.output, args.special_output)
+
+    # Transform district report if district report exists or was requested
+    district_csv_path = os.path.join(args.data_dir, "mackin-migration-district-usage.csv")
+    if args.district or os.path.exists(district_csv_path):
+        app.transform_district_report(
+            district_csv_path=district_csv_path,
+            output_path=args.district_output,
+            special_output_path=args.district_special_output
+        )
 
 
 if __name__ == "__main__":
