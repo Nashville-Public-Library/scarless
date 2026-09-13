@@ -84,13 +84,12 @@ class MackinTitleMigration:
             password = config['Mackin']['adminPassword'].strip(' "')
         
         if not username or not password:
-            # Fallback check
-            if 'Mackin' in config and 'mackinuser' in config['Mackin']:
-                username = config['Mackin']['mackinuser'].strip(' "')
-                password = config['Mackin']['mackinpassword'].strip(' "')
-            else:
-                username = "james.staub@nashville.gov"
-                password = "[REDACTED]"
+            # Credentials should be read from config file only
+            # If config file is missing or incomplete, raise an error
+            raise ValueError(
+                "Credentials not found in config file. Please add [MackinVIA] section with "
+                "adminUser and adminPassword to your config file at: " + self.config_path
+            )
                 
         return username, password
 
