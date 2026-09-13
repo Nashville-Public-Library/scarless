@@ -38,6 +38,8 @@ import configparser
 import urllib.request
 import urllib.parse
 from typing import Dict, List, Any, Optional, Tuple
+from collections import OrderedDict
+from datetime import datetime
 import openpyxl
 from openpyxl import Workbook, load_workbook
 
@@ -564,6 +566,52 @@ class MackinTitleMigration:
 
         self.log("Batch retrieval completed.")
 
+    @staticmethod
+    def _parse_date(date_str: str) -> Optional[datetime]:
+        if not date_str:
+            return None
+        date_str = str(date_str).strip()
+        for fmt in ('%m/%d/%Y', '%Y-%m-%d', '%m/%d/%y', '%d/%m/%Y', '%Y/%m/%d'):
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                pass
+        return None
+
+    @classmethod
+    def _get_earliest_date(cls, dates: List[str]) -> str:
+        valid_dates = []
+        for d in dates:
+            if not d:
+                continue
+            dt = cls._parse_date(d)
+            if dt:
+                valid_dates.append((dt, d))
+        if valid_dates:
+            valid_dates.sort(key=lambda x: x[0])
+            return valid_dates[0][1]
+        for d in dates:
+            if d:
+                return d
+        return ""
+
+    @classmethod
+    def _get_latest_date(cls, dates: List[str]) -> str:
+        valid_dates = []
+        for d in dates:
+            if not d:
+                continue
+            dt = cls._parse_date(d)
+            if dt:
+                valid_dates.append((dt, d))
+        if valid_dates:
+            valid_dates.sort(key=lambda x: x[0], reverse=True)
+            return valid_dates[0][1]
+        for d in dates:
+            if d:
+                return d
+        return ""
+
     def combine_and_transform(self, output_path: Optional[str] = None, special_output_path: Optional[str] = None) -> Tuple[str, str]:
         if not output_path:
             output_path = os.path.join(self.data_dir, "mackin-overdriveTitleTransferRequestList.xlsx")
@@ -577,27 +625,26 @@ class MackinTitleMigration:
         self.log(f"Found {len(title_files)} school title files to combine.")
 
         target_headers = [
+            'SCHOOL_CODE',
             'Current Vendor',
             'Title',
             'Author/Creator',
             '13-Digit ISBN',
             'Publisher',
-            'Format \nMust specify: ebook or audiobook',
-            'Lending Model\nMust Specify:  One Copy/One User;  Metered by Checkout: 26;  Metered by Time: 12 months;  Metered by Checkout or Time: 52 or 24 months;  or Simultaneous Use',
-            'Total # Units transferring\nRequired for One Copy/One User and Metered by time  titles',
+            'Format (Must specify: ebook or audiobook)',
+            'Lending Model (Must Specify:  One Copy/One User;  Metered by Checkout: 26;  Metered by Time: 12 months;  Metered by Checkout or Time: 52 or 24 months;  or Simultaneous Use)',
+            'Total # Units transferring (Required for One Copy/One User and Metered by time  titles)',
             'Date First Unit Purchased',
-            'Date expiring\nRequired for each Metered by Time and Simultaneous Use titles',
-            'Total Licenses/Checkouts used\nRequired for Metered by Checkout titles',
-            'Total Licenses/Checkouts remaining\nRequired for Metered by Checkout titles',
-            'school code'
+            'Date expiring (Required for each Metered by Time and Simultaneous Use titles)',
+            'Total Licenses/Checkouts used (Required for Metered by Checkout titles)',
+            'Total Licenses/Checkouts remaining (Required for Metered by Checkout titles)'
         ]
 
-        all_combined_rows = []
-        special_publisher_rows = []
+        # Aggregate copies by (school_code, format, isbn_clean, lending_model)
+        aggregated_records = OrderedDict()
         unexpected_statuses = set()
 
         for tf in sorted(title_files):
-            # Extract school code from filename: mackin-migration-titles-[school code].xlsx
             m = re.match(r'mackin-migration-titles-(.+)\.xlsx', tf)
             if not m:
                 continue
@@ -605,20 +652,22 @@ class MackinTitleMigration:
             titles_path = os.path.join(self.data_dir, tf)
             subs_path = os.path.join(self.data_dir, f"mackin-migration-subscriptions-{school_code}.xlsx")
 
-            # Load subscriptions lookup for this school: key = (license_type_clean, isbn_clean) -> expires
-            subs_map = {}
+            # Load all subscription records for this school
+            subs_by_isbn = {}
             if os.path.exists(subs_path):
                 try:
                     wb_sub = load_workbook(subs_path, data_only=True)
                     ws_sub = wb_sub.active
                     sub_rows = list(ws_sub.iter_rows(values_only=True))
                     if sub_rows:
-                        # find header index for License Type, ISBN, Expires, Provided By
                         s_hdr = [str(c).strip().upper() if c is not None else "" for c in sub_rows[0]]
                         lic_idx = s_hdr.index('LICENSE TYPE') if 'LICENSE TYPE' in s_hdr else -1
                         isbn_idx = s_hdr.index('ISBN') if 'ISBN' in s_hdr else -1
                         exp_idx = s_hdr.index('EXPIRES') if 'EXPIRES' in s_hdr else -1
                         prov_idx_s = s_hdr.index('PROVIDED BY') if 'PROVIDED BY' in s_hdr else -1
+                        copies_idx_s = s_hdr.index('COPIES') if 'COPIES' in s_hdr else -1
+                        date_idx_s = s_hdr.index('DATE ADDED') if 'DATE ADDED' in s_hdr else -1
+                        status_idx_s = s_hdr.index('STATUS') if 'STATUS' in s_hdr else -1
 
                         seen_sub_tuples = set()
                         for sr in sub_rows[1:]:
@@ -627,21 +676,29 @@ class MackinTitleMigration:
                             if prov_idx_s != -1 and len(sr) > prov_idx_s and sr[prov_idx_s] is not None:
                                 if str(sr[prov_idx_s]).strip().upper() == 'METROPOLITAN NASHVILLE PUBLIC SCH':
                                     continue
+                            if status_idx_s != -1 and len(sr) > status_idx_s and sr[status_idx_s] is not None:
+                                if str(sr[status_idx_s]).strip().upper() == 'EXPIRED':
+                                    continue
                             norm_sub = tuple(str(c).strip() if c is not None else "" for c in sr)
                             if norm_sub in seen_sub_tuples:
                                 continue
                             seen_sub_tuples.add(norm_sub)
 
-                            if lic_idx != -1 and isbn_idx != -1 and exp_idx != -1:
-                                if len(sr) > max(lic_idx, isbn_idx, exp_idx):
-                                    lic_val = str(sr[lic_idx]).strip().lower() if sr[lic_idx] is not None else ""
-                                    isbn_val = re.sub(r'[^0-9X]', '', str(sr[isbn_idx]).strip().upper()) if sr[isbn_idx] is not None else ""
-                                    exp_val = str(sr[exp_idx]).strip() if sr[exp_idx] is not None else ""
-                                    if isbn_val:
-                                        subs_map[(lic_val, isbn_val)] = exp_val
-                                        # Also index by isbn only as fallback
-                                        if isbn_val not in subs_map:
-                                            subs_map[isbn_val] = exp_val
+                            if isbn_idx != -1 and len(sr) > isbn_idx and sr[isbn_idx] is not None:
+                                isbn_val = re.sub(r'[^0-9X]', '', str(sr[isbn_idx]).strip().upper())
+                                if isbn_val:
+                                    lic_val = str(sr[lic_idx]).strip().lower() if lic_idx != -1 and len(sr) > lic_idx and sr[lic_idx] is not None else ""
+                                    exp_val = str(sr[exp_idx]).strip() if exp_idx != -1 and len(sr) > exp_idx and sr[exp_idx] is not None else ""
+                                    c_val = str(sr[copies_idx_s]).strip() if copies_idx_s != -1 and len(sr) > copies_idx_s and sr[copies_idx_s] is not None else "1"
+                                    cnt = int(c_val) if c_val.isdigit() and int(c_val) > 0 else 1
+                                    d_val = str(sr[date_idx_s]).strip() if date_idx_s != -1 and len(sr) > date_idx_s and sr[date_idx_s] is not None else ""
+                                    
+                                    subs_by_isbn.setdefault(isbn_val, []).append({
+                                        'lic': lic_val,
+                                        'expires': exp_val,
+                                        'copies': cnt,
+                                        'date_added': d_val
+                                    })
                 except Exception as e:
                     self.log(f"Warning: Could not process subscriptions file {subs_path}: {e}")
 
@@ -706,91 +763,198 @@ class MackinTitleMigration:
                     res_type = val(r, idx_res_type)
                     lic_type = val(r, idx_license_type)
                     acc_type = val(r, idx_access_type)
-                    copies = val(r, idx_copies)
+                    copies_str = val(r, idx_copies)
                     date_added = val(r, idx_date_added)
                     
                     # Clean ISBN
                     isbn_clean = re.sub(r'[^0-9X]', '', isbn.upper())
                     lic_clean = lic_type.lower()
+                    fmt = "audiobook" if "audio" in res_type.lower() else "ebook"
+                    title_copies = int(copies_str) if copies_str.isdigit() and int(copies_str) > 0 else 1
 
-                    # Find Expires from subscriptions map
-                    expires = subs_map.get((lic_clean, isbn_clean))
-                    if expires is None:
-                        expires = subs_map.get(isbn_clean, "")
+                    # Check if matching subscription records exist
+                    matching_subs = subs_by_isbn.get(isbn_clean, [])
 
-                    # 1. Current Vendor
-                    current_vendor = "Mackin"
+                    if matching_subs:
+                        for sub in matching_subs:
+                            s_exp = sub['expires']
+                            s_cnt = sub['copies']
+                            s_date = sub['date_added'] if sub['date_added'] else date_added
 
-                    # 6. Format (ebook or audiobook)
-                    fmt = "ebook"
-                    if "audio" in res_type.lower():
-                        fmt = "audiobook"
+                            lending_model = "One Copy/One User"
+                            units_transferring = 0
+                            date_expiring = ""
+                            checkouts_used = 0
+                            checkouts_remaining = 0
+                            is_metered_checkout = False
+                            is_metered_time = False
 
-                    # 7. Lending Model
-                    # Must Specify: One Copy/One User; Metered by Checkout: 26; Metered by Time: 12 months; Metered by Checkout or Time: 52 or 24 months; or Simultaneous Use
-                    lending_model = "One Copy/One User"
-                    units_transferring = copies if copies else "1"
-                    date_expiring = ""
-                    checkouts_used = ""
-                    checkouts_remaining = ""
+                            metered_match = re.search(r'(\d+)/(\d+)\s*used', s_exp, re.I)
+                            if metered_match:
+                                is_metered_checkout = True
+                                used_cnt = int(metered_match.group(1))
+                                total_cnt = int(metered_match.group(2))
+                                base_cap = total_cnt // s_cnt if s_cnt > 0 else total_cnt
+                                lending_model = f"Metered by Checkout: {base_cap}"
+                                checkouts_used = used_cnt
+                                checkouts_remaining = max(0, total_cnt - used_cnt)
+                            elif s_exp and any(c.isdigit() for c in s_exp) and ('/' in s_exp or '-' in s_exp):
+                                is_metered_time = True
+                                date_expiring = s_exp
+                                if "simultaneous" in lic_clean or "simultaneous" in acc_type.lower():
+                                    lending_model = "Simultaneous Use"
+                                else:
+                                    lending_model = "Metered by Time: 12 months"
+                                units_transferring = s_cnt
+                            elif "simultaneous" in lic_clean or "simultaneous" in acc_type.lower():
+                                lending_model = "Simultaneous Use"
+                                units_transferring = s_cnt
+                            elif "subscription" in acc_type.lower():
+                                is_metered_time = True
+                                lending_model = "Metered by Time: 12 months"
+                                units_transferring = s_cnt
+                            else:
+                                lending_model = "One Copy/One User"
+                                units_transferring = s_cnt
 
-                    # Check if metered by checkout (e.g. '4/26 used')
-                    metered_match = re.search(r'(\d+)/(\d+)\s*used', expires, re.I)
-                    if metered_match:
-                        used_cnt = int(metered_match.group(1))
-                        total_cnt = int(metered_match.group(2))
-                        rem_cnt = max(0, total_cnt - used_cnt)
-                        
-                        lending_model = f"Metered by Checkout: {total_cnt}"
-                        units_transferring = ""
-                        checkouts_used = str(used_cnt)
-                        checkouts_remaining = str(rem_cnt)
-                    elif expires and any(c.isdigit() for c in expires) and ('/' in expires or '-' in expires):
-                        # Date expiring
-                        date_expiring = expires
+                            agg_key = (school_code, fmt, isbn_clean, lending_model)
+                            if agg_key not in aggregated_records:
+                                aggregated_records[agg_key] = {
+                                    'school_code': school_code,
+                                    'current_vendor': "Mackin",
+                                    'title': title,
+                                    'author': author,
+                                    'isbn': isbn_clean,
+                                    'publisher': publisher,
+                                    'format': fmt,
+                                    'lending_model': lending_model,
+                                    'units_transferring': units_transferring,
+                                    'dates_purchased': [s_date] if s_date else [],
+                                    'dates_expiring': [date_expiring] if date_expiring else [],
+                                    'checkouts_used': checkouts_used if is_metered_checkout else None,
+                                    'checkouts_remaining': checkouts_remaining if is_metered_checkout else None,
+                                    'is_metered_checkout': is_metered_checkout
+                                }
+                            else:
+                                rec = aggregated_records[agg_key]
+                                if units_transferring:
+                                    rec['units_transferring'] += units_transferring
+                                if s_date:
+                                    rec['dates_purchased'].append(s_date)
+                                if date_expiring:
+                                    rec['dates_expiring'].append(date_expiring)
+                                if is_metered_checkout:
+                                    if rec['checkouts_used'] is None:
+                                        rec['checkouts_used'] = 0
+                                        rec['checkouts_remaining'] = 0
+                                    rec['checkouts_used'] += checkouts_used
+                                    rec['checkouts_remaining'] += checkouts_remaining
+                    else:
+                        # No subscriptions (e.g. Perpetual)
+                        lending_model = "One Copy/One User"
+                        units_transferring = title_copies
+                        date_expiring = ""
+                        checkouts_used = 0
+                        checkouts_remaining = 0
+                        is_metered_checkout = False
+
                         if "simultaneous" in lic_clean or "simultaneous" in acc_type.lower():
                             lending_model = "Simultaneous Use"
-                        else:
+                        elif "perpetual" in acc_type.lower() or "single" in lic_clean:
+                            lending_model = "One Copy/One User"
+                        elif "26 checkout" in acc_type.lower():
+                            is_metered_checkout = True
+                            lending_model = "Metered by Checkout: 26"
+                            checkouts_used = 0
+                            checkouts_remaining = 26 * title_copies
+                        elif "25 checkout" in acc_type.lower():
+                            is_metered_checkout = True
+                            lending_model = "Metered by Checkout: 25"
+                            checkouts_used = 0
+                            checkouts_remaining = 25 * title_copies
+                        elif "52 checkout" in acc_type.lower():
+                            is_metered_checkout = True
+                            lending_model = "Metered by Checkout: 52"
+                            checkouts_used = 0
+                            checkouts_remaining = 52 * title_copies
+                        elif "subscription" in acc_type.lower():
                             lending_model = "Metered by Time: 12 months"
-                        units_transferring = copies if copies else "1"
-                    elif "simultaneous" in lic_clean or "simultaneous" in acc_type.lower():
-                        lending_model = "Simultaneous Use"
-                        units_transferring = copies if copies else "1"
-                    elif "perpetual" in acc_type.lower() or "single" in lic_clean:
-                        lending_model = "One Copy/One User"
-                        units_transferring = copies if copies else "1"
-                    elif "subscription" in acc_type.lower():
-                        lending_model = "Metered by Time: 12 months"
-                        units_transferring = copies if copies else "1"
 
-                    date_purchased = date_added
-
-                    row_record = [
-                        current_vendor,
-                        title,
-                        author,
-                        isbn,
-                        publisher,
-                        fmt,
-                        lending_model,
-                        units_transferring,
-                        date_purchased,
-                        date_expiring,
-                        checkouts_used,
-                        checkouts_remaining,
-                        school_code
-                    ]
-                    all_combined_rows.append(row_record)
-
-                    # Check if publisher is like Penguin Random House or Blackstone
-                    if re.search(r'penguin|random\s*house|blackstone', publisher, re.I):
-                        special_publisher_rows.append(row_record)
+                        agg_key = (school_code, fmt, isbn_clean, lending_model)
+                        if agg_key not in aggregated_records:
+                            aggregated_records[agg_key] = {
+                                'school_code': school_code,
+                                'current_vendor': "Mackin",
+                                'title': title,
+                                'author': author,
+                                'isbn': isbn_clean,
+                                'publisher': publisher,
+                                'format': fmt,
+                                'lending_model': lending_model,
+                                'units_transferring': units_transferring if not is_metered_checkout else 0,
+                                'dates_purchased': [date_added] if date_added else [],
+                                'dates_expiring': [date_expiring] if date_expiring else [],
+                                'checkouts_used': checkouts_used if is_metered_checkout else None,
+                                'checkouts_remaining': checkouts_remaining if is_metered_checkout else None,
+                                'is_metered_checkout': is_metered_checkout
+                            }
+                        else:
+                            rec = aggregated_records[agg_key]
+                            if not is_metered_checkout:
+                                rec['units_transferring'] += units_transferring
+                            if date_added:
+                                rec['dates_purchased'].append(date_added)
+                            if date_expiring:
+                                rec['dates_expiring'].append(date_expiring)
+                            if is_metered_checkout:
+                                if rec['checkouts_used'] is None:
+                                    rec['checkouts_used'] = 0
+                                    rec['checkouts_remaining'] = 0
+                                rec['checkouts_used'] += checkouts_used
+                                rec['checkouts_remaining'] += checkouts_remaining
 
             except Exception as e:
                 self.log(f"Error processing titles file {titles_path}: {e}")
 
         if unexpected_statuses:
             self.log(f"Notice: Non-standard statuses outside (ACTIVE, EXPIRED) detected: {sorted(unexpected_statuses)}")
+
+        # Build final rows
+        all_combined_rows = []
+        special_publisher_rows = []
+
+        for rec in aggregated_records.values():
+            date_first_purchased = self._get_earliest_date(rec['dates_purchased'])
+            date_expiring = self._get_latest_date(rec['dates_expiring'])
+            
+            if rec['is_metered_checkout']:
+                units_val = ""
+                used_val = str(rec['checkouts_used']) if rec['checkouts_used'] is not None else ""
+                rem_val = str(rec['checkouts_remaining']) if rec['checkouts_remaining'] is not None else ""
+            else:
+                units_val = str(rec['units_transferring']) if rec['units_transferring'] > 0 else "1"
+                used_val = ""
+                rem_val = ""
+
+            row_record = [
+                rec['school_code'],
+                rec['current_vendor'],
+                rec['title'],
+                rec['author'],
+                rec['isbn'],
+                rec['publisher'],
+                rec['format'],
+                rec['lending_model'],
+                units_val,
+                date_first_purchased,
+                date_expiring,
+                used_val,
+                rem_val
+            ]
+            all_combined_rows.append(row_record)
+
+            if re.search(r'penguin|random\s*house|blackstone', rec['publisher'], re.I):
+                special_publisher_rows.append(row_record)
 
         # Write main output workbook
         out_wb = Workbook()
@@ -885,19 +1049,19 @@ class MackinTitleMigration:
             return ""
 
         target_headers = [
+            'SCHOOL_CODE',
             'Current Vendor',
             'Title',
             'Author/Creator',
             '13-Digit ISBN',
             'Publisher',
-            'Format \nMust specify: ebook or audiobook',
-            'Lending Model\nMust Specify:  One Copy/One User;  Metered by Checkout: 26;  Metered by Time: 12 months;  Metered by Checkout or Time: 52 or 24 months;  or Simultaneous Use',
-            'Total # Units transferring\nRequired for One Copy/One User and Metered by time  titles',
+            'Format (Must specify: ebook or audiobook)',
+            'Lending Model (Must Specify:  One Copy/One User;  Metered by Checkout: 26;  Metered by Time: 12 months;  Metered by Checkout or Time: 52 or 24 months;  or Simultaneous Use)',
+            'Total # Units transferring (Required for One Copy/One User and Metered by time  titles)',
             'Date First Unit Purchased',
-            'Date expiring\nRequired for each Metered by Time and Simultaneous Use titles',
-            'Total Licenses/Checkouts used\nRequired for Metered by Checkout titles',
-            'Total Licenses/Checkouts remaining\nRequired for Metered by Checkout titles',
-            'school code'
+            'Date expiring (Required for each Metered by Time and Simultaneous Use titles)',
+            'Total Licenses/Checkouts used (Required for Metered by Checkout titles)',
+            'Total Licenses/Checkouts remaining (Required for Metered by Checkout titles)'
         ]
 
         all_district_rows = []
@@ -967,9 +1131,10 @@ class MackinTitleMigration:
                 units_transferring = copies_avail if copies_avail else "1"
 
             date_purchased = date_added
-            school_code = ""
+            school_code = "DISTRICT"
 
             row_record = [
+                school_code,
                 current_vendor,
                 title,
                 author,
@@ -981,8 +1146,7 @@ class MackinTitleMigration:
                 date_purchased,
                 date_expiring,
                 checkouts_used,
-                checkouts_remaining,
-                school_code
+                checkouts_remaining
             ]
             all_district_rows.append(row_record)
 
