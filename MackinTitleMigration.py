@@ -321,11 +321,11 @@ class MackinTitleMigration:
             # 1. Status checks for reports
             if status_idx != -1 and len(row) > status_idx:
                 status_val = str(row[status_idx]).strip().upper()
-                if report_type == 'titles' and status_val not in ('ACTIVE', 'EXPIRED', ''):
+                if report_type == 'titles' and status_val not in ('ACTIVE', 'EXPIRED', 'INACTIVE', ''):
                     self.log(f"Notice: Non-standard Status found in {report_type} report: '{row[status_idx]}'")
-                if status_filter == 'ACTIVE' and status_val == 'EXPIRED':
+                if status_filter == 'ACTIVE' and status_val in ('EXPIRED', 'INACTIVE'):
                     continue
-                elif status_filter == 'EXPIRED' and status_val != 'EXPIRED':
+                elif status_filter == 'EXPIRED' and status_val not in ('EXPIRED', 'INACTIVE'):
                     continue
 
             # 2. Exclude pure district copies where Provided By = METROPOLITAN NASHVILLE PUBLIC SCH
@@ -433,9 +433,9 @@ class MackinTitleMigration:
                     is_expired = False
                     if status_idx != -1 and len(r) > status_idx and r[status_idx] is not None:
                         s_val = str(r[status_idx]).strip()
-                        if s_val.upper() not in ('ACTIVE', 'EXPIRED', ''):
+                        if s_val.upper() not in ('ACTIVE', 'EXPIRED', 'INACTIVE', ''):
                             unexpected_statuses.add(s_val)
-                        if s_val.upper() == 'EXPIRED':
+                        if s_val.upper() in ('EXPIRED', 'INACTIVE'):
                             is_expired = True
 
                     if prov_idx != -1 and len(r) > prov_idx and r[prov_idx] is not None:
@@ -502,7 +502,7 @@ class MackinTitleMigration:
 
                     is_expired = False
                     if status_idx != -1 and len(r) > status_idx and r[status_idx] is not None:
-                        if str(r[status_idx]).strip().upper() == 'EXPIRED':
+                        if str(r[status_idx]).strip().upper() in ('EXPIRED', 'INACTIVE'):
                             is_expired = True
 
                     if prov_idx != -1 and len(r) > prov_idx and r[prov_idx] is not None:
@@ -761,10 +761,10 @@ class MackinTitleMigration:
                             if status_idx_s != -1 and len(sr) > status_idx_s and sr[status_idx_s] is not None:
                                 s_st = str(sr[status_idx_s]).strip().upper()
                                 if is_expired:
-                                    if s_st != 'EXPIRED' and s_st != '':
+                                    if s_st not in ('EXPIRED', 'INACTIVE') and s_st != '':
                                         continue
                                 else:
-                                    if s_st == 'EXPIRED':
+                                    if s_st in ('EXPIRED', 'INACTIVE'):
                                         continue
                             norm_sub = tuple(str(c).strip() if c is not None else "" for c in sr)
                             if norm_sub in seen_sub_tuples:
@@ -834,13 +834,13 @@ class MackinTitleMigration:
                     seen_title_tuples.add(norm_row)
 
                     status = val(r, idx_status)
-                    if status.upper() not in ('ACTIVE', 'EXPIRED', ''):
+                    if status.upper() not in ('ACTIVE', 'EXPIRED', 'INACTIVE', ''):
                         unexpected_statuses.add(status)
                     if is_expired:
-                        if status.upper() != 'EXPIRED' and status.upper() != '':
+                        if status.upper() not in ('EXPIRED', 'INACTIVE') and status.upper() != '':
                             continue
                     else:
-                        if status.upper() == 'EXPIRED':
+                        if status.upper() in ('EXPIRED', 'INACTIVE'):
                             continue
 
                     provided_by = val(r, idx_provided_by)
@@ -1170,7 +1170,7 @@ class MackinTitleMigration:
             if not any(r):
                 continue
             status = clean_val(r, idx_status).upper()
-            if status not in ('CURRENT', 'EXPIRED'):
+            if status not in ('CURRENT', 'EXPIRED', 'INACTIVE'):
                 continue
 
             title = clean_val(r, idx_title)
@@ -1251,7 +1251,7 @@ class MackinTitleMigration:
                 all_district_rows.append(row_record)
                 if re.search(r'penguin|random\s*house|blackstone', publisher, re.I):
                     special_publisher_rows.append(row_record)
-            elif status == 'EXPIRED':
+            elif status in ('EXPIRED', 'INACTIVE'):
                 all_district_expired_rows.append(row_record)
                 if re.search(r'penguin|random\s*house|blackstone', publisher, re.I):
                     special_publisher_expired_rows.append(row_record)
